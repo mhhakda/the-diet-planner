@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍽️ Diet Planner</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --surface-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --text-muted: #adb5bd;
+            --border-color: #dee2e6;
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            --border-radius: 0.375rem;
+            --border-radius-lg: 0.5rem;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --progress-bg: #e9ecef;
+            --progress-height: 8px;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --surface-color: #2d2d2d;
+            --card-bg: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --text-muted: #6c6c6c;
+            --border-color: #404040;
+            --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
+            --progress-bg: #404040;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-family);
+            line-height: 1.5;
+            color: var(--text-primary);
+            background-color: var(--bg-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Navigation Styles */
+        .sidebar {
+            width: 280px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .tagline {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-menu {
+            padding: 1rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.25rem;
+            border-radius: var(--border-radius);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+
+        .nav-item:hover {
+            background: var(--surface-color);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--surface-color);
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .nav-icon {
+            margin-right: 0.75rem;
+            font-size: 1.1rem;
+        }
+
+        /* Mobile Navigation */
+        .mobile-header {
+            display: none;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1001;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-menu-button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+
+        .mobile-logo {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            color: var(--text-primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            background: var(--surface-color);
+            min-height: 100vh;
+        }
+
+        .content-section {
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .section-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            transition: box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--surface-color);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Form Styles */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-family: inherit;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .form-control.is-invalid {
+            border-color: var(--danger-color);
+        }
+
+        .invalid-feedback {
+            display: block;
+            margin-top: 0.25rem;
+            font-size: 0.875rem;
+            color: var(--danger-color);
+        }
+
+        /* Button Styles */
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            margin: 0.25rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: center;
+            text-decoration: none;
+            border: 1px solid transparent;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            color: #fff;
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
+
+        .btn-secondary {
+            color: #fff;
+            background-color: var(--text-secondary);
+            border-color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+            border-color: #4e555b;
+        }
+
+        .btn-success {
+            color: #fff;
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        .btn-success:hover {
+            background-color: #1e7e34;
+            border-color: #1c7430;
+        }
+
+        .btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+
+        /* Progress Styles */
+        .progress {
+            display: flex;
+            height: var(--progress-height);
+            overflow: hidden;
+            font-size: 0.75rem;
+            background-color: var(--progress-bg);
+            border-radius: calc(var(--progress-height) / 2);
+        }
+
+        .progress-bar {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow: hidden;
+            color: #fff;
+            text-align: center;
+            white-space: nowrap;
+            background-color: var(--primary-color);
+            transition: width 0.6s ease;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .stat-unit {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .stat-target {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Meal Sections */
+        .meal-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .meal-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--surface-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .meal-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .meal-calories {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .meal-body {
+            padding: 1.5rem;
+        }
+
+        .meal-empty {
+            text-align: center;
+            color: var(--text-muted);
+            font-style: italic;
+            padding: 2rem;
+        }
+
+        /* Table Styles */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: var(--border-radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            margin: 0;
+        }
+
+        .table th {
+            background: var(--surface-color);
+            padding: 1rem 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table td {
+            padding: 1rem 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+
+        .table tbody tr:hover {
+            background: var(--surface-color);
+        }
+
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .meal-item {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .meal-serving {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .meal-nutrients {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .day-header {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        /* Chart Styles */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        /* Loading Styles */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            border: 4px solid var(--progress-bg);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .mobile-header {
+                display: flex;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding-top: 70px;
+            }
+
+            .content-section {
+                padding: 1rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .btn-group {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .table th,
+            .table td {
+                padding: 0.5rem 0.25rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .text-muted { color: var(--text-muted); }
+        .text-primary { color: var(--primary-color); }
+        .text-success { color: var(--success-color); }
+        .text-warning { color: var(--warning-color); }
+        .text-danger { color: var(--danger-color); }
+
+        .mb-0 { margin-bottom: 0; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .mb-3 { margin-bottom: 1.5rem; }
+        .mb-4 { margin-bottom: 2rem; }
+
+        .mt-0 { margin-top: 0; }
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mt-3 { margin-top: 1.5rem; }
+        .mt-4 { margin-top: 2rem; }
+
+        .d-none { display: none; }
+        .d-block { display: block; }
+
+        /* Fade in animation */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Mobile overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .mobile-overlay.active {
+            display: block;
+        }
+
+        /* Empty state styles */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        /* Success message */
+        .alert {
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+            border: 1px solid transparent;
+        }
+
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .alert-info {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <button class="mobile-menu-button" id="mobileMenuButton">☰</button>
+        <div class="mobile-logo">🍽️ Diet Planner</div>
+        <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">🍽️ Diet Planner</div>
+                <div class="tagline">Your nutrition companion</div>
+            </div>
+            <div class="nav-menu">
+                <button class="nav-item active" data-section="profile">
+                    <span class="nav-icon">👤</span>
+                    Profile Setup
+                </button>
+                <button class="nav-item" data-section="plan">
+                    <span class="nav-icon">📋</span>
+                    Weekly Plan
+                </button>
+                <button class="nav-item" data-section="analytics">
+                    <span class="nav-icon">📊</span>
+                    Analytics
+                </button>
+                <button class="nav-item" data-section="exports">
+                    <span class="nav-icon">📤</span>
+                    Export & Share
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Profile Section -->
+            <section id="profile" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">👤 Profile Setup</h1>
+                    <p class="section-subtitle">Tell us about yourself to create your personalized meal plan</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Complete Your Health Profile</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="dietForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="age" class="form-label">Age *</label>
+                                    <input type="number" id="age" class="form-control" min="13" max="120" required placeholder="Enter your age">
+                                    <div class="invalid-feedback" id="age-error"></div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="gender" class="form-label">Gender *</label>
+                                    <select id="gender" class="form-control" required>
+                                        <option value="">Select Gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="gender-error"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="height" class="form-label">Height (cm) *</label>
+                                    <input type="number" id="height" class="form-control" min="100" max="250" required placeholder="e.g., 175">
+                                    <div class="invalid-feedback" id="height-error"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="weight" class="form-label">Weight (kg) *</label>
+                                    <input type="number" id="weight" class="form-control" min="30" max="300" step="0.1" required placeholder="e.g., 70.5">
+                                    <div class="invalid-feedback" id="weight-error"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="goal" class="form-label">Health Goal *</label>
+                                    <select id="goal" class="form-control" required>
+                                        <option value="">Select Goal</option>
+                                        <option value="loss">Weight Loss</option>
+                                        <option value="gain">Weight Gain</option>
+                                        <option value="maintain">Maintain Weight</option>
+                                        <option value="muscle">Muscle Gain</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="goal-error"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="dietType" class="form-label">Dietary Preference *</label>
+                                    <select id="dietType" class="form-control" required>
+                                        <option value="">Select Diet Type</option>
+                                        <option value="Regular">Regular (Omnivore)</option>
+                                        <option value="Vegetarian">Vegetarian</option>
+                                        <option value="Vegan">Vegan</option>
+                                        <option value="Keto">Ketogenic</option>
+                                        <option value="Pescatarian">Pescatarian</option>
+                                        <option value="Low-carb">Low-Carb</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="dietType-error"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="region" class="form-label">Region *</label>
+                                    <select id="region" class="form-control" required>
+                                        <option value="">Select Region</option>
+                                        <option value="USA">USA</option>
+                                        <option value="Europe">Europe</option>
+                                        <option value="India">India</option>
+                                        <option value="Middle East">Middle East</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="region-error"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="activityLevel" class="form-label">Activity Level *</label>
+                                    <select id="activityLevel" class="form-control" required>
+                                        <option value="">Select Activity Level</option>
+                                        <option value="low">Low (Sedentary)</option>
+                                        <option value="moderate">Moderate (Light exercise)</option>
+                                        <option value="high">High (Regular exercise)</option>
+                                        <option value="very-high">Very High (Intense exercise)</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="activityLevel-error"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="targetCalories" class="form-label">Target Daily Calories (optional)</label>
+                                    <input type="number" id="targetCalories" class="form-control" min="800" max="5000" placeholder="Auto-calculated if empty">
+                                    <div class="invalid-feedback" id="targetCalories-error"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary btn-lg" id="generateBtn">
+                                    <span id="generateBtnText">Generate My Meal Plan</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p class="loading-text">Creating your personalized meal plan...</p>
+                </div>
+            </section>
+
+            <!-- Weekly Plan Section -->
+            <section id="plan" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">📋 Weekly Plan</h1>
+                    <p class="section-subtitle">Your personalized 7-day nutrition plan</p>
+                </div>
+
+                <div id="planContent" class="d-none">
+                    <!-- Stats Cards -->
+                    <div class="stats-grid" id="statsGrid">
+                        <!-- Stats will be populated here -->
+                    </div>
+
+                    <!-- Meal Plan Table -->
+                    <div class="table-responsive">
+                        <div id="mealPlanTable">
+                            <!-- Table will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="planPlaceholder" class="empty-state">
+                    <h3>📋 No Meal Plan Yet</h3>
+                    <p>Complete your profile setup to generate your personalized meal plan</p>
+                </div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section id="analytics" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">📊 Analytics</h1>
+                    <p class="section-subtitle">Visual insights into your nutrition plan</p>
+                </div>
+
+                <div id="analyticsContent" class="d-none">
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <h3 class="chart-title">Daily Calorie Distribution</h3>
+                            <canvas id="calorieChart" width="400" height="200"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <h3 class="chart-title">Weekly Macros Breakdown</h3>
+                            <canvas id="macrosChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="analyticsPlaceholder" class="empty-state">
+                    <h3>📊 No Analytics Yet</h3>
+                    <p>Generate your meal plan to view detailed nutrition analytics</p>
+                </div>
+            </section>
+
+            <!-- Exports Section -->
+            <section id="exports" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">📤 Export & Share</h1>
+                    <p class="section-subtitle">Download your meal plan or share with diet tracker</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Export Options</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center">
+                            <div class="btn-group">
+                                <button class="btn btn-primary" onclick="sendPlanToTracker()">
+                                    🔄 Send to Diet Tracker
+                                </button>
+                                <button class="btn btn-secondary" onclick="goToTracker()">
+                                    📱 Open Diet Tracker
+                                </button>
+                            </div>
+                            
+                            <div class="btn-group">
+                                <button class="btn btn-success" onclick="downloadCSV()">
+                                    📊 Download CSV
+                                </button>
+                                <button class="btn btn-success" onclick="downloadPDF()">
+                                    📄 Download PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-3">
+                            <strong>Export Features:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>CSV Export:</strong> Excel-compatible format for analysis</li>
+                                <li><strong>PDF Export:</strong> Professional meal plan with charts</li>
+                                <li><strong>Diet Tracker:</strong> Seamless integration with your tracking app</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="planner-tracker-styled.js"></script>
+</body>
+</html>

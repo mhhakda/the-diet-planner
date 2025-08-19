@@ -1,0 +1,48 @@
+/* Diet Planner Additional Styles */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.hidden {
+    display: none;
+}
+
+.meal-card {
+    border: 1px solid #ddd;
+    padding: 1rem;
+    border-radius: 8px;
+    background: white;
+}
+
+#meal-plan-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+button {
+    padding: 0.5rem 1rem;
+    margin: 0.5rem;
+    border: none;
+    background: #007bff;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #meal-plan-grid {
+        grid-template-columns: 1fr;
+    }
+}

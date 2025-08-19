@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diet Planner - Personalized Meal Planning</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="planner.css">
+</head>
+<body>
+    <!-- User Questionnaire Form -->
+    <div class="container">
+        <h1>Diet Planner</h1>
+        <form id="user-questionnaire">
+            <div class="form-grid">
+                <input type="number" id="age" placeholder="Age" required>
+                <select id="gender" required>
+                    <option value="">Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                </select>
+                <input type="number" id="height" placeholder="Height (cm)" required>
+                <input type="number" id="weight" placeholder="Weight (kg)" required>
+                <select id="goal" required>
+                    <option value="">Goal</option>
+                    <option value="weight_loss">Weight Loss</option>
+                    <option value="maintain">Maintain</option>
+                </select>
+            </div>
+            <button type="submit">Generate Meal Plan</button>
+        </form>
+
+        <!-- Meal Plan Grid (hidden until generated) -->
+        <div id="meal-plan-section" class="hidden">
+            <div id="meal-plan-grid"></div>
+            <button id="send-to-tracker-btn">Send to Tracker</button>
+            <button id="download-csv-btn">Download CSV</button>
+            <button id="download-pdf-btn">Download PDF</button>
+        </div>
+    </div>
+
+    <script src="planner.js"></script>
+</body>
+</html>

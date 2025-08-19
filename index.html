@@ -177,16 +177,21 @@
             margin-left: 280px;
             background: var(--surface-color);
             min-height: 100vh;
+            position: relative;
+            overflow: hidden;
         }
 
-        .content-section {
-            min-height: 100vh;
+        .content-wrapper {
             padding: 2rem;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .section-header {
             margin-bottom: 2rem;
             text-align: center;
+            flex-shrink: 0;
         }
 
         .section-title {
@@ -201,44 +206,130 @@
             font-size: 1rem;
         }
 
-        /* Card Styles */
+        /* Form Section */
+        .form-section {
+            opacity: 1;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .form-section.hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
+            position: absolute;
+            width: 100%;
+        }
+
+        /* Results Container */
+        .results-container {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            pointer-events: none;
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            right: 2rem;
+            bottom: 2rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .results-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .results-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .edit-profile-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .edit-profile-btn:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .results-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .results-scroll {
+            flex: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            padding: 1rem;
+        }
+
+        /* Card Styles - Compact */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: var(--border-radius-lg);
             box-shadow: var(--shadow);
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             overflow: hidden;
-            transition: box-shadow 0.2s ease;
-        }
-
-        .card:hover {
-            box-shadow: var(--shadow-lg);
         }
 
         .card-header {
-            padding: 1.5rem;
+            padding: 1rem 1.25rem;
             border-bottom: 1px solid var(--border-color);
             background: var(--surface-color);
         }
 
         .card-title {
-            font-size: 1.25rem;
+            font-size: 1rem;
             font-weight: 600;
             color: var(--text-primary);
             margin: 0;
         }
 
         .card-body {
-            padding: 1.5rem;
+            padding: 1.25rem;
         }
 
         /* Form Styles */
         .form-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
         }
 
         .form-group {
@@ -250,6 +341,7 @@
             margin-bottom: 0.5rem;
             font-weight: 500;
             color: var(--text-primary);
+            font-size: 0.9rem;
         }
 
         .form-control {
@@ -277,7 +369,7 @@
         .invalid-feedback {
             display: block;
             margin-top: 0.25rem;
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             color: var(--danger-color);
         }
 
@@ -306,6 +398,7 @@
         .btn-primary:hover {
             background-color: #0056b3;
             border-color: #004085;
+            transform: translateY(-1px);
         }
 
         .btn-secondary {
@@ -333,6 +426,7 @@
         .btn:disabled {
             opacity: 0.65;
             cursor: not-allowed;
+            transform: none !important;
         }
 
         .btn-group {
@@ -343,25 +437,25 @@
             margin: 1rem 0;
         }
 
-        /* Stats Grid */
+        /* Compact Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
         }
 
         .stat-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: var(--border-radius-lg);
-            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            padding: 1rem 0.75rem;
             text-align: center;
             box-shadow: var(--shadow);
         }
 
         .stat-title {
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             font-weight: 600;
             color: var(--text-secondary);
             margin-bottom: 0.5rem;
@@ -370,28 +464,30 @@
         }
 
         .stat-value {
-            font-size: 2rem;
+            font-size: 1.5rem;
             font-weight: bold;
             color: var(--text-primary);
+            line-height: 1.2;
         }
 
         .stat-unit {
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
         }
 
         .stat-target {
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             color: var(--text-secondary);
             margin-top: 0.25rem;
         }
 
-        /* Table Styles */
+        /* Compact Table Styles */
         .table-responsive {
             overflow-x: auto;
             border-radius: var(--border-radius-lg);
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
         }
 
         .table {
@@ -399,22 +495,23 @@
             border-collapse: collapse;
             background: var(--card-bg);
             margin: 0;
+            font-size: 0.85rem;
         }
 
         .table th {
             background: var(--surface-color);
-            padding: 1rem 0.75rem;
+            padding: 0.75rem 0.5rem;
             text-align: left;
             font-weight: 600;
             color: var(--text-primary);
             border-bottom: 2px solid var(--border-color);
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .table td {
-            padding: 1rem 0.75rem;
+            padding: 0.75rem 0.5rem;
             border-bottom: 1px solid var(--border-color);
             vertical-align: top;
         }
@@ -431,16 +528,17 @@
             font-weight: 500;
             color: var(--text-primary);
             margin-bottom: 0.25rem;
+            font-size: 0.85rem;
         }
 
         .meal-serving {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
             margin-bottom: 0.25rem;
         }
 
         .meal-nutrients {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--text-secondary);
         }
 
@@ -449,23 +547,45 @@
             color: var(--primary-color);
         }
 
-        /* Chart Styles */
+        /* Compact Chart Styles */
         .charts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .chart-container {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: var(--border-radius-lg);
-            padding: 1.5rem;
+            padding: 1rem;
             box-shadow: var(--shadow);
         }
 
         .chart-title {
-            font-size: 1.125rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            text-align: center;
+        }
+
+        .chart-container canvas {
+            max-height: 200px;
+        }
+
+        /* Export Section - Compact */
+        .export-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .export-title {
+            font-size: 1rem;
             font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 1rem;
@@ -476,15 +596,23 @@
         .loading {
             display: none;
             text-align: center;
-            padding: 3rem;
+            padding: 2rem;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--card-bg);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            z-index: 1002;
         }
 
         .spinner {
             border: 4px solid var(--progress-bg);
             border-top: 4px solid var(--primary-color);
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
             margin: 0 auto 1rem;
         }
@@ -496,10 +624,10 @@
 
         .loading-text {
             color: var(--text-secondary);
-            font-size: 1rem;
+            font-size: 0.9rem;
         }
 
-        /* Responsive Design */
+        /* Mobile Responsive */
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
@@ -515,11 +643,22 @@
 
             .main-content {
                 margin-left: 0;
-                padding-top: 70px;
             }
 
-            .content-section {
+            .content-wrapper {
                 padding: 1rem;
+                padding-top: 5rem;
+            }
+
+            .results-container {
+                left: 1rem;
+                right: 1rem;
+                top: 5rem;
+                bottom: 1rem;
+            }
+
+            .results-content {
+                max-height: 85vh;
             }
 
             .form-grid {
@@ -529,12 +668,12 @@
 
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
-                gap: 0.75rem;
+                gap: 0.5rem;
             }
 
             .charts-grid {
                 grid-template-columns: 1fr;
-                gap: 1rem;
+                gap: 0.75rem;
             }
 
             .btn-group {
@@ -550,6 +689,16 @@
             .section-title {
                 font-size: 1.5rem;
             }
+
+            .results-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .edit-profile-btn {
+                justify-content: center;
+            }
         }
 
         @media (max-width: 480px) {
@@ -558,13 +707,17 @@
             }
 
             .stat-card {
-                padding: 1rem;
+                padding: 0.75rem 0.5rem;
             }
 
             .table th,
             .table td {
                 padding: 0.5rem 0.25rem;
-                font-size: 0.8rem;
+                font-size: 0.75rem;
+            }
+
+            .chart-container canvas {
+                max-height: 150px;
             }
         }
 
@@ -576,36 +729,8 @@
         .text-warning { color: var(--warning-color); }
         .text-danger { color: var(--danger-color); }
 
-        .mb-0 { margin-bottom: 0; }
-        .mb-1 { margin-bottom: 0.5rem; }
-        .mb-2 { margin-bottom: 1rem; }
-        .mb-3 { margin-bottom: 1.5rem; }
-        .mb-4 { margin-bottom: 2rem; }
-
-        .mt-0 { margin-top: 0; }
-        .mt-1 { margin-top: 0.5rem; }
-        .mt-2 { margin-top: 1rem; }
-        .mt-3 { margin-top: 1.5rem; }
-        .mt-4 { margin-top: 2rem; }
-
         .d-none { display: none; }
         .d-block { display: block; }
-
-        /* Fade in animation */
-        .fade-in {
-            animation: fadeIn 0.6s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
 
         /* Mobile overlay */
         .mobile-overlay {
@@ -623,36 +748,39 @@
             display: block;
         }
 
-        /* Empty state styles */
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-muted);
+        /* Fade in animation */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
         }
 
-        .empty-state h3 {
-            margin-bottom: 1rem;
-            color: var(--text-secondary);
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        /* Success message */
-        .alert {
-            padding: 1rem;
-            border-radius: var(--border-radius);
-            margin-bottom: 1rem;
-            border: 1px solid transparent;
+        /* Scrollbar Styling */
+        .results-scroll::-webkit-scrollbar {
+            width: 8px;
         }
 
-        .alert-success {
-            color: #155724;
-            background-color: #d4edda;
-            border-color: #c3e6cb;
+        .results-scroll::-webkit-scrollbar-track {
+            background: var(--surface-color);
+            border-radius: 4px;
         }
 
-        .alert-info {
-            color: #0c5460;
-            background-color: #d1ecf1;
-            border-color: #bee5eb;
+        .results-scroll::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .results-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
         }
     </style>
 </head>
@@ -696,224 +824,187 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Profile Section -->
-            <section id="profile" class="content-section">
-                <div class="section-header">
-                    <h1 class="section-title">👤 Profile Setup</h1>
-                    <p class="section-subtitle">Tell us about yourself to create your personalized meal plan</p>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Complete Your Health Profile</h3>
-                    </div>
-                    <div class="card-body">
-                        <form id="dietForm">
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label for="age" class="form-label">Age *</label>
-                                    <input type="number" id="age" class="form-control" min="13" max="120" required placeholder="Enter your age">
-                                    <div class="invalid-feedback" id="age-error"></div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="gender" class="form-label">Gender *</label>
-                                    <select id="gender" class="form-control" required>
-                                        <option value="">Select Gender</option>
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                    <div class="invalid-feedback" id="gender-error"></div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="height" class="form-label">Height (cm) *</label>
-                                    <input type="number" id="height" class="form-control" min="100" max="250" required placeholder="e.g., 175">
-                                    <div class="invalid-feedback" id="height-error"></div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="weight" class="form-label">Weight (kg) *</label>
-                                    <input type="number" id="weight" class="form-control" min="30" max="300" step="0.1" required placeholder="e.g., 70.5">
-                                    <div class="invalid-feedback" id="weight-error"></div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="goal" class="form-label">Health Goal *</label>
-                                    <select id="goal" class="form-control" required>
-                                        <option value="">Select Goal</option>
-                                        <option value="loss">Weight Loss</option>
-                                        <option value="gain">Weight Gain</option>
-                                        <option value="maintain">Maintain Weight</option>
-                                        <option value="muscle">Muscle Gain</option>
-                                    </select>
-                                    <div class="invalid-feedback" id="goal-error"></div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="dietType" class="form-label">Dietary Preference *</label>
-                                    <select id="dietType" class="form-control" required>
-                                        <option value="">Select Diet Type</option>
-                                        <option value="Regular">Regular (Omnivore)</option>
-                                        <option value="Vegetarian">Vegetarian</option>
-                                        <option value="Vegan">Vegan</option>
-                                        <option value="Keto">Ketogenic</option>
-                                        <option value="Pescatarian">Pescatarian</option>
-                                        <option value="Low-carb">Low-Carb</option>
-                                    </select>
-                                    <div class="invalid-feedback" id="dietType-error"></div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="region" class="form-label">Region *</label>
-                                    <select id="region" class="form-control" required>
-                                        <option value="">Select Region</option>
-                                        <option value="USA">USA</option>
-                                        <option value="Europe">Europe</option>
-                                        <option value="India">India</option>
-                                        <option value="Middle East">Middle East</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                    <div class="invalid-feedback" id="region-error"></div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="activityLevel" class="form-label">Activity Level *</label>
-                                    <select id="activityLevel" class="form-control" required>
-                                        <option value="">Select Activity Level</option>
-                                        <option value="low">Low (Sedentary)</option>
-                                        <option value="moderate">Moderate (Light exercise)</option>
-                                        <option value="high">High (Regular exercise)</option>
-                                        <option value="very-high">Very High (Intense exercise)</option>
-                                    </select>
-                                    <div class="invalid-feedback" id="activityLevel-error"></div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="targetCalories" class="form-label">Target Daily Calories (optional)</label>
-                                    <input type="number" id="targetCalories" class="form-control" min="800" max="5000" placeholder="Auto-calculated if empty">
-                                    <div class="invalid-feedback" id="targetCalories-error"></div>
-                                </div>
-                            </div>
-                            
-                            <div class="text-center">
-                                <button type="button" class="btn btn-primary btn-lg" id="generateBtn">
-                                    <span id="generateBtnText">Generate My Meal Plan</span>
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
+            <div class="content-wrapper">
                 <!-- Loading State -->
                 <div class="loading" id="loading">
                     <div class="spinner"></div>
                     <p class="loading-text">Creating your personalized meal plan...</p>
                 </div>
-            </section>
 
-            <!-- Weekly Plan Section -->
-            <section id="plan" class="content-section">
-                <div class="section-header">
-                    <h1 class="section-title">📋 Weekly Plan</h1>
-                    <p class="section-subtitle">Your personalized 7-day nutrition plan</p>
-                </div>
-
-                <div id="planContent" class="d-none">
-                    <!-- Stats Cards -->
-                    <div class="stats-grid" id="statsGrid">
-                        <!-- Stats will be populated here -->
+                <!-- Form Section -->
+                <div class="form-section" id="formSection">
+                    <div class="section-header">
+                        <h1 class="section-title">👤 Complete Your Profile</h1>
+                        <p class="section-subtitle">Tell us about yourself to create your personalized meal plan</p>
                     </div>
 
-                    <!-- Meal Plan Table -->
-                    <div class="table-responsive">
-                        <div id="mealPlanTable">
-                            <!-- Table will be populated here -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Health Profile</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="dietForm">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="age" class="form-label">Age *</label>
+                                        <input type="number" id="age" class="form-control" min="13" max="120" required placeholder="Enter your age">
+                                        <div class="invalid-feedback" id="age-error"></div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="gender" class="form-label">Gender *</label>
+                                        <select id="gender" class="form-control" required>
+                                            <option value="">Select Gender</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="gender-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="height" class="form-label">Height (cm) *</label>
+                                        <input type="number" id="height" class="form-control" min="100" max="250" required placeholder="e.g., 175">
+                                        <div class="invalid-feedback" id="height-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="weight" class="form-label">Weight (kg) *</label>
+                                        <input type="number" id="weight" class="form-control" min="30" max="300" step="0.1" required placeholder="e.g., 70.5">
+                                        <div class="invalid-feedback" id="weight-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="goal" class="form-label">Health Goal *</label>
+                                        <select id="goal" class="form-control" required>
+                                            <option value="">Select Goal</option>
+                                            <option value="loss">Weight Loss</option>
+                                            <option value="gain">Weight Gain</option>
+                                            <option value="maintain">Maintain Weight</option>
+                                            <option value="muscle">Muscle Gain</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="goal-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="dietType" class="form-label">Dietary Preference *</label>
+                                        <select id="dietType" class="form-control" required>
+                                            <option value="">Select Diet Type</option>
+                                            <option value="Regular">Regular (Omnivore)</option>
+                                            <option value="Vegetarian">Vegetarian</option>
+                                            <option value="Vegan">Vegan</option>
+                                            <option value="Keto">Ketogenic</option>
+                                            <option value="Pescatarian">Pescatarian</option>
+                                            <option value="Low-carb">Low-Carb</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="dietType-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="region" class="form-label">Region *</label>
+                                        <select id="region" class="form-control" required>
+                                            <option value="">Select Region</option>
+                                            <option value="USA">USA</option>
+                                            <option value="Europe">Europe</option>
+                                            <option value="India">India</option>
+                                            <option value="Middle East">Middle East</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="region-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="activityLevel" class="form-label">Activity Level *</label>
+                                        <select id="activityLevel" class="form-control" required>
+                                            <option value="">Select Activity Level</option>
+                                            <option value="low">Low (Sedentary)</option>
+                                            <option value="moderate">Moderate (Light exercise)</option>
+                                            <option value="high">High (Regular exercise)</option>
+                                            <option value="very-high">Very High (Intense exercise)</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="activityLevel-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="targetCalories" class="form-label">Target Daily Calories (optional)</label>
+                                        <input type="number" id="targetCalories" class="form-control" min="800" max="5000" placeholder="Auto-calculated if empty">
+                                        <div class="invalid-feedback" id="targetCalories-error"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center">
+                                    <button type="button" class="btn btn-primary btn-lg" id="generateBtn">
+                                        <span id="generateBtnText">Generate My Meal Plan</span>
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
 
-                <div id="planPlaceholder" class="empty-state">
-                    <h3>📋 No Meal Plan Yet</h3>
-                    <p>Complete your profile setup to generate your personalized meal plan</p>
-                </div>
-            </section>
-
-            <!-- Analytics Section -->
-            <section id="analytics" class="content-section">
-                <div class="section-header">
-                    <h1 class="section-title">📊 Analytics</h1>
-                    <p class="section-subtitle">Visual insights into your nutrition plan</p>
-                </div>
-
-                <div id="analyticsContent" class="d-none">
-                    <div class="charts-grid">
-                        <div class="chart-container">
-                            <h3 class="chart-title">Daily Calorie Distribution</h3>
-                            <canvas id="calorieChart" width="400" height="200"></canvas>
-                        </div>
-                        <div class="chart-container">
-                            <h3 class="chart-title">Weekly Macros Breakdown</h3>
-                            <canvas id="macrosChart" width="400" height="200"></canvas>
-                        </div>
+                <!-- Results Container -->
+                <div class="results-container" id="resultsContainer">
+                    <div class="results-header">
+                        <h1 class="results-title">🍽️ Your Meal Plan</h1>
+                        <button class="edit-profile-btn" id="editProfileBtn">
+                            <span>←</span>
+                            <span>Edit My Profile</span>
+                        </button>
                     </div>
-                </div>
-
-                <div id="analyticsPlaceholder" class="empty-state">
-                    <h3>📊 No Analytics Yet</h3>
-                    <p>Generate your meal plan to view detailed nutrition analytics</p>
-                </div>
-            </section>
-
-            <!-- Exports Section -->
-            <section id="exports" class="content-section">
-                <div class="section-header">
-                    <h1 class="section-title">📤 Export & Share</h1>
-                    <p class="section-subtitle">Download your meal plan or share with diet tracker</p>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Export Options</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="text-center">
-                            <div class="btn-group">
-                                <button class="btn btn-primary" onclick="sendPlanToTracker()">
-                                    🔄 Send to Diet Tracker
-                                </button>
-                                <button class="btn btn-secondary" onclick="goToTracker()">
-                                    📱 Open Diet Tracker
-                                </button>
+                    
+                    <div class="results-content">
+                        <div class="results-scroll" id="resultsScroll">
+                            <!-- Stats Cards -->
+                            <div class="stats-grid" id="statsGrid">
+                                <!-- Stats will be populated here -->
                             </div>
-                            
-                            <div class="btn-group">
-                                <button class="btn btn-success" onclick="downloadCSV()">
-                                    📊 Download CSV
-                                </button>
-                                <button class="btn btn-success" onclick="downloadPDF()">
-                                    📄 Download PDF
-                                </button>
-                            </div>
-                        </div>
 
-                        <div class="alert alert-info mt-3">
-                            <strong>Export Features:</strong>
-                            <ul class="mb-0 mt-2">
-                                <li><strong>CSV Export:</strong> Excel-compatible format for analysis</li>
-                                <li><strong>PDF Export:</strong> Professional meal plan with charts</li>
-                                <li><strong>Diet Tracker:</strong> Seamless integration with your tracking app</li>
-                            </ul>
+                            <!-- Weekly Plan Table -->
+                            <div class="table-responsive">
+                                <div id="mealPlanTable">
+                                    <!-- Table will be populated here -->
+                                </div>
+                            </div>
+
+                            <!-- Analytics Charts -->
+                            <div class="charts-grid">
+                                <div class="chart-container">
+                                    <h3 class="chart-title">Daily Calorie Distribution</h3>
+                                    <canvas id="calorieChart" width="400" height="200"></canvas>
+                                </div>
+                                <div class="chart-container">
+                                    <h3 class="chart-title">Weekly Macros Breakdown</h3>
+                                    <canvas id="macrosChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Export Section -->
+                            <div class="export-section">
+                                <h3 class="export-title">📤 Export & Share</h3>
+                                <div class="btn-group">
+                                    <button class="btn btn-primary" onclick="sendPlanToTracker()">
+                                        🔄 Send to Diet Tracker
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="goToTracker()">
+                                        📱 Open Diet Tracker
+                                    </button>
+                                    <button class="btn btn-success" onclick="downloadCSV()">
+                                        📊 Download CSV
+                                    </button>
+                                    <button class="btn btn-success" onclick="downloadPDF()">
+                                        📄 Download PDF
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </section>
+            </div>
         </main>
     </div>
 
     <script>
-        // Diet Planner - Working JavaScript
+        // Diet Planner - Enhanced UX JavaScript
         // Global variables
         let currentMealPlan = null;
         let currentUserProfile = null;
@@ -921,10 +1012,8 @@
         let ChartsLoaded = false;
         let Html2PdfLoaded = false;
         let currentActiveSection = 'profile';
-        let sectionObserver;
-
-        // Theme management
         let currentTheme = localStorage.getItem('theme') || 'light';
+        let isResultsVisible = false;
 
         // Safe number parsing helper
         function safeNumber(v) {
@@ -939,10 +1028,10 @@
             initializeTheme();
             initializeNavigation();
             initializeMobileMenu();
-            initializeIntersectionObserver();
             loadMealsDatabase();
             loadExistingPlan();
             initializeForm();
+            initializeResultsToggle();
             
             console.log('🍽️ Diet Planner loaded successfully! 🎉');
         });
@@ -968,36 +1057,33 @@
             themeToggle.textContent = currentTheme === 'light' ? '🌙' : '☀️';
         }
 
-        // Navigation Management
+        // Navigation Management (simplified for single view)
         function initializeNavigation() {
             const navItems = document.querySelectorAll('.nav-item');
             
             navItems.forEach(item => {
                 item.addEventListener('click', function() {
                     const targetSection = this.getAttribute('data-section');
-                    navigateToSection(targetSection);
+                    handleNavigation(targetSection);
                 });
             });
         }
 
-        function navigateToSection(sectionId) {
+        function handleNavigation(sectionId) {
             // Update active nav item
             updateActiveNavItem(sectionId);
             
-            // Scroll to section
-            const targetSection = document.getElementById(sectionId);
-            if (targetSection) {
-                targetSection.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'start',
-                    inline: 'nearest' 
-                });
+            // Handle section-specific behavior
+            if (sectionId === 'profile') {
+                showForm();
+            } else if (['plan', 'analytics', 'exports'].includes(sectionId) && currentMealPlan) {
+                showResults();
+                // Scroll to specific section within results
+                scrollToResultsSection(sectionId);
             }
             
             // Close mobile menu if open
             closeMobileMenu();
-            
-            // Update current active section
             currentActiveSection = sectionId;
         }
 
@@ -1014,28 +1100,25 @@
             });
         }
 
-        // Intersection Observer for automatic section highlighting
-        function initializeIntersectionObserver() {
-            const sections = document.querySelectorAll('.content-section');
+        function scrollToResultsSection(sectionId) {
+            const resultsScroll = document.getElementById('resultsScroll');
+            let scrollTarget = 0;
             
-            const observerOptions = {
-                root: null,
-                rootMargin: '-20% 0px -60% 0px',
-                threshold: 0.1
-            };
+            switch(sectionId) {
+                case 'plan':
+                    scrollTarget = 0; // Top of results (stats + table)
+                    break;
+                case 'analytics':
+                    scrollTarget = resultsScroll.querySelector('.charts-grid').offsetTop - 20;
+                    break;
+                case 'exports':
+                    scrollTarget = resultsScroll.querySelector('.export-section').offsetTop - 20;
+                    break;
+            }
             
-            sectionObserver = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const sectionId = entry.target.id;
-                        updateActiveNavItem(sectionId);
-                        currentActiveSection = sectionId;
-                    }
-                });
-            }, observerOptions);
-            
-            sections.forEach(section => {
-                sectionObserver.observe(section);
+            resultsScroll.scrollTo({
+                top: scrollTarget,
+                behavior: 'smooth'
             });
         }
 
@@ -1076,6 +1159,53 @@
             overlay.classList.remove('active');
         }
 
+        // Results Toggle Management
+        function initializeResultsToggle() {
+            const editProfileBtn = document.getElementById('editProfileBtn');
+            editProfileBtn.addEventListener('click', showForm);
+        }
+
+        function showForm() {
+            const formSection = document.getElementById('formSection');
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            // Hide results with animation
+            resultsContainer.classList.remove('visible');
+            
+            // Show form after animation completes
+            setTimeout(() => {
+                formSection.classList.remove('hidden');
+                isResultsVisible = false;
+            }, 200);
+
+            // Update navigation
+            updateActiveNavItem('profile');
+            currentActiveSection = 'profile';
+        }
+
+        function showResults() {
+            if (!currentMealPlan) {
+                console.warn('No meal plan available to show results');
+                return;
+            }
+
+            const formSection = document.getElementById('formSection');
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            // Hide form with animation
+            formSection.classList.add('hidden');
+            
+            // Show results after animation completes
+            setTimeout(() => {
+                resultsContainer.classList.add('visible');
+                isResultsVisible = true;
+                
+                // Scroll to top of results
+                const resultsScroll = document.getElementById('resultsScroll');
+                resultsScroll.scrollTop = 0;
+            }, 200);
+        }
+
         // Form Management
         function initializeForm() {
             const generateBtn = document.getElementById('generateBtn');
@@ -1107,11 +1237,13 @@
             try {
                 await generateMealPlan();
                 
-                // Navigate to plan section after generation
+                // Hide loading and show results
                 setTimeout(() => {
                     hideLoading();
-                    navigateToSection('plan');
-                }, 2000);
+                    showResults();
+                    updateActiveNavItem('plan');
+                    currentActiveSection = 'plan';
+                }, 1500);
                 
             } catch (error) {
                 console.error('Error generating meal plan:', error);
@@ -1123,7 +1255,7 @@
             }
         }
 
-        // Validation
+        // Validation (same as before)
         function validateForm() {
             const fields = ['age', 'gender', 'height', 'weight', 'goal', 'dietType', 'region', 'activityLevel'];
             let isValid = true;
@@ -1197,7 +1329,7 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // Load meals database with embedded fallback
+        // Load meals database with embedded fallback (same as before)
         async function loadMealsDatabase() {
             // Try to load external file first
             try {
@@ -1217,7 +1349,7 @@
             return mealDatabase;
         }
 
-        // Create comprehensive fallback meals
+        // Create comprehensive fallback meals (same as before)
         function createFallbackMeals() {
             return {
                 "USA": {
@@ -1298,11 +1430,38 @@
                             {"id": 233, "title": "Vada Pav", "serving_size": "1 vada pav", "calories": 220, "protein": 6, "carbs": 32, "fat": 8, "fiber": 3},
                             {"id": 234, "title": "Lassi", "serving_size": "1 glass", "calories": 180, "protein": 6, "carbs": 25, "fat": 6, "fiber": 0}
                         ]
+                    },
+                    "Vegetarian": {
+                        "breakfast": [
+                            {"id": 301, "title": "Idli with Coconut Chutney", "serving_size": "4 idlis + chutney", "calories": 320, "protein": 10, "carbs": 58, "fat": 6, "fiber": 4},
+                            {"id": 302, "title": "Uttapam with Vegetables", "serving_size": "2 uttapams", "calories": 340, "protein": 10, "carbs": 58, "fat": 8, "fiber": 5},
+                            {"id": 303, "title": "Besan Chilla", "serving_size": "2 chillas", "calories": 320, "protein": 14, "carbs": 35, "fat": 14, "fiber": 6},
+                            {"id": 304, "title": "Methi Paratha", "serving_size": "2 parathas", "calories": 380, "protein": 12, "carbs": 55, "fat": 14, "fiber": 7}
+                        ],
+                        "lunch": [
+                            {"id": 311, "title": "Palak Paneer with Roti", "serving_size": "1 cup + 3 rotis", "calories": 550, "protein": 25, "carbs": 52, "fat": 26, "fiber": 8},
+                            {"id": 312, "title": "Rajma Rice", "serving_size": "1 cup rajma + rice", "calories": 480, "protein": 18, "carbs": 78, "fat": 8, "fiber": 12},
+                            {"id": 313, "title": "Vegetable Biryani", "serving_size": "1 plate", "calories": 480, "protein": 14, "carbs": 82, "fat": 12, "fiber": 6},
+                            {"id": 314, "title": "Chole with Rice", "serving_size": "1 cup chole + rice", "calories": 520, "protein": 18, "carbs": 88, "fat": 8, "fiber": 12}
+                        ],
+                        "dinner": [
+                            {"id": 321, "title": "Paneer Tikka Masala with Rice", "serving_size": "200g paneer + rice", "calories": 580, "protein": 26, "carbs": 58, "fat": 24, "fiber": 5},
+                            {"id": 322, "title": "Dal Makhani with Roti", "serving_size": "1 cup dal + 3 rotis", "calories": 520, "protein": 18, "carbs": 68, "fat": 18, "fiber": 10},
+                            {"id": 323, "title": "Vegetable Korma with Rice", "serving_size": "1.5 cups korma + rice", "calories": 480, "protein": 14, "carbs": 68, "fat": 16, "fiber": 8},
+                            {"id": 324, "title": "Paneer Makhani with Naan", "serving_size": "200g paneer + 2 naans", "calories": 680, "protein": 26, "carbs": 68, "fat": 32, "fiber": 5},
+                            {"id": 325, "title": "Mixed Dal with Jeera Rice", "serving_size": "1 cup dal + rice", "calories": 450, "protein": 16, "carbs": 75, "fat": 8, "fiber": 10}
+                        ],
+                        "snacks": [
+                            {"id": 331, "title": "Banana", "serving_size": "1 medium banana", "calories": 90, "protein": 1, "carbs": 23, "fat": 0, "fiber": 3},
+                            {"id": 332, "title": "Masala Chai", "serving_size": "1 cup", "calories": 80, "protein": 3, "carbs": 12, "fat": 2, "fiber": 0},
+                            {"id": 333, "title": "Roasted Chana", "serving_size": "1/4 cup", "calories": 120, "protein": 6, "carbs": 20, "fat": 2, "fiber": 5}
+                        ]
                     }
                 }
             };
         }
 
+        // All the other functions remain the same (calculateTargetCalories, selectMealsForWeek, etc.)
         // Calculate BMR and target calories
         function calculateTargetCalories(profile) {
             const age = safeNumber(profile.age);
@@ -1485,12 +1644,6 @@
                 // Display results
                 displayMealPlan(weeklyPlan, profile);
                 await createCharts(weeklyPlan, profile);
-                
-                // Show content sections
-                document.getElementById('planContent').classList.remove('d-none');
-                document.getElementById('planPlaceholder').classList.add('d-none');
-                document.getElementById('analyticsContent').classList.remove('d-none');
-                document.getElementById('analyticsPlaceholder').classList.add('d-none');
 
                 console.log('✅ Meal plan generated successfully!');
                 return weeklyPlan;
@@ -1659,7 +1812,7 @@
             });
         }
 
-        // Create charts with tracker-style colors
+        // Create charts with tracker-style colors (compact version)
         async function createCharts(weeklyPlan, profile) {
             try {
                 await loadChartJS();
@@ -1682,7 +1835,7 @@
                 const textColor = isDark ? '#ffffff' : '#212529';
                 const gridColor = isDark ? '#404040' : '#dee2e6';
 
-                // Daily Calorie Chart
+                // Daily Calorie Chart - Compact
                 const calorieCtx = document.getElementById('calorieChart');
                 if (calorieCtx) {
                     new Chart(calorieCtx, {
@@ -1695,7 +1848,7 @@
                                 backgroundColor: 'rgba(0, 123, 255, 0.8)',
                                 borderColor: 'rgba(0, 123, 255, 1)',
                                 borderWidth: 1,
-                                borderRadius: 4,
+                                borderRadius: 2,
                             }, {
                                 label: 'Target',
                                 data: Array(7).fill(profile.targetCalories),
@@ -1706,8 +1859,8 @@
                                 fill: false,
                                 pointBackgroundColor: 'rgba(40, 167, 69, 1)',
                                 pointBorderColor: '#fff',
-                                pointBorderWidth: 2,
-                                pointRadius: 4,
+                                pointBorderWidth: 1,
+                                pointRadius: 3,
                             }]
                         },
                         options: {
@@ -1718,40 +1871,34 @@
                                     position: 'top',
                                     labels: {
                                         usePointStyle: true,
-                                        padding: 20,
-                                        color: textColor
+                                        padding: 15,
+                                        color: textColor,
+                                        font: { size: 11 }
                                     }
                                 }
                             },
                             scales: {
                                 x: {
-                                    grid: {
-                                        color: gridColor
-                                    },
-                                    ticks: {
-                                        color: textColor
-                                    }
+                                    grid: { color: gridColor },
+                                    ticks: { color: textColor, font: { size: 10 } }
                                 },
                                 y: {
                                     beginAtZero: true,
                                     title: {
                                         display: true,
                                         text: 'Calories',
-                                        color: textColor
+                                        color: textColor,
+                                        font: { size: 11 }
                                     },
-                                    grid: {
-                                        color: gridColor
-                                    },
-                                    ticks: {
-                                        color: textColor
-                                    }
+                                    grid: { color: gridColor },
+                                    ticks: { color: textColor, font: { size: 10 } }
                                 }
                             }
                         }
                     });
                 }
 
-                // Weekly Macros Chart
+                // Weekly Macros Chart - Compact
                 const macrosCtx = document.getElementById('macrosChart');
                 if (macrosCtx) {
                     const proteinCals = weeklyStats.totalProtein * 4;
@@ -1761,7 +1908,7 @@
                     new Chart(macrosCtx, {
                         type: 'doughnut',
                         data: {
-                            labels: ['Protein', 'Carbohydrates', 'Fat'],
+                            labels: ['Protein', 'Carbs', 'Fat'],
                             datasets: [{
                                 data: [proteinCals, carbsCals, fatCals],
                                 backgroundColor: [
@@ -1774,7 +1921,7 @@
                                     'rgba(40, 167, 69, 1)',
                                     'rgba(255, 193, 7, 1)'
                                 ],
-                                borderWidth: 2,
+                                borderWidth: 1,
                                 hoverOffset: 4
                             }]
                         },
@@ -1786,11 +1933,14 @@
                                     position: 'bottom',
                                     labels: {
                                         usePointStyle: true,
-                                        padding: 20,
-                                        color: textColor
+                                        padding: 10,
+                                        color: textColor,
+                                        font: { size: 10 }
                                     }
                                 },
                                 tooltip: {
+                                    titleFont: { size: 11 },
+                                    bodyFont: { size: 10 },
                                     callbacks: {
                                         label: function(context) {
                                             const label = context.label;
@@ -1812,7 +1962,7 @@
             }
         }
 
-        // Export Functions
+        // Export Functions - Updated to export only results
         function downloadCSV() {
             if (!currentMealPlan) {
                 alert('❌ No meal plan available to export\nPlease generate a meal plan first.');
@@ -1874,6 +2024,7 @@
             });
         }
 
+        // Updated PDF export to capture only results
         async function downloadPDF() {
             if (!currentMealPlan || !currentUserProfile) {
                 alert('❌ No meal plan available to export\nPlease generate a meal plan first.');
@@ -1883,9 +2034,23 @@
             try {
                 await loadHtml2Pdf();
                 
-                const pdfContent = createPDFContent();
+                // Create PDF content from results only
+                const resultsScroll = document.getElementById('resultsScroll');
                 const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = pdfContent;
+                
+                // Clone the results content for PDF
+                tempDiv.innerHTML = `
+                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; max-width: 800px;">
+                        <h1 style="color: #007bff; text-align: center; margin-bottom: 30px;">🍽️ Your Personalized Meal Plan</h1>
+                        <div style="margin-bottom: 20px;">
+                            ${document.getElementById('statsGrid').outerHTML}
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            ${document.getElementById('mealPlanTable').outerHTML}
+                        </div>
+                    </div>
+                `;
+                
                 tempDiv.style.position = 'absolute';
                 tempDiv.style.left = '-9999px';
                 tempDiv.style.width = '800px';
@@ -1921,126 +2086,7 @@
             }
         }
 
-        function createPDFContent() {
-            const weeklyStats = calculateWeeklyStats(currentMealPlan);
-            const days = Object.keys(currentMealPlan);
-            const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks'];
-
-            let html = `
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; max-width: 800px;">
-                <h1 style="color: #007bff; text-align: center; margin-bottom: 30px;">🍽️ Your Personalized Meal Plan</h1>
-                
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; page-break-inside: avoid;">
-                    <h2 style="color: #212529; margin-bottom: 15px;">Profile Summary</h2>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div>
-                            <p><strong>Age:</strong> ${currentUserProfile.age} years</p>
-                            <p><strong>Gender:</strong> ${currentUserProfile.gender}</p>
-                            <p><strong>Height:</strong> ${currentUserProfile.height} cm</p>
-                            <p><strong>Weight:</strong> ${currentUserProfile.weight} kg</p>
-                        </div>
-                        <div>
-                            <p><strong>Goal:</strong> ${currentUserProfile.goal}</p>
-                            <p><strong>Diet Type:</strong> ${currentUserProfile.dietType}</p>
-                            <p><strong>Region:</strong> ${currentUserProfile.region}</p>
-                            <p><strong>Target Calories:</strong> ${currentUserProfile.targetCalories}/day</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 30px; page-break-inside: avoid;">
-                    <h2 style="color: #212529; margin-bottom: 15px;">Weekly Overview</h2>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
-                        <div style="text-align: center; padding: 15px; background: #e3f2fd; border-radius: 8px;">
-                            <h3 style="margin: 0; color: #007bff;">${Math.round(weeklyStats.avgCalories)}</h3>
-                            <p style="margin: 5px 0 0 0; font-size: 0.9em;">Avg Daily Calories</p>
-                        </div>
-                        <div style="text-align: center; padding: 15px; background: #e3f2fd; border-radius: 8px;">
-                            <h3 style="margin: 0; color: #007bff;">${Math.round(weeklyStats.avgProtein)}g</h3>
-                            <p style="margin: 5px 0 0 0; font-size: 0.9em;">Avg Daily Protein</p>
-                        </div>
-                        <div style="text-align: center; padding: 15px; background: #e3f2fd; border-radius: 8px;">
-                            <h3 style="margin: 0; color: #007bff;">${Math.round(weeklyStats.avgCarbs)}g</h3>
-                            <p style="margin: 5px 0 0 0; font-size: 0.9em;">Avg Daily Carbs</p>
-                        </div>
-                        <div style="text-align: center; padding: 15px; background: #e3f2fd; border-radius: 8px;">
-                            <h3 style="margin: 0; color: #007bff;">${Math.round(weeklyStats.avgFat)}g</h3>
-                            <p style="margin: 5px 0 0 0; font-size: 0.9em;">Avg Daily Fat</p>
-                        </div>
-                    </div>
-                </div>`;
-
-            html += '<h2 style="color: #212529; margin-bottom: 15px;">🗓️ 7-Day Meal Plan</h2>';
-            
-            days.forEach((day, index) => {
-                if (index % 2 === 0 && index > 0) {
-                    html += '<div style="page-break-before: always;"></div>';
-                }
-                
-                html += `<div style="margin-bottom: 25px; page-break-inside: avoid;">
-                    <h3 style="color: #007bff; margin-bottom: 10px;">${day}</h3>
-                    <table style="width: 100%; border-collapse: collapse; border: 1px solid #dee2e6;">
-                        <thead>
-                            <tr style="background: #f8f9fa;">
-                                <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Meal</th>
-                                <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Food</th>
-                                <th style="padding: 10px; border: 1px solid #dee2e6; text-align: right;">Calories</th>
-                                <th style="padding: 10px; border: 1px solid #dee2e6; text-align: right;">Protein</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-
-                let dayTotal = 0;
-                const mealNames = {
-                    breakfast: '🌅 Breakfast',
-                    lunch: '🍽️ Lunch',
-                    dinner: '🌙 Dinner',
-                    snacks: '🍎 Snack'
-                };
-                
-                mealTypes.forEach(mealType => {
-                    const meal = currentMealPlan[day][mealType];
-                    if (meal) {
-                        const calories = safeNumber(meal.calories);
-                        dayTotal += calories;
-                        html += `<tr>
-                            <td style="padding: 8px; border: 1px solid #dee2e6; font-weight: bold;">${mealNames[mealType]}</td>
-                            <td style="padding: 8px; border: 1px solid #dee2e6;">
-                                ${meal.title}<br>
-                                <small style="color: #6c757d;">${meal.serving_size || ''}</small>
-                            </td>
-                            <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">${calories}</td>
-                            <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">${safeNumber(meal.protein)}g</td>
-                        </tr>`;
-                    }
-                });
-
-                html += `<tr style="background: #f8f9fa; font-weight: bold;">
-                        <td colspan="2" style="padding: 8px; border: 1px solid #dee2e6;">Daily Total</td>
-                        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">${Math.round(dayTotal)}</td>
-                        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">-</td>
-                    </tr>
-                    </tbody></table>
-                </div>`;
-            });
-
-            html += `
-                <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; page-break-inside: avoid;">
-                    <h3 style="color: #212529; margin-bottom: 15px;">📝 Important Notes</h3>
-                    <ul style="line-height: 1.6;">
-                        <li>This meal plan is generated based on your profile and goals</li>
-                        <li>Adjust portion sizes according to your hunger levels and energy needs</li>
-                        <li>Stay hydrated by drinking plenty of water throughout the day</li>
-                        <li>Consult with a healthcare provider before making significant dietary changes</li>
-                        <li>Generated on: ${new Date().toLocaleDateString()}</li>
-                    </ul>
-                </div>
-            </div>`;
-
-            return html;
-        }
-
-        // Integration Functions
+        // Integration Functions (same as before)
         function sendPlanToLocalStorage() {
             if (!currentMealPlan || !currentUserProfile) {
                 return false;
@@ -2139,14 +2185,10 @@
                             });
                         }
                         
-                        // Show the plan if it exists
+                        // Display the plan in form view (don't auto-show results)
                         if (currentMealPlan) {
                             displayMealPlan(currentMealPlan, currentUserProfile);
                             createCharts(currentMealPlan, currentUserProfile);
-                            document.getElementById('planContent').classList.remove('d-none');
-                            document.getElementById('planPlaceholder').classList.add('d-none');
-                            document.getElementById('analyticsContent').classList.remove('d-none');
-                            document.getElementById('analyticsPlaceholder').classList.add('d-none');
                         }
                         
                         console.log('✅ Loaded existing meal plan from localStorage');
@@ -2157,8 +2199,7 @@
             }
         }
 
-        // Initialize everything when document loads
-        console.log('🍽️ Diet Planner JavaScript loaded successfully! 🎉');
+        console.log('🍽️ Diet Planner Enhanced UX JavaScript loaded successfully! 🎉');
     </script>
 </body>
 </html>

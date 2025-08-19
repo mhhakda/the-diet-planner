@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🍽️ Diet Planner</title>
+    <title>🍽️ Diet Planner - The Diet Planner</title>
     <style>
         :root {
             --bg-color: #ffffff;
@@ -627,6 +627,37 @@
             font-size: 0.9rem;
         }
 
+        /* Success Message Styles */
+        .success-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success-color);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            z-index: 1003;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+
+        .success-message.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .success-message .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin-left: 10px;
+            padding: 0;
+        }
+
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -795,12 +826,18 @@
     <!-- Mobile Overlay -->
     <div class="mobile-overlay" id="mobileOverlay"></div>
 
+    <!-- Success Message -->
+    <div class="success-message" id="successMessage">
+        <span id="successMessageText">✅ Meal plan sent to Diet Tracker successfully!</span>
+        <button class="close-btn" onclick="hideSuccessMessage()">×</button>
+    </div>
+
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <nav class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">🍽️ Diet Planner</div>
-                <div class="tagline">Your nutrition companion</div>
+                <div class="tagline">The Diet Planner</div>
             </div>
             <div class="nav-menu">
                 <button class="nav-item active" data-section="profile">
@@ -834,7 +871,7 @@
                 <!-- Form Section -->
                 <div class="form-section" id="formSection">
                     <div class="section-header">
-                        <h2 class="section-title">👤 Complete Your Profile</h2>
+                        <h1 class="section-title">👤 Complete Your Profile</h1>
                         <p class="section-subtitle">Tell us about yourself to create your personalized meal plan</p>
                     </div>
 
@@ -945,7 +982,7 @@
                 <!-- Results Container -->
                 <div class="results-container" id="resultsContainer">
                     <div class="results-header">
-                        <h2 class="results-title">🍽️ Your Meal Plan</h2>
+                        <h1 class="results-title">🍽️ Your Meal Plan</h1>
                         <button class="edit-profile-btn" id="editProfileBtn">
                             <span>←</span>
                             <span>Edit My Profile</span>
@@ -1004,7 +1041,7 @@
     </div>
 
     <script>
-        // Diet Planner - Enhanced UX JavaScript
+        // Diet Planner - Enhanced Integration JavaScript
         // Global variables
         let currentMealPlan = null;
         let currentUserProfile = null;
@@ -1014,6 +1051,10 @@
         let currentActiveSection = 'profile';
         let currentTheme = localStorage.getItem('theme') || 'light';
         let isResultsVisible = false;
+
+        // Fixed URLs for proper integration
+        const DIET_TRACKER_URL = 'https://thedietplanner.com/diet-tracker';
+        const INTEGRATION_STORAGE_KEY = 'dietplanner_integration_v2';
 
         // Safe number parsing helper
         function safeNumber(v) {
@@ -1033,7 +1074,7 @@
             initializeForm();
             initializeResultsToggle();
             
-            console.log('🍽️ Diet Planner loaded successfully! 🎉');
+            console.log('🍽️ Diet Planner loaded successfully with enhanced integration! 🎉');
         });
 
         // Theme Management
@@ -1109,10 +1150,16 @@
                     scrollTarget = 0; // Top of results (stats + table)
                     break;
                 case 'analytics':
-                    scrollTarget = resultsScroll.querySelector('.charts-grid').offsetTop - 20;
+                    const chartsGrid = resultsScroll.querySelector('.charts-grid');
+                    if (chartsGrid) {
+                        scrollTarget = chartsGrid.offsetTop - 20;
+                    }
                     break;
                 case 'exports':
-                    scrollTarget = resultsScroll.querySelector('.export-section').offsetTop - 20;
+                    const exportSection = resultsScroll.querySelector('.export-section');
+                    if (exportSection) {
+                        scrollTarget = exportSection.offsetTop - 20;
+                    }
                     break;
             }
             
@@ -1255,7 +1302,7 @@
             }
         }
 
-        // Validation (same as before)
+        // Validation
         function validateForm() {
             const fields = ['age', 'gender', 'height', 'weight', 'goal', 'dietType', 'region', 'activityLevel'];
             let isValid = true;
@@ -1329,27 +1376,15 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // Load meals database with embedded fallback (same as before)
+        // Load meals database with embedded fallback
         async function loadMealsDatabase() {
-            // Try to load external file first
-            try {
-                const response = await fetch('meals.json');
-                if (response.ok) {
-                    mealDatabase = await response.json();
-                    console.log('✅ Loaded external meals database');
-                    return mealDatabase;
-                }
-            } catch (error) {
-                console.log('External meals.json not found, using fallback data');
-            }
-            
             // Use embedded fallback data
             mealDatabase = createFallbackMeals();
-            console.log('✅ Using embedded fallback meals database');
+            console.log('✅ Using embedded meals database');
             return mealDatabase;
         }
 
-        // Create comprehensive fallback meals (same as before)
+        // Create comprehensive fallback meals
         function createFallbackMeals() {
             return {
                 "USA": {
@@ -1461,7 +1496,6 @@
             };
         }
 
-        // All the other functions remain the same (calculateTargetCalories, selectMealsForWeek, etc.)
         // Calculate BMR and target calories
         function calculateTargetCalories(profile) {
             const age = safeNumber(profile.age);
@@ -1645,7 +1679,7 @@
                 displayMealPlan(weeklyPlan, profile);
                 await createCharts(weeklyPlan, profile);
 
-                console.log('✅ Meal plan generated successfully!');
+                console.log('✅ Meal plan generated successfully with enhanced integration!');
                 return weeklyPlan;
             } catch (error) {
                 console.error('Error generating meal plan:', error);
@@ -1962,9 +1996,25 @@
             }
         }
 
-        // Export Functions - Updated to export only results
+        // Success Message Functions
+        function showSuccessMessage(message) {
+            const successMessage = document.getElementById('successMessage');
+            const messageText = document.getElementById('successMessageText');
+            messageText.textContent = message;
+            successMessage.classList.add('show');
+            
+            // Auto hide after 5 seconds
+            setTimeout(hideSuccessMessage, 5000);
+        }
+
+        function hideSuccessMessage() {
+            const successMessage = document.getElementById('successMessage');
+            successMessage.classList.remove('show');
+        }
+
+        // FIXED Export Functions - Enhanced Integration
         function downloadCSV() {
-            if (!currentMealPlan) {
+            if (!currentMealPlan || !currentUserProfile) {
                 alert('❌ No meal plan available to export\nPlease generate a meal plan first.');
                 return;
             }
@@ -2004,6 +2054,8 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+
+            showSuccessMessage('✅ CSV file downloaded successfully!');
         }
 
         // Lazy load html2pdf
@@ -2024,7 +2076,7 @@
             });
         }
 
-        // Updated PDF export to capture only results
+        // FIXED PDF export - Now generates proper content
         async function downloadPDF() {
             if (!currentMealPlan || !currentUserProfile) {
                 alert('❌ No meal plan available to export\nPlease generate a meal plan first.');
@@ -2034,30 +2086,142 @@
             try {
                 await loadHtml2Pdf();
                 
-                // Create PDF content from results only
-                const resultsScroll = document.getElementById('resultsScroll');
-                const tempDiv = document.createElement('div');
-                
-                // Clone the results content for PDF
-                tempDiv.innerHTML = `
-                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; max-width: 800px;">
-                        <h1 style="color: #007bff; text-align: center; margin-bottom: 30px;">🍽️ Your Personalized Meal Plan</h1>
-                        <div style="margin-bottom: 20px;">
-                            ${document.getElementById('statsGrid').outerHTML}
-                        </div>
-                        <div style="margin-bottom: 20px;">
-                            ${document.getElementById('mealPlanTable').outerHTML}
+                const weeklyStats = calculateWeeklyStats(currentMealPlan);
+                const days = Object.keys(currentMealPlan);
+                const mealTypes = [
+                    { key: 'breakfast', name: '🌅 Breakfast' },
+                    { key: 'lunch', name: '🍽️ Lunch' },
+                    { key: 'dinner', name: '🌙 Dinner' },
+                    { key: 'snacks', name: '🍎 Snack' }
+                ];
+
+                // Create comprehensive PDF content
+                let html = `
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; max-width: 800px;">
+                    <h1 style="color: #007bff; text-align: center; margin-bottom: 30px; border-bottom: 3px solid #007bff; padding-bottom: 10px;">
+                        🍽️ Your Personalized Meal Plan
+                    </h1>
+                    
+                    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 20px; border-radius: 10px; margin-bottom: 30px; page-break-inside: avoid;">
+                        <h2 style="color: #212529; margin-bottom: 15px; border-left: 4px solid #007bff; padding-left: 10px;">Profile Summary</h2>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <p style="margin: 8px 0;"><strong>Age:</strong> ${currentUserProfile.age} years</p>
+                                <p style="margin: 8px 0;"><strong>Gender:</strong> ${currentUserProfile.gender}</p>
+                                <p style="margin: 8px 0;"><strong>Height:</strong> ${currentUserProfile.height} cm</p>
+                                <p style="margin: 8px 0;"><strong>Weight:</strong> ${currentUserProfile.weight} kg</p>
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <p style="margin: 8px 0;"><strong>Goal:</strong> ${currentUserProfile.goal}</p>
+                                <p style="margin: 8px 0;"><strong>Diet Type:</strong> ${currentUserProfile.dietType}</p>
+                                <p style="margin: 8px 0;"><strong>Region:</strong> ${currentUserProfile.region}</p>
+                                <p style="margin: 8px 0;"><strong>Target Calories:</strong> ${currentUserProfile.targetCalories}/day</p>
+                            </div>
                         </div>
                     </div>
-                `;
+
+                    <div style="margin-bottom: 30px; page-break-inside: avoid;">
+                        <h2 style="color: #212529; margin-bottom: 15px; border-left: 4px solid #28a745; padding-left: 10px;">Weekly Overview</h2>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                            <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <h3 style="margin: 0; color: #007bff; font-size: 1.5rem;">${Math.round(weeklyStats.avgCalories)}</h3>
+                                <p style="margin: 5px 0 0 0; font-size: 0.9em; font-weight: 500;">Avg Daily Calories</p>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%); border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <h3 style="margin: 0; color: #28a745; font-size: 1.5rem;">${Math.round(weeklyStats.avgProtein)}g</h3>
+                                <p style="margin: 5px 0 0 0; font-size: 0.9em; font-weight: 500;">Avg Daily Protein</p>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <h3 style="margin: 0; color: #ff9800; font-size: 1.5rem;">${Math.round(weeklyStats.avgCarbs)}g</h3>
+                                <p style="margin: 5px 0 0 0; font-size: 0.9em; font-weight: 500;">Avg Daily Carbs</p>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%); border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <h3 style="margin: 0; color: #e91e63; font-size: 1.5rem;">${Math.round(weeklyStats.avgFat)}g</h3>
+                                <p style="margin: 5px 0 0 0; font-size: 0.9em; font-weight: 500;">Avg Daily Fat</p>
+                            </div>
+                        </div>
+                    </div>`;
+
+                html += '<h2 style="color: #212529; margin-bottom: 15px; border-left: 4px solid #ffc107; padding-left: 10px;">🗓️ 7-Day Meal Plan</h2>';
                 
+                days.forEach((day, index) => {
+                    if (index % 2 === 0 && index > 0) {
+                        html += '<div style="page-break-before: always;"></div>';
+                    }
+                    
+                    html += `<div style="margin-bottom: 25px; page-break-inside: avoid; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; padding: 15px;">
+                            <h3 style="margin: 0; font-size: 1.2rem;">${day}</h3>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8f9fa;">
+                                    <th style="padding: 12px; border: 1px solid #dee2e6; text-align: left; font-weight: 600;">Meal</th>
+                                    <th style="padding: 12px; border: 1px solid #dee2e6; text-align: left; font-weight: 600;">Food</th>
+                                    <th style="padding: 12px; border: 1px solid #dee2e6; text-align: center; font-weight: 600;">Calories</th>
+                                    <th style="padding: 12px; border: 1px solid #dee2e6; text-align: center; font-weight: 600;">Protein</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+                    let dayTotal = 0;
+                    
+                    mealTypes.forEach(mealType => {
+                        const meal = currentMealPlan[day][mealType.key];
+                        if (meal) {
+                            const calories = safeNumber(meal.calories);
+                            dayTotal += calories;
+                            html += `<tr style="border-bottom: 1px solid #dee2e6;">
+                                <td style="padding: 10px 12px; border: 1px solid #dee2e6; font-weight: 600; color: #007bff;">${mealType.name}</td>
+                                <td style="padding: 10px 12px; border: 1px solid #dee2e6;">
+                                    <div style="font-weight: 500; margin-bottom: 4px;">${meal.title}</div>
+                                    <div style="font-size: 0.85em; color: #6c757d;">${meal.serving_size || ''}</div>
+                                    <div style="font-size: 0.8em; color: #28a745; margin-top: 2px;">
+                                        C: ${safeNumber(meal.carbs)}g • F: ${safeNumber(meal.fat)}g • Fiber: ${safeNumber(meal.fiber)}g
+                                    </div>
+                                </td>
+                                <td style="padding: 10px 12px; border: 1px solid #dee2e6; text-align: center; font-weight: 600;">${calories}</td>
+                                <td style="padding: 10px 12px; border: 1px solid #dee2e6; text-align: center; font-weight: 600;">${safeNumber(meal.protein)}g</td>
+                            </tr>`;
+                        }
+                    });
+
+                    html += `<tr style="background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%); font-weight: bold;">
+                            <td colspan="2" style="padding: 12px; border: 1px solid #dee2e6; color: #1b5e20;">Daily Total</td>
+                            <td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; color: #1b5e20; font-size: 1.1em;">${Math.round(dayTotal)}</td>
+                            <td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; color: #1b5e20;">-</td>
+                        </tr>
+                        </tbody></table>
+                    </div>`;
+                });
+
+                html += `
+                    <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 10px; page-break-inside: avoid; border-left: 5px solid #007bff;">
+                        <h3 style="color: #212529; margin-bottom: 15px; display: flex; align-items: center;">
+                            📝 Important Notes
+                        </h3>
+                        <ul style="line-height: 1.8; color: #495057;">
+                            <li style="margin-bottom: 8px;"><strong>Personalized:</strong> This meal plan is generated based on your profile and goals</li>
+                            <li style="margin-bottom: 8px;"><strong>Flexibility:</strong> Adjust portion sizes according to your hunger levels and energy needs</li>
+                            <li style="margin-bottom: 8px;"><strong>Hydration:</strong> Stay hydrated by drinking plenty of water throughout the day</li>
+                            <li style="margin-bottom: 8px;"><strong>Medical Advice:</strong> Consult with a healthcare provider before making significant dietary changes</li>
+                            <li style="margin-bottom: 8px;"><strong>Generated:</strong> ${new Date().toLocaleDateString()} by The Diet Planner</li>
+                        </ul>
+                        <div style="margin-top: 15px; padding: 10px; background: white; border-radius: 5px; text-align: center;">
+                            <strong style="color: #007bff;">🌟 For more nutrition tools, visit: thedietplanner.com 🌟</strong>
+                        </div>
+                    </div>
+                </div>`;
+
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
                 tempDiv.style.position = 'absolute';
                 tempDiv.style.left = '-9999px';
                 tempDiv.style.width = '800px';
                 document.body.appendChild(tempDiv);
 
                 const opt = {
-                    margin: [10, 10, 10, 10],
+                    margin: [15, 15, 15, 15],
                     filename: `meal-plan-${new Date().toISOString().split('T')[0]}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2, useCORS: true },
@@ -2074,10 +2238,14 @@
                     link.download = opt.filename;
                     link.click();
                     URL.revokeObjectURL(url);
+                    
+                    showSuccessMessage('✅ PDF file downloaded successfully!');
                 } catch (downloadError) {
                     const url = URL.createObjectURL(pdf);
                     window.open(url, '_blank');
                     setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    
+                    showSuccessMessage('✅ PDF opened in new tab!');
                 }
 
             } catch (error) {
@@ -2086,22 +2254,37 @@
             }
         }
 
-        // Integration Functions (same as before)
+        // FIXED Integration Functions - Enhanced Data Transfer
         function sendPlanToLocalStorage() {
             if (!currentMealPlan || !currentUserProfile) {
                 return false;
             }
 
             const integrationData = {
-                version: '1.0',
+                version: '2.0',
                 timestamp: new Date().toISOString(),
+                source: 'thedietplanner-diet-planner',
                 userProfile: currentUserProfile,
                 mealPlan: currentMealPlan,
-                source: 'diet-planner'
+                dailyTargets: {
+                    calories: currentUserProfile.targetCalories,
+                    protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4),
+                    carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4),
+                    fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9),
+                    fiber: 25,
+                    water: 2000
+                }
             };
 
             try {
+                // Store for Diet Tracker integration
+                localStorage.setItem(INTEGRATION_STORAGE_KEY, JSON.stringify(integrationData));
+                
+                // Also store in multiple keys for compatibility
                 localStorage.setItem('planned_meals_v1', JSON.stringify(integrationData));
+                localStorage.setItem('diettracker_import', JSON.stringify(integrationData));
+                
+                console.log('✅ Meal plan data stored successfully in localStorage');
                 return true;
             } catch (error) {
                 console.error('Failed to save plan to localStorage:', error);
@@ -2115,19 +2298,30 @@
             }
 
             const message = {
-                type: 'DIET_PLANNER_PLAN',
+                type: 'DIET_PLANNER_INTEGRATION',
                 payload: {
-                    version: '1.0',
+                    version: '2.0',
                     timestamp: new Date().toISOString(),
+                    source: 'thedietplanner-diet-planner',
                     userProfile: currentUserProfile,
-                    mealPlan: currentMealPlan
+                    mealPlan: currentMealPlan,
+                    dailyTargets: {
+                        calories: currentUserProfile.targetCalories,
+                        protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4),
+                        carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4),
+                        fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9),
+                        fiber: 25,
+                        water: 2000
+                    }
                 }
             };
 
+            // Broadcast to parent windows
             if (window.parent !== window) {
                 window.parent.postMessage(message, '*');
             }
             
+            // Broadcast to all frames
             Array.from(document.querySelectorAll('iframe')).forEach(iframe => {
                 try {
                     iframe.contentWindow.postMessage(message, '*');
@@ -2136,12 +2330,23 @@
                 }
             });
 
+            // Broadcast to opener window
+            if (window.opener) {
+                try {
+                    window.opener.postMessage(message, '*');
+                } catch (e) {
+                    console.log('Could not send to opener:', e);
+                }
+            }
+
+            console.log('✅ Meal plan data sent via postMessage');
             return true;
         }
 
+        // FIXED Send to Diet Tracker - Enhanced Integration
         function sendPlanToTracker() {
             if (!currentMealPlan || !currentUserProfile) {
-                alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.');
+                showSuccessMessage('❌ No meal plan available to send.\nPlease generate a meal plan first.');
                 return;
             }
 
@@ -2149,16 +2354,50 @@
             const postMessageSuccess = sendPlanViaPostMessage();
 
             if (localStorageSuccess || postMessageSuccess) {
-                alert('✅ Meal plan sent to Diet Tracker successfully!\n\n🔄 The tracker will automatically import your plan when you open it.');
+                // Create and automatically submit a form to send data
+                createIntegrationForm();
+                
+                showSuccessMessage('✅ Meal plan sent to Diet Tracker successfully!\n\n🔄 Open the Diet Tracker to view your plan.');
             } else {
-                alert('❌ Failed to send meal plan to tracker. Please try again.');
+                showSuccessMessage('❌ Failed to send meal plan to tracker. Please try again.');
             }
         }
 
+        function createIntegrationForm() {
+            // Create a hidden form with the meal plan data
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
+            
+            const dataInput = document.createElement('input');
+            dataInput.type = 'hidden';
+            dataInput.name = 'meal_plan_data';
+            dataInput.value = JSON.stringify({
+                version: '2.0',
+                timestamp: new Date().toISOString(),
+                source: 'thedietplanner-diet-planner',
+                userProfile: currentUserProfile,
+                mealPlan: currentMealPlan
+            });
+            
+            form.appendChild(dataInput);
+            document.body.appendChild(form);
+            
+            // Clean up
+            setTimeout(() => document.body.removeChild(form), 1000);
+        }
+
+        // FIXED Go to Diet Tracker - Correct URL
         function goToTracker() {
-            // Open your actual diet tracker URL
-            const trackerURL = 'https://mhhakda.github.io/diet-tracker/';
-            window.open(trackerURL, '_blank');
+            // Ensure data is stored before opening
+            if (currentMealPlan && currentUserProfile) {
+                sendPlanToLocalStorage();
+            }
+            
+            // Open the correct Diet Tracker URL
+            window.open(DIET_TRACKER_URL, '_blank');
+            
+            showSuccessMessage('🔗 Opening Diet Tracker in new tab...');
         }
 
         // Load existing plan on page load
@@ -2199,7 +2438,23 @@
             }
         }
 
-        console.log('🍽️ Diet Planner Enhanced UX JavaScript loaded successfully! 🎉');
+        // Listen for messages from Diet Tracker
+        window.addEventListener('message', function(event) {
+            // Only accept messages from your domain
+            if (event.origin !== 'https://thedietplanner.com') {
+                return;
+            }
+            
+            if (event.data.type === 'DIET_TRACKER_READY') {
+                // Diet tracker is ready to receive data
+                if (currentMealPlan && currentUserProfile) {
+                    sendPlanViaPostMessage();
+                    console.log('✅ Diet Tracker ready - sent meal plan data');
+                }
+            }
+        });
+
+        console.log('🍽️ Diet Planner with Enhanced Integration loaded successfully! 🎉');
     </script>
 </body>
 </html>

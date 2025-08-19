@@ -3,42 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diet Planner - Personalized Meal Planning</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="planner.css">
+    <title>Diet Planner - Enhanced</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; position: relative; }
+        .header { text-align: center; margin-bottom: 30px; background: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); backdrop-filter: blur(10px); }
+        .header h1 { color: #2d5a27; font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }
+        .header p { color: #666; font-size: 1.1rem; }
+        .form-section { background: rgba(255, 255, 255, 0.9); padding: 40px; border-radius: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); backdrop-filter: blur(10px); margin-bottom: 30px; transition: all 0.5s ease; }
+        .form-section.hidden { opacity: 0; transform: translateY(-20px); pointer-events: none; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-weight: 600; color: #2d5a27; margin-bottom: 8px; font-size: 0.95rem; }
+        .form-group select, .form-group input { padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 12px; font-size: 1rem; transition: all 0.3s ease; background: white; }
+        .form-group select:focus, .form-group input:focus { outline: none; border-color: #4CAF50; box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1); }
+        .form-group.error input, .form-group.error select { border-color: #ff4444; }
+        .error-message { color: #ff4444; font-size: 0.85rem; margin-top: 4px; }
+        .btn { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; border: none; padding: 15px 30px; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4); }
+        .btn-secondary { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3); }
+        .btn-secondary:hover { box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .results-section { display: none; max-width: 500px; margin: 0 auto; padding: 20px !important; border-radius: 12px !important; box-shadow: 0 2px 10px rgba(0,0,0,0.08) !important; animation: slideIn 0.5s ease; position: absolute; left: 0; right: 0; top: 0; background: rgba(255,255,255,0.98); z-index: 10; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(30px);} to { opacity: 1; transform: translateY(0);} }
+        .meal-plan-table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); font-size: 1rem; }
+        .meal-plan-table th { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 10px; text-align: left; font-weight: 600; font-size: 1rem; }
+        .meal-plan-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; font-size: 0.95rem; }
+        .meal-plan-table tr:hover { background: #f9f9f9; }
+        .meal-item { font-weight: 500; color: #2d5a27; }
+        .calorie-info { font-size: 0.85rem; color: #666; font-style: italic; }
+        .charts-container { display: grid; grid-template-columns: 1fr; gap: 20px; margin: 20px 0; }
+        .chart-card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+        .chart-card h3 { color: #2d5a27; margin-bottom: 10px; text-align: center; font-size: 1rem; }
+        .back-btn { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3); }
+        .back-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4); }
+        .btn, .btn-secondary { padding: 10px 18px !important; font-size: 1rem !important; border-radius: 8px !important; }
+        .results-section h2 { font-size: 1.2rem !important; }
+        .loading { display: none; text-align: center; padding: 20px; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #4CAF50; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .export-buttons { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; justify-content: center; }
+        .integration-buttons { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; justify-content: center; }
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .header h1 { font-size: 2rem; }
+            .form-section, .results-section { padding: 10px !important; }
+            .form-grid { grid-template-columns: 1fr; gap: 10px; }
+            .charts-container { grid-template-columns: 1fr; }
+            .meal-plan-table { font-size: 0.85rem !important; }
+            .meal-plan-table th, .meal-plan-table td { padding: 6px 5px !important; }
+            .chart-card { padding: 8px !important; }
+            .results-section { max-width: 100vw !important; box-shadow: none !important; }
+            .export-buttons, .integration-buttons { flex-direction: column; }
+        }
+        @media (max-width: 500px) {
+            .meal-plan-table { font-size: 0.8rem !important; }
+            .chart-card canvas { max-width: 90vw !important; height: 140px !important; }
+            .results-section { left: 0; right: 0; top: 0; }
+        }
+    </style>
 </head>
 <body>
-    <!-- User Questionnaire Form -->
-    <div class="container">
-        <h1>Diet Planner</h1>
-        <form id="user-questionnaire">
-            <div class="form-grid">
-                <input type="number" id="age" placeholder="Age" required>
-                <select id="gender" required>
-                    <option value="">Gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                </select>
-                <input type="number" id="height" placeholder="Height (cm)" required>
-                <input type="number" id="weight" placeholder="Weight (kg)" required>
-                <select id="goal" required>
-                    <option value="">Goal</option>
-                    <option value="weight_loss">Weight Loss</option>
-                    <option value="maintain">Maintain</option>
-                </select>
-            </div>
-            <button type="submit">Generate Meal Plan</button>
-        </form>
-
-        <!-- Meal Plan Grid (hidden until generated) -->
-        <div id="meal-plan-section" class="hidden">
-            <div id="meal-plan-grid"></div>
-            <button id="send-to-tracker-btn">Send to Tracker</button>
-            <button id="download-csv-btn">Download CSV</button>
-            <button id="download-pdf-btn">Download PDF</button>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>🍽️ Advanced Diet Planner</h1>
+        <p>Create your personalized meal plan based on your comprehensive health profile</p>
     </div>
 
-    <script src="planner.js"></script>
+    <div class="form-section" id="formSection">
+        <h2 style="color: #2d5a27; margin-bottom: 25px; text-align: center;">Complete Your Health Profile</h2>
+        <form id="dietForm">
+            <div class="form-grid">
+                <!-- Basic Info -->
+                <div class="form-group">
+                    <label for="age">Age *</label>
+                    <input type="number" id="age" min="13" max="120" required>
+                    <div class="error-message" id="age-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="gender">Gender *</label>
+                    <select id="gender" required>
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <div class="error-message" id="gender-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="height">Height (cm) *</label>
+                    <input type="number" id="height" min="100" max="250" required placeholder="e.g., 175">
+                    <div class="error-message" id="height-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="weight">Weight (kg) *</label>
+                    <input type="number" id="weight" min="30" max="300" step="0.1" required placeholder="e.g., 70.5">
+                    <div class="error-message" id="weight-error"></div>
+                </div>
+
+                <!-- Goals -->
+                <div class="form-group">
+                    <label for="goal">Health Goal *</label>
+                    <select id="goal" required>
+                        <option value="">Select Goal</option>
+                        <option value="loss">Weight Loss</option>
+                        <option value="gain">Weight Gain</option>
+                        <option value="maintain">Maintain Weight</option>
+                        <option value="muscle">Muscle Gain</option>
+                    </select>
+                    <div class="error-message" id="goal-error"></div>
+                </div>
+
+                <!-- Diet Preferences -->
+                <div class="form-group">
+                    <label for="dietType">Dietary Preference *</label>
+                    <select id="dietType" required>
+                        <option value="">Select Diet Type</option>
+                        <option value="Regular">Regular (Omnivore)</option>
+                        <option value="Vegetarian">Vegetarian</option>
+                        <option value="Vegan">Vegan</option>
+                        <option value="Keto">Ketogenic</option>
+                        <option value="Pescatarian">Pescatarian</option>
+                        <option value="Low-carb">Low-Carb</option>
+                    </select>
+                    <div class="error-message" id="dietType-error"></div>
+                </div>
+
+                <!-- Region -->
+                <div class="form-group">
+                    <label for="region">Region *</label>
+                    <select id="region" required>
+                        <option value="">Select Region</option>
+                        <option value="USA">USA</option>
+                        <option value="Europe">Europe</option>
+                        <option value="India">India</option>
+                        <option value="Middle East">Middle East</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <div class="error-message" id="region-error"></div>
+                </div>
+
+                <!-- Activity Level -->
+                <div class="form-group">
+                    <label for="activityLevel">Activity Level *</label>
+                    <select id="activityLevel" required>
+                        <option value="">Select Activity Level</option>
+                        <option value="low">Low (Sedentary)</option>
+                        <option value="moderate">Moderate (Light exercise)</option>
+                        <option value="high">High (Regular exercise)</option>
+                        <option value="very-high">Very High (Intense exercise)</option>
+                    </select>
+                    <div class="error-message" id="activityLevel-error"></div>
+                </div>
+
+                <!-- Target Calories -->
+                <div class="form-group">
+                    <label for="targetCalories">Target Daily Calories (optional)</label>
+                    <input type="number" id="targetCalories" min="800" max="5000" placeholder="Auto-calculated if empty">
+                    <div class="error-message" id="targetCalories-error"></div>
+                </div>
+            </div>
+            
+            <div style="text-align: center;">
+                <button type="submit" class="btn" id="generateBtn">Generate My Meal Plan</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Creating your personalized meal plan...</p>
+    </div>
+
+    <div class="results-section" id="resultsSection">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #2d5a27; margin-bottom: 15px;">Your 7-Day Meal Plan</h2>
+            <div class="integration-buttons">
+                <button class="btn" onclick="sendPlanToTracker()">📊 Send Plan to Tracker</button>
+                <button class="btn-secondary" onclick="goToTracker()">📱 Go to Diet Tracker</button>
+            </div>
+            <div class="export-buttons">
+                <button class="btn" onclick="downloadCSV()">📄 Download CSV</button>
+                <button class="btn btn-secondary" onclick="downloadPDF()">📑 Download PDF</button>
+            </div>
+        </div>
+        
+        <div id="mealPlanContainer">
+            <div id="mealPlanTable"></div>
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Daily Calorie Distribution</h3>
+                    <canvas id="calorieChart" width="400" height="200"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Weekly Macros Breakdown</h3>
+                    <canvas id="macrosChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="back-btn" onclick="goBackToForm()">← Edit Profile</button>
+        </div>
+    </div>
+</div>
+
+<script src="planner.js"></script>
 </body>
 </html>

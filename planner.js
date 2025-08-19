@@ -1,5 +1,5 @@
-// Enhanced Diet Planner JavaScript - Updated for better UX
-// Comprehensive meal planning with exports, charts, and integrations
+// Diet Planner - Tracker Style JavaScript
+// Matching the Diet Tracker design and functionality
 
 // Global variables
 let currentMealPlan = null;
@@ -7,6 +7,11 @@ let currentUserProfile = null;
 let mealDatabase = null;
 let ChartsLoaded = false;
 let Html2PdfLoaded = false;
+let currentActiveSection = 'profile';
+let sectionObserver;
+
+// Theme management
+let currentTheme = localStorage.getItem('theme') || 'light';
 
 // Safe number parsing helper
 function safeNumber(v) {
@@ -14,6 +19,259 @@ function safeNumber(v) {
     if (typeof v === 'number') return isNaN(v) ? 0 : v;
     const n = parseFloat(String(v).replace(/,/g, ''));
     return isNaN(n) ? 0 : n;
+}
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', function() {
+    initializeTheme();
+    initializeNavigation();
+    initializeMobileMenu();
+    initializeIntersectionObserver();
+    loadMealsDatabase();
+    loadExistingPlan();
+    initializeForm();
+    
+    console.log('🍽️ Diet Planner loaded successfully! 🎉');
+});
+
+// Theme Management
+function initializeTheme() {
+    document.body.setAttribute('data-theme', currentTheme);
+    updateThemeToggle();
+    
+    const themeToggle = document.getElementById('themeToggle');
+    themeToggle.addEventListener('click', toggleTheme);
+}
+
+function toggleTheme() {
+    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+    document.body.setAttribute('data-theme', currentTheme);
+    localStorage.setItem('theme', currentTheme);
+    updateThemeToggle();
+}
+
+function updateThemeToggle() {
+    const themeToggle = document.getElementById('themeToggle');
+    themeToggle.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+}
+
+// Navigation Management
+function initializeNavigation() {
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    navItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const targetSection = this.getAttribute('data-section');
+            navigateToSection(targetSection);
+        });
+    });
+}
+
+function navigateToSection(sectionId) {
+    // Update active nav item
+    updateActiveNavItem(sectionId);
+    
+    // Scroll to section
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest' 
+        });
+    }
+    
+    // Close mobile menu if open
+    closeMobileMenu();
+    
+    // Update current active section
+    currentActiveSection = sectionId;
+}
+
+function updateActiveNavItem(activeSection) {
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    navItems.forEach(item => {
+        const section = item.getAttribute('data-section');
+        if (section === activeSection) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+}
+
+// Intersection Observer for automatic section highlighting
+function initializeIntersectionObserver() {
+    const sections = document.querySelectorAll('.content-section');
+    
+    const observerOptions = {
+        root: null,
+        rootMargin: '-20% 0px -60% 0px',
+        threshold: 0.1
+    };
+    
+    sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const sectionId = entry.target.id;
+                updateActiveNavItem(sectionId);
+                currentActiveSection = sectionId;
+            }
+        });
+    }, observerOptions);
+    
+    sections.forEach(section => {
+        sectionObserver.observe(section);
+    });
+}
+
+// Mobile Menu Management
+function initializeMobileMenu() {
+    const mobileMenuButton = document.getElementById('mobileMenuButton');
+    const mobileOverlay = document.getElementById('mobileOverlay');
+    
+    mobileMenuButton.addEventListener('click', toggleMobileMenu);
+    mobileOverlay.addEventListener('click', closeMobileMenu);
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeMobileMenu();
+        }
+    });
+}
+
+function toggleMobileMenu() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobileOverlay');
+    
+    sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('active');
+}
+
+function closeMobileMenu() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobileOverlay');
+    
+    sidebar.classList.remove('mobile-open');
+    overlay.classList.remove('active');
+}
+
+// Form Management
+function initializeForm() {
+    const form = document.getElementById('dietForm');
+    form.addEventListener('submit', handleFormSubmit);
+}
+
+async function handleFormSubmit(e) {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+        return;
+    }
+
+    const generateBtn = document.getElementById('generateBtn');
+    const generateBtnText = document.getElementById('generateBtnText');
+    
+    // Update button state
+    generateBtn.disabled = true;
+    generateBtnText.textContent = 'Generating...';
+    
+    // Show loading
+    showLoading();
+
+    try {
+        await generateMealPlan();
+        
+        // Navigate to plan section after generation
+        setTimeout(() => {
+            hideLoading();
+            navigateToSection('plan');
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Error generating meal plan:', error);
+        hideLoading();
+        alert('Error generating meal plan: ' + error.message);
+    } finally {
+        generateBtn.disabled = false;
+        generateBtnText.textContent = 'Generate My Meal Plan';
+    }
+}
+
+// Validation
+function validateForm() {
+    const fields = ['age', 'gender', 'height', 'weight', 'goal', 'dietType', 'region', 'activityLevel'];
+    let isValid = true;
+
+    fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        const errorDiv = document.getElementById(fieldId + '-error');
+        const control = field;
+        
+        // Clear previous errors
+        control.classList.remove('is-invalid');
+        errorDiv.textContent = '';
+
+        // Validate required fields
+        if (!field.value.trim()) {
+            control.classList.add('is-invalid');
+            errorDiv.textContent = 'This field is required';
+            isValid = false;
+            return;
+        }
+
+        // Specific validations
+        if (fieldId === 'age') {
+            const age = safeNumber(field.value);
+            if (age < 13 || age > 120) {
+                control.classList.add('is-invalid');
+                errorDiv.textContent = 'Age must be between 13 and 120';
+                isValid = false;
+            }
+        }
+
+        if (fieldId === 'height') {
+            const height = safeNumber(field.value);
+            if (height < 100 || height > 250) {
+                control.classList.add('is-invalid');
+                errorDiv.textContent = 'Height must be between 100-250 cm';
+                isValid = false;
+            }
+        }
+
+        if (fieldId === 'weight') {
+            const weight = safeNumber(field.value);
+            if (weight < 30 || weight > 300) {
+                control.classList.add('is-invalid');
+                errorDiv.textContent = 'Weight must be between 30-300 kg';
+                isValid = false;
+            }
+        }
+    });
+
+    // Validate target calories if provided
+    const targetCalories = document.getElementById('targetCalories');
+    if (targetCalories.value.trim()) {
+        const calories = safeNumber(targetCalories.value);
+        if (calories < 800 || calories > 5000) {
+            targetCalories.classList.add('is-invalid');
+            document.getElementById('targetCalories-error').textContent = 'Target calories must be between 800-5000';
+            isValid = false;
+        }
+    }
+
+    return isValid;
+}
+
+// Loading State Management
+function showLoading() {
+    document.getElementById('loading').style.display = 'block';
+}
+
+function hideLoading() {
+    document.getElementById('loading').style.display = 'none';
 }
 
 // Load meals database
@@ -29,13 +287,12 @@ async function loadMealsDatabase() {
         return mealDatabase;
     } catch (error) {
         console.error('Failed to load meals database:', error);
-        // Fallback to basic data
         mealDatabase = createFallbackMeals();
         return mealDatabase;
     }
 }
 
-// Create fallback meals if loading fails
+// Create fallback meals
 function createFallbackMeals() {
     return {
         "USA": {
@@ -57,82 +314,32 @@ function createFallbackMeals() {
                     {"id": 31, "title": "Apple with Peanut Butter", "serving_size": "1 apple + 2 tbsp PB", "calories": 190, "protein": 8, "carbs": 24, "fat": 12, "fiber": 4},
                     {"id": 32, "title": "Greek Yogurt", "serving_size": "1 cup", "calories": 150, "protein": 15, "carbs": 8, "fat": 4, "fiber": 0}
                 ]
-            },
-            "Vegetarian": {
-                "breakfast": [{"id": 101, "title": "Veggie Scramble", "serving_size": "2 eggs + veggies", "calories": 350, "protein": 18, "carbs": 16, "fat": 22, "fiber": 4}],
-                "lunch": [{"id": 111, "title": "Quinoa Salad", "serving_size": "1.5 cups", "calories": 420, "protein": 16, "carbs": 68, "fat": 10, "fiber": 9}],
-                "dinner": [{"id": 121, "title": "Eggplant Parmesan", "serving_size": "1 serving", "calories": 520, "protein": 22, "carbs": 48, "fat": 26, "fiber": 8}],
-                "snacks": [{"id": 131, "title": "Hummus with Veggies", "serving_size": "1/4 cup + veggies", "calories": 120, "protein": 4, "carbs": 16, "fat": 6, "fiber": 4}]
+            }
+        },
+        "India": {
+            "Regular": {
+                "breakfast": [
+                    {"id": 101, "title": "Aloo Paratha with Curd", "serving_size": "2 parathas + curd", "calories": 450, "protein": 12, "carbs": 65, "fat": 16, "fiber": 4},
+                    {"id": 102, "title": "Dosa with Chutney", "serving_size": "2 dosas + chutney", "calories": 380, "protein": 10, "carbs": 65, "fat": 8, "fiber": 3},
+                    {"id": 103, "title": "Medu Vada with Sambar", "serving_size": "3 vadas + sambar", "calories": 380, "protein": 12, "carbs": 48, "fat": 16, "fiber": 5}
+                ],
+                "lunch": [
+                    {"id": 111, "title": "Fish Curry with Rice", "serving_size": "150g fish + rice", "calories": 520, "protein": 28, "carbs": 65, "fat": 14, "fiber": 3},
+                    {"id": 112, "title": "Butter Chicken with Naan", "serving_size": "150g chicken + 2 naans", "calories": 720, "protein": 35, "carbs": 68, "fat": 32, "fiber": 4},
+                    {"id": 113, "title": "Biryani", "serving_size": "1 plate", "calories": 520, "protein": 22, "carbs": 78, "fat": 16, "fiber": 3}
+                ],
+                "dinner": [
+                    {"id": 121, "title": "Chicken Tikka with Naan", "serving_size": "200g chicken + 2 naans", "calories": 620, "protein": 35, "carbs": 52, "fat": 24, "fiber": 4},
+                    {"id": 122, "title": "Paneer Butter Masala with Rice", "serving_size": "200g paneer + rice", "calories": 650, "protein": 28, "carbs": 68, "fat": 28, "fiber": 5},
+                    {"id": 123, "title": "Dal Makhani with Rice", "serving_size": "1 cup dal + rice", "calories": 520, "protein": 18, "carbs": 72, "fat": 16, "fiber": 8}
+                ],
+                "snacks": [
+                    {"id": 131, "title": "Bhel Puri", "serving_size": "1 cup", "calories": 200, "protein": 5, "carbs": 35, "fat": 5, "fiber": 3},
+                    {"id": 132, "title": "Samosa", "serving_size": "2 samosas", "calories": 180, "protein": 4, "carbs": 26, "fat": 8, "fiber": 2}
+                ]
             }
         }
     };
-}
-
-// Form validation
-function validateForm() {
-    const fields = ['age', 'gender', 'height', 'weight', 'goal', 'dietType', 'region', 'activityLevel'];
-    let isValid = true;
-
-    fields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        const errorDiv = document.getElementById(fieldId + '-error');
-        const group = field.closest('.form-group');
-        
-        // Clear previous errors
-        group.classList.remove('error');
-        errorDiv.textContent = '';
-
-        // Validate required fields
-        if (!field.value.trim()) {
-            group.classList.add('error');
-            errorDiv.textContent = 'This field is required';
-            isValid = false;
-            return;
-        }
-
-        // Specific validations
-        if (fieldId === 'age') {
-            const age = safeNumber(field.value);
-            if (age < 13 || age > 120) {
-                group.classList.add('error');
-                errorDiv.textContent = 'Age must be between 13 and 120';
-                isValid = false;
-            }
-        }
-
-        if (fieldId === 'height') {
-            const height = safeNumber(field.value);
-            if (height < 100 || height > 250) {
-                group.classList.add('error');
-                errorDiv.textContent = 'Height must be between 100-250 cm';
-                isValid = false;
-            }
-        }
-
-        if (fieldId === 'weight') {
-            const weight = safeNumber(field.value);
-            if (weight < 30 || weight > 300) {
-                group.classList.add('error');
-                errorDiv.textContent = 'Weight must be between 30-300 kg';
-                isValid = false;
-            }
-        }
-    });
-
-    // Validate target calories if provided
-    const targetCalories = document.getElementById('targetCalories');
-    if (targetCalories.value.trim()) {
-        const calories = safeNumber(targetCalories.value);
-        if (calories < 800 || calories > 5000) {
-            const group = targetCalories.closest('.form-group');
-            const errorDiv = document.getElementById('targetCalories-error');
-            group.classList.add('error');
-            errorDiv.textContent = 'Target calories must be between 800-5000';
-            isValid = false;
-        }
-    }
-
-    return isValid;
 }
 
 // Calculate BMR and target calories
@@ -264,10 +471,6 @@ function createDefaultMeal(mealType, targetCalories) {
 // Generate meal plan
 async function generateMealPlan() {
     try {
-        // Show loading immediately and hide form
-        showLoading();
-        hideForm();
-
         // Load meals database
         await loadMealsDatabase();
 
@@ -318,141 +521,119 @@ async function generateMealPlan() {
             generated: new Date().toISOString()
         }));
 
-        // Simulate loading time for better UX
-        setTimeout(async () => {
-            // Display results
-            displayMealPlan(weeklyPlan, profile);
-            await createCharts(weeklyPlan, profile);
-
-            // Show results with smooth transition
-            hideLoading();
-            showResults();
-        }, 2000);
+        // Display results
+        displayMealPlan(weeklyPlan, profile);
+        await createCharts(weeklyPlan, profile);
+        
+        // Show content sections
+        document.getElementById('planContent').classList.remove('d-none');
+        document.getElementById('planPlaceholder').classList.add('d-none');
+        document.getElementById('analyticsContent').classList.remove('d-none');
+        document.getElementById('analyticsPlaceholder').classList.add('d-none');
 
         return weeklyPlan;
     } catch (error) {
         console.error('Error generating meal plan:', error);
-        hideLoading();
-        showForm();
-        alert('Error generating meal plan: ' + error.message);
         throw error;
     }
 }
 
-// UI State Management Functions
-function showLoading() {
-    document.getElementById('loading').style.display = 'block';
-}
-
-function hideLoading() {
-    document.getElementById('loading').style.display = 'none';
-}
-
-function showForm() {
-    document.getElementById('formSection').classList.remove('hidden');
-    const generateBtn = document.getElementById('generateBtn');
-    generateBtn.disabled = false;
-    document.getElementById('generateBtnText').textContent = 'Generate My Meal Plan';
-}
-
-function hideForm() {
-    document.getElementById('formSection').classList.add('hidden');
-}
-
-function showResults() {
-    document.getElementById('resultsSection').style.display = 'block';
-    // Smooth scroll to results
-    setTimeout(() => {
-        document.getElementById('resultsSection').scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
-        });
-    }, 100);
-}
-
-function hideResults() {
-    document.getElementById('resultsSection').style.display = 'none';
-}
-
-// Display meal plan table with enhanced styling
+// Display meal plan with stats
 function displayMealPlan(weeklyPlan, profile) {
-    const container = document.getElementById('mealPlanTable');
-    const summaryContainer = document.getElementById('summaryCard');
-    const days = Object.keys(weeklyPlan);
-    const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks'];
+    displayStatsCards(weeklyPlan, profile);
+    displayMealTable(weeklyPlan);
+}
 
-    // Create summary card
+// Display stats cards with tracker-style layout
+function displayStatsCards(weeklyPlan, profile) {
     const weeklyStats = calculateWeeklyStats(weeklyPlan);
-    summaryContainer.innerHTML = `
-        <div class="summary-card">
-            <h4 class="summary-title">Weekly Nutrition Summary</h4>
-            <div class="summary-grid">
-                <div class="summary-item">
-                    <div class="summary-value">${Math.round(weeklyStats.avgCalories)}</div>
-                    <div class="summary-label">Avg Daily Calories</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-value">${Math.round(weeklyStats.avgProtein)}g</div>
-                    <div class="summary-label">Avg Daily Protein</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-value">${Math.round(weeklyStats.avgCarbs)}g</div>
-                    <div class="summary-label">Avg Daily Carbs</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-value">${Math.round(weeklyStats.avgFat)}g</div>
-                    <div class="summary-label">Avg Daily Fat</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-value">${profile.targetCalories}</div>
-                    <div class="summary-label">Target Calories</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-value">${Math.round(((weeklyStats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100)}%</div>
-                    <div class="summary-label">Target Difference</div>
-                </div>
+    const container = document.getElementById('statsGrid');
+    
+    const targetDifference = Math.round(((weeklyStats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
+    
+    container.innerHTML = `
+        <div class="stat-card fade-in">
+            <div class="stat-title">Calories</div>
+            <div class="stat-value">${Math.round(weeklyStats.avgCalories)}<span class="stat-unit"></span></div>
+            <div class="stat-target">/ ${profile.targetCalories}</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Protein</div>
+            <div class="stat-value">${Math.round(weeklyStats.avgProtein)}<span class="stat-unit">g</span></div>
+            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.15 / 4)}g</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Carbs</div>
+            <div class="stat-value">${Math.round(weeklyStats.avgCarbs)}<span class="stat-unit">g</span></div>
+            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.5 / 4)}g</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Fat</div>
+            <div class="stat-value">${Math.round(weeklyStats.avgFat)}<span class="stat-unit">g</span></div>
+            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.35 / 9)}g</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Fiber</div>
+            <div class="stat-value">${Math.round(weeklyStats.avgFiber)}<span class="stat-unit">g</span></div>
+            <div class="stat-target">/ 25g</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Target Diff</div>
+            <div class="stat-value ${targetDifference >= 0 ? 'text-success' : 'text-warning'}">
+                ${targetDifference >= 0 ? '+' : ''}${targetDifference}<span class="stat-unit">%</span>
             </div>
         </div>
     `;
+}
 
-    // Create meal plan table
-    let html = '<table class="meal-plan-table">';
+// Display meal table with tracker-style emojis
+function displayMealTable(weeklyPlan) {
+    const container = document.getElementById('mealPlanTable');
+    const days = Object.keys(weeklyPlan);
+    const mealTypes = [
+        { key: 'breakfast', name: '🌅 Breakfast' },
+        { key: 'lunch', name: '🍽️ Lunch' },
+        { key: 'dinner', name: '🌙 Dinner' },
+        { key: 'snacks', name: '🍎 Snack' }
+    ];
+
+    let html = '<table class="table">';
     html += '<thead><tr>';
     html += '<th>Day</th>';
-    mealTypes.forEach(type => {
-        html += `<th>${type.charAt(0).toUpperCase() + type.slice(1)}</th>`;
+    mealTypes.forEach(meal => {
+        html += `<th>${meal.name}</th>`;
     });
     html += '<th>Daily Total</th>';
     html += '</tr></thead><tbody>';
 
     days.forEach(day => {
         html += '<tr>';
-        html += `<td><strong style="color: #667eea;">${day}</strong></td>`;
+        html += `<td class="day-header">${day}</td>`;
         
         let totalCalories = 0;
         mealTypes.forEach(mealType => {
-            const meal = weeklyPlan[day][mealType];
+            const meal = weeklyPlan[day][mealType.key];
             if (meal) {
                 const calories = safeNumber(meal.calories);
                 totalCalories += calories;
                 html += `<td>
                     <div class="meal-item">${meal.title}</div>
-                    <div class="calorie-info">${calories} cal</div>`;
+                    <div class="meal-serving text-primary">${calories} kcal</div>`;
                 if (meal.serving_size) {
-                    html += `<div class="serving-info">${meal.serving_size}</div>`;
+                    html += `<div class="meal-serving">${meal.serving_size}</div>`;
                 }
                 if (meal.protein !== undefined) {
-                    html += `<div class="nutrient-info">
+                    html += `<div class="meal-nutrients">
                         P: ${safeNumber(meal.protein)}g • C: ${safeNumber(meal.carbs)}g • F: ${safeNumber(meal.fat)}g
                     </div>`;
                 }
                 html += '</td>';
             } else {
-                html += '<td>No meal</td>';
+                html += '<td><div class="text-muted">No meal</div></td>';
             }
         });
         
-        html += `<td><strong style="color: #667eea;">${Math.round(totalCalories)} cal</strong></td>`;
+        html += `<td><strong class="text-success">${Math.round(totalCalories)} kcal</strong></td>`;
         html += '</tr>';
     });
 
@@ -466,6 +647,7 @@ function calculateWeeklyStats(weeklyPlan) {
     let totalProtein = 0;
     let totalCarbs = 0;
     let totalFat = 0;
+    let totalFiber = 0;
     let mealCount = 0;
 
     Object.keys(weeklyPlan).forEach(day => {
@@ -476,6 +658,7 @@ function calculateWeeklyStats(weeklyPlan) {
                 totalProtein += safeNumber(meal.protein);
                 totalCarbs += safeNumber(meal.carbs);
                 totalFat += safeNumber(meal.fat);
+                totalFiber += safeNumber(meal.fiber);
                 mealCount++;
             }
         });
@@ -490,6 +673,8 @@ function calculateWeeklyStats(weeklyPlan) {
         avgCarbs: totalCarbs / 7,
         totalFat,
         avgFat: totalFat / 7,
+        totalFiber,
+        avgFiber: totalFiber / 7,
         mealCount
     };
 }
@@ -512,7 +697,7 @@ async function loadChartJS() {
     });
 }
 
-// Create charts with updated styling
+// Create charts with tracker-style colors
 async function createCharts(weeklyPlan, profile) {
     try {
         await loadChartJS();
@@ -530,32 +715,37 @@ async function createCharts(weeklyPlan, profile) {
 
         const weeklyStats = calculateWeeklyStats(weeklyPlan);
 
-        // Daily Calorie Chart with updated colors
+        // Get theme colors
+        const isDark = currentTheme === 'dark';
+        const textColor = isDark ? '#ffffff' : '#212529';
+        const gridColor = isDark ? '#404040' : '#dee2e6';
+
+        // Daily Calorie Chart
         const calorieCtx = document.getElementById('calorieChart');
         if (calorieCtx) {
             new Chart(calorieCtx, {
                 type: 'bar',
                 data: {
-                    labels: days.map(day => day.substr(0, 3)), // Short day names
+                    labels: days.map(day => day.substr(0, 3)),
                     datasets: [{
                         label: 'Daily Calories',
                         data: dailyCalories,
-                        backgroundColor: 'rgba(102, 126, 234, 0.7)',
-                        borderColor: 'rgba(102, 126, 234, 1)',
-                        borderWidth: 2,
+                        backgroundColor: 'rgba(0, 123, 255, 0.8)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1,
                         borderRadius: 4,
                     }, {
                         label: 'Target',
                         data: Array(7).fill(profile.targetCalories),
                         type: 'line',
-                        borderColor: 'rgba(245, 158, 11, 1)',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        borderWidth: 3,
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        borderWidth: 2,
                         fill: false,
-                        pointBackgroundColor: 'rgba(245, 158, 11, 1)',
+                        pointBackgroundColor: 'rgba(40, 167, 69, 1)',
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
-                        pointRadius: 5,
+                        pointRadius: 4,
                     }]
                 },
                 options: {
@@ -567,17 +757,17 @@ async function createCharts(weeklyPlan, profile) {
                             labels: {
                                 usePointStyle: true,
                                 padding: 20,
-                                color: '#374151'
+                                color: textColor
                             }
                         }
                     },
                     scales: {
                         x: {
                             grid: {
-                                display: false
+                                color: gridColor
                             },
                             ticks: {
-                                color: '#6b7280'
+                                color: textColor
                             }
                         },
                         y: {
@@ -585,13 +775,13 @@ async function createCharts(weeklyPlan, profile) {
                             title: {
                                 display: true,
                                 text: 'Calories',
-                                color: '#374151'
+                                color: textColor
                             },
                             grid: {
-                                color: 'rgba(229, 231, 235, 0.5)'
+                                color: gridColor
                             },
                             ticks: {
-                                color: '#6b7280'
+                                color: textColor
                             }
                         }
                     }
@@ -599,10 +789,9 @@ async function createCharts(weeklyPlan, profile) {
             });
         }
 
-        // Weekly Macros Chart with updated colors
+        // Weekly Macros Chart
         const macrosCtx = document.getElementById('macrosChart');
         if (macrosCtx) {
-            // Convert grams to calories for proper pie chart
             const proteinCals = weeklyStats.totalProtein * 4;
             const carbsCals = weeklyStats.totalCarbs * 4;
             const fatCals = weeklyStats.totalFat * 9;
@@ -610,21 +799,21 @@ async function createCharts(weeklyPlan, profile) {
             new Chart(macrosCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Protein', 'Carbohydrates', 'Fats'],
+                    labels: ['Protein', 'Carbohydrates', 'Fat'],
                     datasets: [{
                         data: [proteinCals, carbsCals, fatCals],
                         backgroundColor: [
-                            'rgba(102, 126, 234, 0.8)',
-                            'rgba(245, 158, 11, 0.8)',
-                            'rgba(239, 68, 68, 0.8)'
+                            'rgba(0, 123, 255, 0.8)',
+                            'rgba(40, 167, 69, 0.8)',
+                            'rgba(255, 193, 7, 0.8)'
                         ],
                         borderColor: [
-                            'rgba(102, 126, 234, 1)',
-                            'rgba(245, 158, 11, 1)',
-                            'rgba(239, 68, 68, 1)'
+                            'rgba(0, 123, 255, 1)',
+                            'rgba(40, 167, 69, 1)',
+                            'rgba(255, 193, 7, 1)'
                         ],
                         borderWidth: 2,
-                        hoverOffset: 8
+                        hoverOffset: 4
                     }]
                 },
                 options: {
@@ -636,7 +825,7 @@ async function createCharts(weeklyPlan, profile) {
                             labels: {
                                 usePointStyle: true,
                                 padding: 20,
-                                color: '#374151'
+                                color: textColor
                             }
                         },
                         tooltip: {
@@ -651,7 +840,7 @@ async function createCharts(weeklyPlan, profile) {
                             }
                         }
                     },
-                    cutout: '50%'
+                    cutout: '60%'
                 }
             });
         }
@@ -661,14 +850,13 @@ async function createCharts(weeklyPlan, profile) {
     }
 }
 
-// Export to CSV (same functionality, no changes needed)
+// Export Functions
 function downloadCSV() {
     if (!currentMealPlan) {
         alert('No meal plan available to export');
         return;
     }
 
-    // UTF-8 BOM for Excel compatibility
     let csvContent = '\uFEFF';
     csvContent += 'Date,Meal Time,Food Name,Serving Size,Calories,Protein,Carbs,Fat,Fiber\n';
 
@@ -682,7 +870,7 @@ function downloadCSV() {
                 const row = [
                     day,
                     mealType.charAt(0).toUpperCase() + mealType.slice(1),
-                    `"${meal.title.replace(/"/g, '""')}"`, // Escape quotes
+                    `"${meal.title.replace(/"/g, '""')}"`,
                     `"${meal.serving_size || 'N/A'}"`,
                     safeNumber(meal.calories),
                     safeNumber(meal.protein),
@@ -695,7 +883,6 @@ function downloadCSV() {
         });
     });
 
-    // Create and download file
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -725,7 +912,6 @@ async function loadHtml2Pdf() {
     });
 }
 
-// Export to PDF (keeping the same functionality)
 async function downloadPDF() {
     if (!currentMealPlan || !currentUserProfile) {
         alert('No meal plan available to export');
@@ -734,8 +920,7 @@ async function downloadPDF() {
 
     try {
         await loadHtml2Pdf();
-
-        // Create temporary PDF content
+        
         const pdfContent = createPDFContent();
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = pdfContent;
@@ -744,23 +929,17 @@ async function downloadPDF() {
         tempDiv.style.width = '800px';
         document.body.appendChild(tempDiv);
 
-        // Configure PDF options
         const opt = {
             margin: [10, 10, 10, 10],
             filename: `meal-plan-${new Date().toISOString().split('T')[0]}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        // Generate PDF
         const pdf = await html2pdf().from(tempDiv).set(opt).output('blob');
-        
-        // Clean up
         document.body.removeChild(tempDiv);
 
-        // Try direct download first
         try {
             const url = URL.createObjectURL(pdf);
             const link = document.createElement('a');
@@ -769,7 +948,6 @@ async function downloadPDF() {
             link.click();
             URL.revokeObjectURL(url);
         } catch (downloadError) {
-            // Fallback: open in new tab
             const url = URL.createObjectURL(pdf);
             window.open(url, '_blank');
             setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -781,18 +959,17 @@ async function downloadPDF() {
     }
 }
 
-// Create PDF content (keeping same functionality)
 function createPDFContent() {
     const weeklyStats = calculateWeeklyStats(currentMealPlan);
     const days = Object.keys(currentMealPlan);
     const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
     let html = `
-    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px;">
-        <h1 style="color: #667eea; text-align: center; margin-bottom: 30px;">Your Personalized Meal Plan</h1>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; max-width: 800px;">
+        <h1 style="color: #007bff; text-align: center; margin-bottom: 30px;">🍽️ Your Personalized Meal Plan</h1>
         
-        <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 30px; page-break-inside: avoid;">
-            <h2 style="color: #374151; margin-bottom: 15px;">Profile Summary</h2>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; page-break-inside: avoid;">
+            <h2 style="color: #212529; margin-bottom: 15px;">Profile Summary</h2>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div>
                     <p><strong>Age:</strong> ${currentUserProfile.age} years</p>
@@ -810,29 +987,28 @@ function createPDFContent() {
         </div>
 
         <div style="margin-bottom: 30px; page-break-inside: avoid;">
-            <h2 style="color: #374151; margin-bottom: 15px;">Weekly Overview</h2>
+            <h2 style="color: #212529; margin-bottom: 15px;">Weekly Overview</h2>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
-                <div style="text-align: center; padding: 15px; background: #ede9fe; border-radius: 8px;">
-                    <h3 style="margin: 0; color: #667eea;">${Math.round(weeklyStats.avgCalories)}</h3>
+                <div style="text-align: center; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                    <h3 style="margin: 0; color: #007bff;">${Math.round(weeklyStats.avgCalories)}</h3>
                     <p style="margin: 5px 0 0 0; font-size: 0.9em;">Avg Daily Calories</p>
                 </div>
-                <div style="text-align: center; padding: 15px; background: #ede9fe; border-radius: 8px;">
-                    <h3 style="margin: 0; color: #667eea;">${Math.round(weeklyStats.avgProtein)}g</h3>
+                <div style="text-align: center; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                    <h3 style="margin: 0; color: #007bff;">${Math.round(weeklyStats.avgProtein)}g</h3>
                     <p style="margin: 5px 0 0 0; font-size: 0.9em;">Avg Daily Protein</p>
                 </div>
-                <div style="text-align: center; padding: 15px; background: #ede9fe; border-radius: 8px;">
-                    <h3 style="margin: 0; color: #667eea;">${Math.round(weeklyStats.avgCarbs)}g</h3>
+                <div style="text-align: center; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                    <h3 style="margin: 0; color: #007bff;">${Math.round(weeklyStats.avgCarbs)}g</h3>
                     <p style="margin: 5px 0 0 0; font-size: 0.9em;">Avg Daily Carbs</p>
                 </div>
-                <div style="text-align: center; padding: 15px; background: #ede9fe; border-radius: 8px;">
-                    <h3 style="margin: 0; color: #667eea;">${Math.round(weeklyStats.avgFat)}g</h3>
+                <div style="text-align: center; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                    <h3 style="margin: 0; color: #007bff;">${Math.round(weeklyStats.avgFat)}g</h3>
                     <p style="margin: 5px 0 0 0; font-size: 0.9em;">Avg Daily Fat</p>
                 </div>
             </div>
         </div>`;
 
-    // Add detailed meal plan
-    html += '<h2 style="color: #374151; margin-bottom: 15px;">7-Day Meal Plan</h2>';
+    html += '<h2 style="color: #212529; margin-bottom: 15px;">🗓️ 7-Day Meal Plan</h2>';
     
     days.forEach((day, index) => {
         if (index % 2 === 0 && index > 0) {
@@ -840,48 +1016,55 @@ function createPDFContent() {
         }
         
         html += `<div style="margin-bottom: 25px; page-break-inside: avoid;">
-            <h3 style="color: #667eea; margin-bottom: 10px;">${day}</h3>
-            <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+            <h3 style="color: #007bff; margin-bottom: 10px;">${day}</h3>
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #dee2e6;">
                 <thead>
-                    <tr style="background: #f8fafc;">
-                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Meal</th>
-                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Food</th>
-                        <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Calories</th>
-                        <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Protein</th>
+                    <tr style="background: #f8f9fa;">
+                        <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Meal</th>
+                        <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Food</th>
+                        <th style="padding: 10px; border: 1px solid #dee2e6; text-align: right;">Calories</th>
+                        <th style="padding: 10px; border: 1px solid #dee2e6; text-align: right;">Protein</th>
                     </tr>
                 </thead>
                 <tbody>`;
 
         let dayTotal = 0;
+        const mealNames = {
+            breakfast: '🌅 Breakfast',
+            lunch: '🍽️ Lunch',
+            dinner: '🌙 Dinner',
+            snacks: '🍎 Snack'
+        };
+        
         mealTypes.forEach(mealType => {
             const meal = currentMealPlan[day][mealType];
             if (meal) {
                 const calories = safeNumber(meal.calories);
                 dayTotal += calories;
                 html += `<tr>
-                    <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; text-transform: capitalize;">${mealType}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">
+                    <td style="padding: 8px; border: 1px solid #dee2e6; font-weight: bold;">${mealNames[mealType]}</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">
                         ${meal.title}<br>
-                        <small style="color: #666;">${meal.serving_size || ''}</small>
+                        <small style="color: #6c757d;">${meal.serving_size || ''}</small>
                     </td>
-                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${calories}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${safeNumber(meal.protein)}g</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">${calories}</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">${safeNumber(meal.protein)}g</td>
                 </tr>`;
             }
         });
 
-        html += `<tr style="background: #f8fafc; font-weight: bold;">
-                <td colspan="2" style="padding: 8px; border: 1px solid #ddd;">Daily Total</td>
-                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${Math.round(dayTotal)}</td>
-                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">-</td>
+        html += `<tr style="background: #f8f9fa; font-weight: bold;">
+                <td colspan="2" style="padding: 8px; border: 1px solid #dee2e6;">Daily Total</td>
+                <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">${Math.round(dayTotal)}</td>
+                <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right;">-</td>
             </tr>
             </tbody></table>
         </div>`;
     });
 
     html += `
-        <div style="margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 8px; page-break-inside: avoid;">
-            <h3 style="color: #374151; margin-bottom: 15px;">Important Notes</h3>
+        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; page-break-inside: avoid;">
+            <h3 style="color: #212529; margin-bottom: 15px;">📝 Important Notes</h3>
             <ul style="line-height: 1.6;">
                 <li>This meal plan is generated based on your profile and goals</li>
                 <li>Adjust portion sizes according to your hunger levels and energy needs</li>
@@ -895,10 +1078,9 @@ function createPDFContent() {
     return html;
 }
 
-// Diet Tracker Integration Functions (keeping same functionality)
+// Integration Functions
 function sendPlanToLocalStorage() {
     if (!currentMealPlan || !currentUserProfile) {
-        alert('No meal plan available to send');
         return false;
     }
 
@@ -921,7 +1103,6 @@ function sendPlanToLocalStorage() {
 
 function sendPlanViaPostMessage() {
     if (!currentMealPlan || !currentUserProfile) {
-        alert('No meal plan available to send');
         return false;
     }
 
@@ -935,12 +1116,10 @@ function sendPlanViaPostMessage() {
         }
     };
 
-    // Send to all frames/windows
     if (window.parent !== window) {
         window.parent.postMessage(message, '*');
     }
     
-    // Send to any child frames
     Array.from(document.querySelectorAll('iframe')).forEach(iframe => {
         try {
             iframe.contentWindow.postMessage(message, '*');
@@ -954,7 +1133,7 @@ function sendPlanViaPostMessage() {
 
 function sendPlanToTracker() {
     if (!currentMealPlan || !currentUserProfile) {
-        alert('No meal plan available to send to tracker');
+        alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.');
         return;
     }
 
@@ -962,53 +1141,17 @@ function sendPlanToTracker() {
     const postMessageSuccess = sendPlanViaPostMessage();
 
     if (localStorageSuccess || postMessageSuccess) {
-        alert('✅ Meal plan sent to Diet Tracker successfully!\n\nThe tracker will automatically import your plan.');
+        alert('✅ Meal plan sent to Diet Tracker successfully!\n\n🔄 The tracker will automatically import your plan when you open it.');
     } else {
         alert('❌ Failed to send meal plan to tracker. Please try again.');
     }
 }
 
 function goToTracker() {
-    // Update this URL to your actual diet tracker URL
-    const trackerURL = './diet-tracker.html';
+    // Open your actual diet tracker URL
+    const trackerURL = 'https://mhhakda.github.io/diet-tracker/';
     window.open(trackerURL, '_blank');
 }
-
-// Go back to form - Updated for better UX
-function goBackToForm() {
-    hideResults();
-    showForm();
-    // Smooth scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// Form submission handler - Updated
-document.addEventListener('DOMContentLoaded', function() {
-    // Load existing plan if available
-    loadExistingPlan();
-
-    const form = document.getElementById('dietForm');
-
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        if (!validateForm()) {
-            return;
-        }
-
-        const generateBtn = document.getElementById('generateBtn');
-        generateBtn.disabled = true;
-        document.getElementById('generateBtnText').textContent = 'Generating...';
-
-        try {
-            await generateMealPlan();
-        } catch (error) {
-            // Reset button on error
-            generateBtn.disabled = false;
-            document.getElementById('generateBtnText').textContent = 'Generate My Meal Plan';
-        }
-    });
-});
 
 // Load existing plan on page load
 function loadExistingPlan() {
@@ -1020,21 +1163,34 @@ function loadExistingPlan() {
             const now = new Date();
             const daysDiff = (now - generated) / (1000 * 60 * 60 * 24);
             
-            // Only auto-load if generated within last 7 days
             if (daysDiff <= 7 && data.plan && data.profile) {
                 currentMealPlan = data.plan;
                 currentUserProfile = data.profile;
-                console.log('Loaded existing meal plan from localStorage');
+                
+                // Auto-populate form with previous data
+                if (currentUserProfile) {
+                    Object.keys(currentUserProfile).forEach(key => {
+                        const field = document.getElementById(key);
+                        if (field && currentUserProfile[key]) {
+                            field.value = currentUserProfile[key];
+                        }
+                    });
+                }
+                
+                // Show the plan if it exists
+                if (currentMealPlan) {
+                    displayMealPlan(currentMealPlan, currentUserProfile);
+                    createCharts(currentMealPlan, currentUserProfile);
+                    document.getElementById('planContent').classList.remove('d-none');
+                    document.getElementById('planPlaceholder').classList.add('d-none');
+                    document.getElementById('analyticsContent').classList.remove('d-none');
+                    document.getElementById('analyticsPlaceholder').classList.add('d-none');
+                }
+                
+                console.log('✅ Loaded existing meal plan from localStorage');
             }
         }
     } catch (error) {
         console.error('Failed to load existing plan:', error);
     }
 }
-
-// Load the meals database when page loads
-loadMealsDatabase().then(() => {
-    console.log('Diet Planner Enhanced JavaScript loaded successfully');
-}).catch(error => {
-    console.error('Failed to load meals database:', error);
-});

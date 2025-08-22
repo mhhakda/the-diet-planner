@@ -287,29 +287,77 @@ function createFallbackMeals() {
 async function selectAndDisplayPlanOnMealsUpdate(profile) {
     // Ensure DB is loaded
     await loadMealsDatabase(false);
-
-    // find region meals or fallback to first region
-    const regionMeals = mealDatabase[profile.region] || mealDatabase[Object.keys(mealDatabase)[0]];
-    let dietMeals = null;
-    if (regionMeals) {
-        dietMeals = regionMeals[profile.dietType] || regionMeals['Regular'] || Object.values(regionMeals)[0];
-    }
-    if (!dietMeals) {
-        // nothing sensible - use fallback created by helper
-        const fallback = createFallbackMeals();
-        const firstRegion = Object.keys(fallback)[0];
-        dietMeals = fallback[firstRegion][Object.keys(fallback[firstRegion])[0]];
-    }
-
-    const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
-    currentMealPlan = weeklyPlan;
-    currentUserProfile = profile;
-    displayMealPlan(weeklyPlan, profile);
-    try {
-        await createCharts(weeklyPlan, profile);
-    } catch(e) { /* ignore chart errors */ }
-    return weeklyPlan;
+// --- Smart region & diet type matching ---
+function normalizeKey(str) {
+    return str ? str.toLowerCase().replace(/[\s\-]+/g, '_').replace(/[^\w_]/g, '') : '';
 }
+
+function findKey(keys, desired, synonyms = {}) {
+    if (!desired) return null;
+    const normDesired = normalizeKey(desired);
+
+    // exact match
+    if (keys.includes(desired)) return desired;
+
+    // case-insensitive
+    const ci = keys.find(k => k.toLowerCase() === desired.toLowerCase());
+    if (ci) return ci;
+
+    // normalized (spaces ↔ underscores)
+    const norm = keys.find(k => normalizeKey(k) === normDesired);
+    if (norm) return norm;
+
+    // synonyms map
+    const mapped = synonyms[normDesired];
+    if (mapped && keys.includes(mapped)) return mapped;
+
+    return null;
+}
+
+const dietSynonyms = {
+    ketogenic: "Keto",
+    keto: "Keto",
+    lowcarb: "Low_Carb",
+    low_carb: "Low_Carb",
+    vegetarian: "Vegetarian",
+    vegan: "Vegan",
+    mediterranean: "Mediterranean",
+    highprotein: "High_Protein",
+    regular: "Regular"
+};
+
+// find region meals with smart matching
+let regionKey = findKey(Object.keys(mealDatabase), profile.region);
+if (!regionKey) {
+    console.warn(`Region "${profile.region}" not found, falling back to "India".`);
+    regionKey = "India";
+}
+const regionMeals = mealDatabase[regionKey];
+
+// find diet meals with smart matching
+let dietKey = findKey(Object.keys(regionMeals), profile.dietType, dietSynonyms);
+if (!dietKey) {
+    console.warn(`Diet "${profile.dietType}" not found in region "${regionKey}", falling back to "Regular".`);
+    dietKey = "Regular";
+}
+let dietMeals = regionMeals[dietKey];
+
+// still nothing? fallback to dummy meals
+if (!dietMeals) {
+    const fallback = createFallbackMeals();
+    const firstRegion = Object.keys(fallback)[0];
+    dietMeals = fallback[firstRegion][Object.keys(fallback[firstRegion])[0]];
+}
+
+// continue with plan generation
+const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
+currentMealPlan = weeklyPlan;
+currentUserProfile = profile;
+displayMealPlan(weeklyPlan, profile);
+try {
+    await createCharts(weeklyPlan, profile);
+} catch (e) { /* ignore chart errors */ }
+return weeklyPlan;
 
 // Create default meal
 function createDefaultMeal(mealType, targetCalories) {

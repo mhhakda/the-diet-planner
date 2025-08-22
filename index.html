@@ -1378,26 +1378,20 @@
         }
 
         // Create comprehensive fallback meals
-        function createFallbackMeals() {
-            return {
-         function createFallbackMeals() {
+       function createFallbackMeals() {
     return {
-        "India": {
-            "Regular": {
-                breakfast: [
-                    { id: 999, title: "Poha", serving_size: "1 plate", calories: 300, protein: 8, carbs: 55, fat: 6, fiber: 3 }
-                ],
-                lunch: [
-                    { id: 1000, title: "Simple Veg Thali", serving_size: "1 plate", calories: 600, protein: 18, carbs: 90, fat: 16, fiber: 8 }
-                ],
-                dinner: [
-                    { id: 1001, title: "Dal Rice", serving_size: "1 cup dal + 1 cup rice", calories: 450, protein: 14, carbs: 70, fat: 8, fiber: 6 }
-                ],
-                snacks: [
-                    { id: 1002, title: "Fruit Bowl", serving_size: "1 cup", calories: 150, protein: 2, carbs: 35, fat: 1, fiber: 4 }
-                ]
-            }
-        }
+        "Breakfast": [
+            { name: "Oatmeal with Fruits", calories: 250, protein: 8, carbs: 45, fats: 4 },
+            { name: "Boiled Eggs", calories: 150, protein: 12, carbs: 1, fats: 10 }
+        ],
+        "Lunch": [
+            { name: "Grilled Chicken Salad", calories: 350, protein: 30, carbs: 15, fats: 12 },
+            { name: "Veggie Wrap", calories: 300, protein: 10, carbs: 40, fats: 8 }
+        ],
+        "Dinner": [
+            { name: "Paneer Curry with Rice", calories: 400, protein: 20, carbs: 50, fats: 15 },
+            { name: "Fish with Quinoa", calories: 450, protein: 35, carbs: 40, fats: 14 }
+        ]
     };
 }
 

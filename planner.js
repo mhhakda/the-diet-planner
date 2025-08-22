@@ -528,10 +528,46 @@ function initializePdfExport() {
     }
 }
 
+// Robust PDF export with wait-for-resources and fallback
 async function generateAndDownloadPdf() {
-    if (!Html2PdfLoaded) {
-        console.warn('html2pdf not loaded yet. Waiting a short moment...');
-        await new Promise(r => setTimeout(r, 300));
+    // Helper: wait until window.html2pdf exists (or timeout)
+    async function waitForHtml2pdf(timeout = 7000) {
+        const start = Date.now();
+        while (typeof window.html2pdf === 'undefined') {
+            if (Date.now() - start > timeout) throw new Error('html2pdf not available after wait');
+            await new Promise(r => setTimeout(r, 100));
+        }
+    }
+
+    // Helper: wait for images inside an element to finish loading (or error)
+    async function waitForImages(el, timeout = 5000) {
+        const imgs = Array.from(el.querySelectorAll('img'));
+        if (imgs.length === 0) return;
+        await Promise.all(imgs.map(img => new Promise(resolve => {
+            if (img.complete) return resolve();
+            const onEnd = () => {
+                img.removeEventListener('load', onEnd);
+                img.removeEventListener('error', onEnd);
+                resolve();
+            };
+            img.addEventListener('load', onEnd);
+            img.addEventListener('error', onEnd);
+            // safety timeout
+            setTimeout(resolve, timeout);
+        })));
+    }
+
+    // ensure html2pdf is available (init loader if necessary)
+    try {
+        if (typeof window.html2pdf === 'undefined') {
+            // try to lazy-load if initializePdfExport exists
+            try {
+                initializePdfExport?.();
+            } catch(e) { /* ignore */ }
+            await waitForHtml2pdf(7000).catch(() => { /* continue even if not loaded */ });
+        }
+    } catch (err) {
+        console.warn('html2pdf wait failed:', err);
     }
 
     const content = document.getElementById('planExport');
@@ -540,32 +576,87 @@ async function generateAndDownloadPdf() {
         return;
     }
 
-    // clone to ensure layout not disrupted
+    // Clone and prepare element so we don't disturb page layout
     const pdfElement = content.cloneNode(true);
     pdfElement.style.width = '800px';
     pdfElement.style.padding = '20px';
+    pdfElement.style.background = '#ffffff';
+    pdfElement.style.position = 'relative';
+    pdfElement.style.visibility = 'visible';
+    pdfElement.style.display = 'block';
+    // Ensure it is not hidden by CSS rules (explicitly override)
+    pdfElement.style.maxWidth = '800px';
+    pdfElement.style.boxSizing = 'border-box';
 
+    // Append to body (so html2canvas can render computed styles)
     document.body.appendChild(pdfElement);
+
     try {
-        await new Promise((resolve, reject) => {
+        // Wait for images and styles to settle
+        await waitForImages(pdfElement, 5000);
+        // Wait two animation frames to ensure rendering/layout applied
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+        // Debug info
+        console.log('Preparing PDF: element size (w x h):', pdfElement.offsetWidth, 'x', pdfElement.offsetHeight);
+
+        // Main html2pdf options
+        const opt = {
+            margin:       0.5,
+            filename:     'meal-plan.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, allowTaint: false, logging: false },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        // If html2pdf exists, use it
+        if (typeof window.html2pdf !== 'undefined') {
             try {
-                const opt = {
-                    margin:       0.5,
-                    filename:     'meal-plan.pdf',
-                    image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2 },
-                    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-                };
-                window.html2pdf().set(opt).from(pdfElement).save().then(resolve).catch(reject);
+                await window.html2pdf().set(opt).from(pdfElement).save();
+                console.log('PDF generated via html2pdf.');
+                return;
             } catch (err) {
-                reject(err);
+                console.warn('html2pdf.save() failed, falling back to html2canvas+jsPDF:', err);
+                // continue to fallback
             }
-        });
+        } else {
+            console.warn('html2pdf not present — attempting fallback using html2canvas/jsPDF (if available).');
+        }
+
+        // Fallback: html2canvas + jsPDF (if available)
+        const html2canvasFn = window.html2canvas || window.html2canvas; // sometimes bundled names differ
+        if (typeof html2canvas === 'function' || typeof window.html2canvas === 'function') {
+            const canvas = await (typeof html2canvas === 'function' ? html2canvas(pdfElement, { scale: 2, useCORS: true }) : window.html2canvas(pdfElement, { scale: 2, useCORS: true }));
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+
+            if (typeof window.jsPDF === 'function' || typeof jsPDF === 'function') {
+                // prefer global jsPDF constructor
+                const JSP = typeof window.jsPDF === 'function' ? window.jsPDF : jsPDF;
+                const pdf = new JSP('p', 'pt', 'a4');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const imgProps = pdf.getImageProperties(imgData);
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save('meal-plan.pdf');
+                console.log('PDF generated via html2canvas + jsPDF fallback.');
+                return;
+            } else {
+                // jsPDF not available
+                console.error('jsPDF is not available for fallback. Please ensure html2pdf bundle is loaded.');
+                alert('PDF export failed: required library missing (jsPDF).');
+                return;
+            }
+        } else {
+            console.error('html2canvas is not available for fallback. Please ensure html2pdf bundle is loaded.');
+            alert('PDF export failed: required library missing (html2canvas).');
+            return;
+        }
     } catch (e) {
-        console.error('PDF generation failed:', e);
+        console.error('Unexpected error during PDF generation:', e);
         alert('Failed to generate PDF: ' + (e.message || e));
     } finally {
-        try { document.body.removeChild(pdfElement); } catch(e){/*ignore*/}
+        // Clean up temporary element
+        try { document.body.removeChild(pdfElement); } catch (e) { /* ignore */ }
     }
 }
 

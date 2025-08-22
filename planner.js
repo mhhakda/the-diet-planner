@@ -159,13 +159,12 @@ function hideLoading() {
         loading.style.display = 'none';
     }
 }
-
-// Load meals database (improved: supports force reload, cache-busting, validation, and change-detection)
+// Load meals database (balanced: cache-busting, validation, change-detection, UI notify)
 async function loadMealsDatabase(forceReload = false) {
-    // If we already have a loaded DB and no forceReload requested, return cached
+    // If already loaded and no reload requested, return cached
     if (mealDatabase && !forceReload) return mealDatabase;
 
-    const mealsUrl = `meals.json?v=${Date.now()}`; // cache-busting query param
+    const mealsUrl = `meals.json?v=${Date.now()}`; // cache-busting
     try {
         const response = await fetch(mealsUrl, { cache: 'no-store' });
         if (!response.ok) {
@@ -174,9 +173,10 @@ async function loadMealsDatabase(forceReload = false) {
             mealDatabase = createFallbackMeals();
             return mealDatabase;
         }
+
         const newData = await response.json();
 
-        // Quick signature detection to know if data changed
+        // Quick signature detection
         let newSignature;
         try {
             newSignature = JSON.stringify(newData);
@@ -184,7 +184,7 @@ async function loadMealsDatabase(forceReload = false) {
             newSignature = Date.now().toString();
         }
 
-        // Basic validation of shape
+        // Validate structure
         const isValidShape = newData && typeof newData === 'object' && Object.keys(newData).length > 0;
         if (!isValidShape) {
             console.warn('meals.json has unexpected structure — using fallback meals.');
@@ -192,10 +192,9 @@ async function loadMealsDatabase(forceReload = false) {
             return mealDatabase;
         }
 
-        // detect changes by comparing to previous signature stored on mealDatabase._signature
+        // Compare signatures to detect change
         const prevSignature = mealDatabase && mealDatabase._signature ? mealDatabase._signature : null;
         if (newSignature !== prevSignature) {
-            // attach signature to new data copy (non-enumerable)
             try {
                 Object.defineProperty(newData, '_signature', { value: newSignature, enumerable: false, writable: true });
             } catch (e) {
@@ -204,7 +203,7 @@ async function loadMealsDatabase(forceReload = false) {
             mealDatabase = newData;
             console.log('✅ meals.json updated and loaded');
 
-            // notify UI if element exists
+            // Notify UI
             try {
                 const notify = document.getElementById('mealsUpdateNotice');
                 if (notify) {
@@ -214,7 +213,7 @@ async function loadMealsDatabase(forceReload = false) {
                 }
             } catch (e) { /* ignore */ }
 
-            // If profile currently loaded, regenerate plan automatically
+            // Auto-regenerate plan if profile is active
             if (currentUserProfile) {
                 try {
                     await selectAndDisplayPlanOnMealsUpdate(currentUserProfile);
@@ -223,19 +222,18 @@ async function loadMealsDatabase(forceReload = false) {
                 }
             }
         } else {
-            // still set mealDatabase if not set
+            // Still set DB if empty
             if (!mealDatabase) mealDatabase = newData;
             console.log('meals.json fetched — no changes detected');
         }
 
         return mealDatabase;
     } catch (error) {
-        console.error('Failed to load meals database:', error);
+        console.error('❌ Failed to load meals.json:', error);
         mealDatabase = createFallbackMeals();
         return mealDatabase;
     }
 }
-
 // Create fallback meals
 function createFallbackMeals() {
     return {

@@ -935,28 +935,33 @@
 
                                     <div class="form-group">
                                         <label for="dietType" class="form-label">Dietary Preference *</label>
-                                        <select id="dietType" class="form-control" required>
-                                            <option value="">Select Diet Type</option>
-                                            <option value="Regular">Regular (Omnivore)</option>
-                                            <option value="Vegetarian">Vegetarian</option>
-                                            <option value="Vegan">Vegan</option>
-                                            <option value="Keto">Ketogenic</option>
-                                            <option value="Pescatarian">Pescatarian</option>
-                                            <option value="Low-carb">Low-Carb</option>
-                                        </select>
+                                       <select id="dietType" class="form-select" required>
+    <option value="Regular">Regular</option>
+    <option value="Keto">Ketogenic</option>
+    <option value="Low_Carb">Low Carb</option>
+    <option value="Vegetarian">Vegetarian</option>
+    <option value="Vegan">Vegan</option>
+    <option value="Mediterranean">Mediterranean</option>
+    <option value="High_Protein">High Protein</option>
+</select>
+
                                         <div class="invalid-feedback" id="dietType-error"></div>
                                     </div>
 
                                     <div class="form-group">
                                         <label for="region" class="form-label">Region *</label>
-                                        <select id="region" class="form-control" required>
-                                            <option value="">Select Region</option>
-                                            <option value="USA">USA</option>
-                                            <option value="Europe">Europe</option>
-                                            <option value="India">India</option>
-                                            <option value="Middle East">Middle East</option>
-                                            <option value="Other">Other</option>
-                                        </select>
+                                       <select id="region" class="form-select" required>
+    <option value="India">India</option>
+    <option value="USA">USA</option>
+    <option value="Europe">Europe</option>
+    <option value="Middle_Eastern">Middle East</option>
+    <option value="Latin_American">Latin America</option>
+    <option value="Nordic">Nordic</option>
+    <option value="East_Asian">East Asia</option>
+    <option value="African">Africa</option>
+    <option value="Australian">Australia</option>
+</select>
+
                                         <div class="invalid-feedback" id="region-error"></div>
                                     </div>
 
@@ -1375,119 +1380,27 @@
         // Create comprehensive fallback meals
         function createFallbackMeals() {
             return {
-                "USA": {
-                    "Regular": {
-                        "breakfast": [
-                            {"id": 1, "title": "Scrambled Eggs with Toast", "serving_size": "2 eggs + 2 slices", "calories": 320, "protein": 18, "carbs": 28, "fat": 14, "fiber": 3},
-                            {"id": 2, "title": "Pancakes with Maple Syrup", "serving_size": "3 medium pancakes", "calories": 420, "protein": 10, "carbs": 78, "fat": 10, "fiber": 3},
-                            {"id": 3, "title": "Oatmeal with Berries", "serving_size": "1 cup", "calories": 250, "protein": 8, "carbs": 45, "fat": 5, "fiber": 6},
-                            {"id": 4, "title": "Greek Yogurt with Granola", "serving_size": "1 cup + granola", "calories": 280, "protein": 20, "carbs": 35, "fat": 8, "fiber": 4},
-                            {"id": 5, "title": "French Toast", "serving_size": "3 slices", "calories": 380, "protein": 12, "carbs": 45, "fat": 15, "fiber": 2},
-                            {"id": 6, "title": "Breakfast Burrito", "serving_size": "1 large tortilla + egg + veggies", "calories": 350, "protein": 14, "carbs": 38, "fat": 14, "fiber": 3}
-                        ],
-                        "lunch": [
-                            {"id": 11, "title": "Grilled Chicken Salad", "serving_size": "150g chicken + greens", "calories": 380, "protein": 36, "carbs": 14, "fat": 20, "fiber": 5},
-                            {"id": 12, "title": "Turkey Sandwich", "serving_size": "2 slices + turkey", "calories": 400, "protein": 28, "carbs": 38, "fat": 14, "fiber": 4},
-                            {"id": 13, "title": "Fish Tacos", "serving_size": "3 tacos", "calories": 580, "protein": 25, "carbs": 65, "fat": 22, "fiber": 6},
-                            {"id": 14, "title": "Pasta with Marinara", "serving_size": "1.5 cups pasta + sauce", "calories": 520, "protein": 18, "carbs": 90, "fat": 10, "fiber": 5},
-                            {"id": 15, "title": "Burger with Fries", "serving_size": "1 burger + side fries", "calories": 750, "protein": 30, "carbs": 85, "fat": 35, "fiber": 6},
-                            {"id": 16, "title": "Club Sandwich", "serving_size": "Triple-decker sandwich", "calories": 480, "protein": 25, "carbs": 44, "fat": 22, "fiber": 3},
-                            {"id": 17, "title": "Steak Salad", "serving_size": "120g steak + greens", "calories": 550, "protein": 40, "carbs": 12, "fat": 28, "fiber": 4}
-                        ],
-                        "dinner": [
-                            {"id": 21, "title": "Salmon with Vegetables", "serving_size": "150g salmon + veggies", "calories": 520, "protein": 42, "carbs": 24, "fat": 28, "fiber": 6},
-                            {"id": 22, "title": "Steak with Mashed Potatoes", "serving_size": "200g steak + 150g potatoes", "calories": 680, "protein": 45, "carbs": 42, "fat": 32, "fiber": 5},
-                            {"id": 23, "title": "Chicken Parmesan", "serving_size": "180g chicken + sauce + pasta", "calories": 620, "protein": 38, "carbs": 58, "fat": 18, "fiber": 4},
-                            {"id": 24, "title": "Grilled Salmon with Vegetables", "serving_size": "150g salmon + mixed veggies", "calories": 520, "protein": 42, "carbs": 24, "fat": 28, "fiber": 6},
-                            {"id": 25, "title": "Turkey Meatballs with Pasta", "serving_size": "150g meatballs + pasta", "calories": 550, "protein": 32, "carbs": 64, "fat": 16, "fiber": 5},
-                            {"id": 26, "title": "Lamb with Roasted Vegetables", "serving_size": "150g lamb + mixed veggies", "calories": 650, "protein": 38, "carbs": 28, "fat": 36, "fiber": 6},
-                            {"id": 27, "title": "Pork Chops with Rice", "serving_size": "200g pork + 150g rice", "calories": 580, "protein": 35, "carbs": 56, "fat": 18, "fiber": 2}
-                        ],
-                        "snacks": [
-                            {"id": 31, "title": "Hard-boiled Egg", "serving_size": "1 large egg", "calories": 70, "protein": 6, "carbs": 1, "fat": 5, "fiber": 0},
-                            {"id": 32, "title": "String Cheese", "serving_size": "1 stick", "calories": 80, "protein": 6, "carbs": 1, "fat": 6, "fiber": 0},
-                            {"id": 33, "title": "Apple with Peanut Butter", "serving_size": "1 apple + 2 tbsp PB", "calories": 190, "protein": 8, "carbs": 24, "fat": 12, "fiber": 4},
-                            {"id": 34, "title": "Greek Yogurt", "serving_size": "1 cup", "calories": 150, "protein": 15, "carbs": 8, "fat": 4, "fiber": 0}
-                        ]
-                    },
-                    "Vegetarian": {
-                        "breakfast": [
-                            {"id": 101, "title": "Veggie Scramble", "serving_size": "2 eggs + veggies", "calories": 350, "protein": 18, "carbs": 16, "fat": 22, "fiber": 4},
-                            {"id": 102, "title": "Chia Pudding", "serving_size": "1 cup", "calories": 280, "protein": 12, "carbs": 25, "fat": 16, "fiber": 12},
-                            {"id": 103, "title": "Avocado Toast", "serving_size": "2 slices + avocado", "calories": 350, "protein": 12, "carbs": 40, "fat": 18, "fiber": 8}
-                        ],
-                        "lunch": [
-                            {"id": 111, "title": "Quinoa Salad", "serving_size": "1.5 cups", "calories": 420, "protein": 16, "carbs": 68, "fat": 10, "fiber": 9},
-                            {"id": 112, "title": "Caprese Sandwich", "serving_size": "1 sandwich", "calories": 380, "protein": 18, "carbs": 42, "fat": 16, "fiber": 3},
-                            {"id": 113, "title": "Veggie Burger", "serving_size": "1 burger + bun", "calories": 380, "protein": 20, "carbs": 45, "fat": 15, "fiber": 7}
-                        ],
-                        "dinner": [
-                            {"id": 121, "title": "Eggplant Parmesan", "serving_size": "1 serving", "calories": 520, "protein": 22, "carbs": 48, "fat": 26, "fiber": 8},
-                            {"id": 122, "title": "Vegetable Curry with Rice", "serving_size": "1.5 cups", "calories": 450, "protein": 12, "carbs": 75, "fat": 14, "fiber": 8},
-                            {"id": 123, "title": "Pasta Primavera", "serving_size": "2 cups pasta + veggies", "calories": 480, "protein": 16, "carbs": 82, "fat": 12, "fiber": 6}
-                        ],
-                        "snacks": [
-                            {"id": 131, "title": "Hummus with Veggies", "serving_size": "1/4 cup + veggies", "calories": 120, "protein": 4, "carbs": 16, "fat": 6, "fiber": 4},
-                            {"id": 132, "title": "Trail Mix", "serving_size": "1 oz", "calories": 160, "protein": 5, "carbs": 12, "fat": 12, "fiber": 2}
-                        ]
-                    }
-                },
-                "India": {
-                    "Regular": {
-                        "breakfast": [
-                            {"id": 201, "title": "Aloo Paratha with Curd", "serving_size": "2 parathas + curd", "calories": 450, "protein": 12, "carbs": 65, "fat": 16, "fiber": 4},
-                            {"id": 202, "title": "Masala Dosa", "serving_size": "1 large dosa", "calories": 420, "protein": 12, "carbs": 68, "fat": 10, "fiber": 4},
-                            {"id": 203, "title": "Uttapam with Vegetables", "serving_size": "2 uttapams", "calories": 340, "protein": 10, "carbs": 58, "fat": 8, "fiber": 5},
-                            {"id": 204, "title": "Besan Chilla", "serving_size": "2 chillas", "calories": 320, "protein": 14, "carbs": 35, "fat": 14, "fiber": 6},
-                            {"id": 205, "title": "Methi Paratha", "serving_size": "2 parathas", "calories": 380, "protein": 12, "carbs": 55, "fat": 14, "fiber": 7}
-                        ],
-                        "lunch": [
-                            {"id": 211, "title": "Butter Chicken with Naan", "serving_size": "150g chicken + 2 naans", "calories": 720, "protein": 35, "carbs": 68, "fat": 32, "fiber": 4},
-                            {"id": 212, "title": "Fish Curry with Rice", "serving_size": "150g fish + rice", "calories": 520, "protein": 28, "carbs": 65, "fat": 14, "fiber": 3},
-                            {"id": 213, "title": "Chicken Biryani", "serving_size": "1 plate", "calories": 520, "protein": 22, "carbs": 78, "fat": 16, "fiber": 3},
-                            {"id": 214, "title": "Chole with Bhature", "serving_size": "1 cup chole + 2 bhature", "calories": 650, "protein": 20, "carbs": 88, "fat": 24, "fiber": 12}
-                        ],
-                        "dinner": [
-                            {"id": 221, "title": "Paneer Butter Masala with Rice", "serving_size": "200g paneer + rice", "calories": 650, "protein": 28, "carbs": 68, "fat": 28, "fiber": 5},
-                            {"id": 222, "title": "Dal Makhani with Rice", "serving_size": "1 cup dal + rice", "calories": 520, "protein": 18, "carbs": 72, "fat": 16, "fiber": 8},
-                            {"id": 223, "title": "Chicken Tikka Masala with Rice", "serving_size": "200g chicken + rice", "calories": 620, "protein": 35, "carbs": 52, "fat": 24, "fiber": 4},
-                            {"id": 224, "title": "Mutton Curry with Rice", "serving_size": "150g mutton + rice", "calories": 720, "protein": 32, "carbs": 65, "fat": 28, "fiber": 3}
-                        ],
-                        "snacks": [
-                            {"id": 231, "title": "Samosa", "serving_size": "2 samosas", "calories": 180, "protein": 4, "carbs": 26, "fat": 8, "fiber": 2},
-                            {"id": 232, "title": "Pakora", "serving_size": "4 pieces", "calories": 160, "protein": 5, "carbs": 20, "fat": 8, "fiber": 3},
-                            {"id": 233, "title": "Lassi", "serving_size": "1 glass", "calories": 180, "protein": 6, "carbs": 25, "fat": 6, "fiber": 0}
-                        ]
-                    },
-                    "Vegetarian": {
-                        "breakfast": [
-                            {"id": 301, "title": "Idli with Coconut Chutney", "serving_size": "4 idlis + chutney", "calories": 320, "protein": 10, "carbs": 58, "fat": 6, "fiber": 4},
-                            {"id": 302, "title": "Uttapam with Vegetables", "serving_size": "2 uttapams", "calories": 340, "protein": 10, "carbs": 58, "fat": 8, "fiber": 5},
-                            {"id": 303, "title": "Besan Chilla", "serving_size": "2 chillas", "calories": 320, "protein": 14, "carbs": 35, "fat": 14, "fiber": 6},
-                            {"id": 304, "title": "Methi Paratha", "serving_size": "2 parathas", "calories": 380, "protein": 12, "carbs": 55, "fat": 14, "fiber": 7}
-                        ],
-                        "lunch": [
-                            {"id": 311, "title": "Palak Paneer with Roti", "serving_size": "1 cup + 3 rotis", "calories": 550, "protein": 25, "carbs": 52, "fat": 26, "fiber": 8},
-                            {"id": 312, "title": "Rajma Rice", "serving_size": "1 cup rajma + rice", "calories": 480, "protein": 18, "carbs": 78, "fat": 8, "fiber": 12},
-                            {"id": 313, "title": "Vegetable Biryani", "serving_size": "1 plate", "calories": 480, "protein": 14, "carbs": 82, "fat": 12, "fiber": 6},
-                            {"id": 314, "title": "Chole with Rice", "serving_size": "1 cup chole + rice", "calories": 520, "protein": 18, "carbs": 88, "fat": 8, "fiber": 12}
-                        ],
-                        "dinner": [
-                            {"id": 321, "title": "Paneer Tikka Masala with Rice", "serving_size": "200g paneer + rice", "calories": 580, "protein": 26, "carbs": 58, "fat": 24, "fiber": 5},
-                            {"id": 322, "title": "Dal Makhani with Roti", "serving_size": "1 cup dal + 3 rotis", "calories": 520, "protein": 18, "carbs": 68, "fat": 18, "fiber": 10},
-                            {"id": 323, "title": "Vegetable Korma with Rice", "serving_size": "1.5 cups korma + rice", "calories": 480, "protein": 14, "carbs": 68, "fat": 16, "fiber": 8},
-                            {"id": 324, "title": "Paneer Makhani with Naan", "serving_size": "200g paneer + 2 naans", "calories": 680, "protein": 26, "carbs": 68, "fat": 32, "fiber": 5},
-                            {"id": 325, "title": "Mixed Dal with Jeera Rice", "serving_size": "1 cup dal + rice", "calories": 450, "protein": 16, "carbs": 75, "fat": 8, "fiber": 10}
-                        ],
-                        "snacks": [
-                            {"id": 331, "title": "Banana", "serving_size": "1 medium banana", "calories": 90, "protein": 1, "carbs": 23, "fat": 0, "fiber": 3},
-                            {"id": 332, "title": "Masala Chai", "serving_size": "1 cup", "calories": 80, "protein": 3, "carbs": 12, "fat": 2, "fiber": 0},
-                            {"id": 333, "title": "Roasted Chana", "serving_size": "1/4 cup", "calories": 120, "protein": 6, "carbs": 20, "fat": 2, "fiber": 5}
-                        ]
-                    }
-                }
-            };
+         function createFallbackMeals() {
+    return {
+        "India": {
+            "Regular": {
+                breakfast: [
+                    { id: 999, title: "Poha", serving_size: "1 plate", calories: 300, protein: 8, carbs: 55, fat: 6, fiber: 3 }
+                ],
+                lunch: [
+                    { id: 1000, title: "Simple Veg Thali", serving_size: "1 plate", calories: 600, protein: 18, carbs: 90, fat: 16, fiber: 8 }
+                ],
+                dinner: [
+                    { id: 1001, title: "Dal Rice", serving_size: "1 cup dal + 1 cup rice", calories: 450, protein: 14, carbs: 70, fat: 8, fiber: 6 }
+                ],
+                snacks: [
+                    { id: 1002, title: "Fruit Bowl", serving_size: "1 cup", calories: 150, protein: 2, carbs: 35, fat: 1, fiber: 4 }
+                ]
+            }
         }
+    };
+}
+
 
         // Calculate BMR and target calories
         function calculateTargetCalories(profile) {

@@ -3,6 +3,7 @@
 let currentMealPlan = null;
 let currentUserProfile = null;
 let mealDatabase = null;
+let mealDbLoadPromise = null;
 let ChartsLoaded = false;
 let Html2PdfLoaded = false;
 let currentActiveSection = 'profile';
@@ -159,12 +160,11 @@ function hideLoading() {
         loading.style.display = 'none';
     }
 }
-// Load meals database (balanced: cache-busting, validation, change-detection, UI notify)
+// Load meals database
 async function loadMealsDatabase(forceReload = false) {
-    // If already loaded and no reload requested, return cached
     if (mealDatabase && !forceReload) return mealDatabase;
 
-    const mealsUrl = `meals.json?v=${Date.now()}`; // cache-busting
+    const mealsUrl = `meals.json?v=${Date.now()}`;
     try {
         const response = await fetch(mealsUrl, { cache: 'no-store' });
         if (!response.ok) {
@@ -175,8 +175,6 @@ async function loadMealsDatabase(forceReload = false) {
         }
 
         const newData = await response.json();
-
-        // Quick signature detection
         let newSignature;
         try {
             newSignature = JSON.stringify(newData);
@@ -184,7 +182,6 @@ async function loadMealsDatabase(forceReload = false) {
             newSignature = Date.now().toString();
         }
 
-        // Validate structure
         const isValidShape = newData && typeof newData === 'object' && Object.keys(newData).length > 0;
         if (!isValidShape) {
             console.warn('meals.json has unexpected structure — using fallback meals.');
@@ -192,7 +189,6 @@ async function loadMealsDatabase(forceReload = false) {
             return mealDatabase;
         }
 
-        // Compare signatures to detect change
         const prevSignature = mealDatabase && mealDatabase._signature ? mealDatabase._signature : null;
         if (newSignature !== prevSignature) {
             try {
@@ -203,17 +199,6 @@ async function loadMealsDatabase(forceReload = false) {
             mealDatabase = newData;
             console.log('✅ meals.json updated and loaded');
 
-            // Notify UI
-            try {
-                const notify = document.getElementById('mealsUpdateNotice');
-                if (notify) {
-                    notify.textContent = 'New meal data loaded — the app will use the updated meals.';
-                    notify.classList.remove('d-none');
-                    setTimeout(() => notify.classList.add('d-none'), 6000);
-                }
-            } catch (e) { /* ignore */ }
-
-            // Auto-regenerate plan if profile is active
             if (currentUserProfile) {
                 try {
                     await selectAndDisplayPlanOnMealsUpdate(currentUserProfile);
@@ -222,7 +207,6 @@ async function loadMealsDatabase(forceReload = false) {
                 }
             }
         } else {
-            // Still set DB if empty
             if (!mealDatabase) mealDatabase = newData;
             console.log('meals.json fetched — no changes detected');
         }
@@ -234,204 +218,50 @@ async function loadMealsDatabase(forceReload = false) {
         return mealDatabase;
     }
 }
-// Create fallback meals
+// Ensure meals DB
+async function ensureMealsLoaded() {
+    if (mealDatabase) return mealDatabase;
+    if (!mealDbLoadPromise) {
+        console.time('loadMealsDatabase');
+        mealDbLoadPromise = loadMealsDatabase(true).finally(() => console.timeEnd('loadMealsDatabase'));
+    }
+    mealDatabase = await mealDbLoadPromise;
+    return mealDatabase;
+}
+// Fallback meals
 function createFallbackMeals() {
     return {
-        "USA": {
-            "Regular": {
-                "breakfast": [
-                    {"id": 1, "title": "Scrambled Eggs with Toast", "serving_size": "1 serving", "calories": 320, "protein": 18, "carbs": 28, "fat": 14, "fiber": 3},
-                    {"id": 2, "title": "Pancakes with Syrup", "serving_size": "1 serving", "calories": 420, "protein": 10, "carbs": 78, "fat": 10, "fiber": 3},
-                    {"id": 3, "title": "Oatmeal with Berries", "serving_size": "1 bowl", "calories": 250, "protein": 8, "carbs": 45, "fat": 5, "fiber": 6}
-                ],
-                "lunch": [
-                    {"id": 11, "title": "Grilled Chicken Salad", "serving_size": "1 serving", "calories": 380, "protein": 36, "carbs": 14, "fat": 20, "fiber": 5},
-                    {"id": 12, "title": "Turkey Sandwich", "serving_size": "1 serving", "calories": 400, "protein": 28, "carbs": 38, "fat": 14, "fiber": 4}
-                ],
-                "dinner": [
-                    {"id": 21, "title": "Salmon with Vegetables", "serving_size": "1 serving", "calories": 520, "protein": 42, "carbs": 24, "fat": 28, "fiber": 6},
-                    {"id": 22, "title": "Steak with Potatoes", "serving_size": "1 serving", "calories": 680, "protein": 45, "carbs": 42, "fat": 32, "fiber": 5}
-                ],
-                "snacks": [
-                    {"id": 31, "title": "Apple with Peanut Butter", "serving_size": "1 serving", "calories": 190, "protein": 8, "carbs": 24, "fat": 12, "fiber": 4},
-                    {"id": 32, "title": "Greek Yogurt", "serving_size": "1 cup", "calories": 150, "protein": 15, "carbs": 8, "fat": 4, "fiber": 0}
-                ]
-            }
-        },
-        "India": {
-            "Regular": {
-                "breakfast": [
-                    {"id": 101, "title": "Poha", "serving_size": "1 plate", "calories": 300, "protein": 8, "carbs": 50, "fat": 6, "fiber": 4},
-                    {"id": 102, "title": "Masala Omelette", "serving_size": "1 omelette", "calories": 240, "protein": 18, "carbs": 4, "fat": 16, "fiber": 1}
-                ],
-                "lunch": [
-                    {"id": 111, "title": "Fish Curry with Rice", "serving_size": "1 serving", "calories": 520, "protein": 28, "carbs": 65, "fat": 14, "fiber": 3},
-                    {"id": 112, "title": "Butter Chicken with Naan", "serving_size": "1 serving", "calories": 720, "protein": 35, "carbs": 68, "fat": 32, "fiber": 4}
-                ],
-                "dinner": [
-                    {"id": 121, "title": "Chicken Tikka with Naan", "serving_size": "1 serving", "calories": 620, "protein": 35, "carbs": 52, "fat": 24, "fiber": 4},
-                    {"id": 122, "title": "Paneer Butter Masala with Rice", "serving_size": "1 serving", "calories": 650, "protein": 28, "carbs": 68, "fat": 28, "fiber": 5}
-                ],
-                "snacks": [
-                    {"id": 131, "title": "Bhel Puri", "serving_size": "1 plate", "calories": 200, "protein": 5, "carbs": 35, "fat": 5, "fiber": 3},
-                    {"id": 132, "title": "Samosa", "serving_size": "1 piece", "calories": 180, "protein": 4, "carbs": 26, "fat": 8, "fiber": 2}
-                ]
-            }
-        }
+        "USA": { "Regular": { "breakfast": [ { "id": 1, "title": "Scrambled Eggs with Toast", "serving_size": "1 serving", "calories": 320, "protein": 18, "carbs": 28, "fat": 14, "fiber": 3 } ] } },
+        "India": { "Regular": { "breakfast": [ { "id": 101, "title": "Poha", "serving_size": "1 plate", "calories": 300, "protein": 8, "carbs": 50, "fat": 6, "fiber": 4 } ] } }
     };
 }
 
-// Helper: called internally after a meals.json change to reselect & display plan
-async function selectAndDisplayPlanOnMealsUpdate(profile) {
-    // Ensure DB is loaded
-    await loadMealsDatabase(false);
-// --- Smart region & diet type matching ---
+// Normalize + key finder (reused)
 function normalizeKey(str) {
     return str ? str.toLowerCase().replace(/[\s\-]+/g, '_').replace(/[^\w_]/g, '') : '';
 }
-
 function findKey(keys, desired, synonyms = {}) {
     if (!desired) return null;
     const normDesired = normalizeKey(desired);
-
-    // exact match
     if (keys.includes(desired)) return desired;
-
-    // case-insensitive
     const ci = keys.find(k => k.toLowerCase() === desired.toLowerCase());
     if (ci) return ci;
-
-    // normalized (spaces ↔ underscores)
     const norm = keys.find(k => normalizeKey(k) === normDesired);
     if (norm) return norm;
-
-    // synonyms map
     const mapped = synonyms[normDesired];
     if (mapped && keys.includes(mapped)) return mapped;
-
     return null;
 }
-
-const dietSynonyms = {
-    ketogenic: "Keto",
-    keto: "Keto",
-    lowcarb: "Low_Carb",
-    low_carb: "Low_Carb",
-    vegetarian: "Vegetarian",
-    vegan: "Vegan",
-    mediterranean: "Mediterranean",
-    highprotein: "High_Protein",
-    regular: "Regular"
-};
-
-// find region meals with smart matching
-let regionKey = findKey(Object.keys(mealDatabase), profile.region);
-if (!regionKey) {
-    console.warn(`Region "${profile.region}" not found, falling back to "India".`);
-    regionKey = "India";
-}
-const regionMeals = mealDatabase[regionKey];
-
-// find diet meals with smart matching
-let dietKey = findKey(Object.keys(regionMeals), profile.dietType, dietSynonyms);
-if (!dietKey) {
-    console.warn(`Diet "${profile.dietType}" not found in region "${regionKey}", falling back to "Regular".`);
-    dietKey = "Regular";
-}
-let dietMeals = regionMeals[dietKey];
-
-// still nothing? fallback to dummy meals
-if (!dietMeals) {
-    const fallback = createFallbackMeals();
-    const firstRegion = Object.keys(fallback)[0];
-    dietMeals = fallback[firstRegion][Object.keys(fallback[firstRegion])[0]];
-}
-
-// continue with plan generation
-const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
-currentMealPlan = weeklyPlan;
-currentUserProfile = profile;
-displayMealPlan(weeklyPlan, profile);
-try {
-    await createCharts(weeklyPlan, profile);
-} catch (e) { /* ignore chart errors */ }
-return weeklyPlan;
-
-// Create default meal
-function createDefaultMeal(mealType, targetCalories) {
-    const defaultMeals = {
-        breakfast: { title: "Mixed Breakfast", serving_size: "1 serving", calories: Math.round(targetCalories * 0.9) },
-        lunch: { title: "Balanced Lunch", serving_size: "1 serving", calories: Math.round(targetCalories * 0.9) },
-        dinner: { title: "Nutritious Dinner", serving_size: "1 serving", calories: Math.round(targetCalories * 0.9) },
-        snacks: { title: "Healthy Snack", serving_size: "1 serving", calories: Math.round(targetCalories * 0.9) }
-    };
-
-    return {
-        id: Date.now(),
-        ...defaultMeals[mealType],
-        protein: Math.round(targetCalories * 0.15 / 4),
-        carbs: Math.round(targetCalories * 0.5 / 4),
-        fat: Math.round(targetCalories * 0.35 / 9),
-        fiber: Math.round(targetCalories * 0.03)
-    };
-}
-
-// Utility to pick meals for a week from a given dietMeals object
-function selectMealsForWeek(dietMeals, targetCalories, profile) {
-    const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-    const mealTypes = Object.keys(dietMeals).filter(k => ['breakfast','lunch','dinner','snacks','pre_workout','post_workout'].includes(k) || true);
-    const weeklyPlan = {};
-
-    // simple selection: prioritize meals that are close to target per meal
-    const targetPerMeal = Math.max(120, Math.round(targetCalories / (mealTypes.length || 3)));
-
-    const availableMeals = [];
-    Object.values(dietMeals).forEach(list => {
-        if (Array.isArray(list)) {
-            list.forEach(m => availableMeals.push(m));
-        }
-    });
-
-    // build a list of meals per mealType if present
-    const mealsByType = {};
-    Object.keys(dietMeals).forEach(mt => {
-        if (Array.isArray(dietMeals[mt])) mealsByType[mt] = dietMeals[mt];
-    });
-
-    const usedMealIds = new Set();
-
-    days.forEach(day => {
-        weeklyPlan[day] = {};
-        mealTypes.forEach(mealType => {
-            const list = mealsByType[mealType] || availableMeals;
-            let suitableMeals = list.filter(m => {
-                if (!m) return false;
-                const cal = safeNumber(m.calories);
-                return Math.abs(cal - targetPerMeal) <= Math.round(targetPerMeal * 0.6);
-            });
-
-            if (suitableMeals.length === 0) {
-                suitableMeals = list.filter(m => !usedMealIds.has(m.id));
-            }
-
-            if (suitableMeals.length === 0) {
-                suitableMeals = list;
-            }
-
-            const seed = day.length + mealType.length + targetPerMeal;
-            const selectedMeal = suitableMeals[seed % suitableMeals.length];
-            weeklyPlan[day][mealType] = selectedMeal;
-            usedMealIds.add(selectedMeal.id);
-        });
-    });
-
-    return weeklyPlan;
-}
+const dietSynonyms = { keto: "Keto", ketogenic: "Keto", vegetarian: "Vegetarian", vegan: "Vegan", regular: "Regular" };
 
 // Generate meal plan
 async function generateMealPlan() {
     try {
-        await loadMealsDatabase(true);
+        await ensureMealsLoaded();
+        if (!mealDatabase) {
+            console.warn('Meal DB not loaded, using fallback.');
+            mealDatabase = createFallbackMeals();
+        }
 
         const profile = {
             age: safeNumber(document.getElementById('age')?.value),
@@ -445,28 +275,22 @@ async function generateMealPlan() {
             targetCalories: safeNumber(document.getElementById('targetCalories')?.value)
         };
 
-        // Basic validation & defaults
         if (!profile.targetCalories || profile.targetCalories <= 0) {
             profile.targetCalories = Math.round(calculateDailyCalories(profile));
         }
 
         currentUserProfile = profile;
 
-        const regionMeals = mealDatabase[profile.region];
-        if (!regionMeals) {
-            // fallback to first available region
-            const firstRegion = Object.keys(mealDatabase)[0];
-            if (!firstRegion) throw new Error('No meals available in database.');
-            regionMeals = mealDatabase[firstRegion];
-        }
+        // ✅ FIX: smart region + diet selection
+        let regionKey = findKey(Object.keys(mealDatabase), profile.region);
+        if (!regionKey) regionKey = Object.keys(mealDatabase)[0];
+        let regionMeals = mealDatabase[regionKey];
 
-        let dietMeals = regionMeals[profile.dietType];
-        if (!dietMeals) {
-            dietMeals = regionMeals['Regular'] || Object.values(regionMeals)[0];
-            if (!dietMeals) {
-                throw new Error(`No meals available for diet type: ${profile.dietType} in region: ${profile.region}`);
-            }
-        }
+        let dietKey = findKey(Object.keys(regionMeals), profile.dietType, dietSynonyms);
+        if (!dietKey) dietKey = "Regular";
+        let dietMeals = regionMeals[dietKey];
+
+        if (!dietMeals) throw new Error(`No meals available for diet type: ${profile.dietType} in region: ${profile.region}`);
 
         const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
 
@@ -482,15 +306,10 @@ async function generateMealPlan() {
         displayMealPlan(weeklyPlan, profile);
         await createCharts(weeklyPlan, profile);
 
-        const planContent = document.getElementById('planContent');
-        const planPlaceholder = document.getElementById('planPlaceholder');
-        const analyticsContent = document.getElementById('analyticsContent');
-        const analyticsPlaceholder = document.getElementById('analyticsPlaceholder');
-
-        if (planContent) planContent.classList.remove('d-none');
-        if (planPlaceholder) planPlaceholder.classList.add('d-none');
-        if (analyticsContent) analyticsContent.classList.remove('d-none');
-        if (analyticsPlaceholder) analyticsPlaceholder.classList.add('d-none');
+        document.getElementById('planContent')?.classList.remove('d-none');
+        document.getElementById('planPlaceholder')?.classList.add('d-none');
+        document.getElementById('analyticsContent')?.classList.remove('d-none');
+        document.getElementById('analyticsPlaceholder')?.classList.add('d-none');
 
         return weeklyPlan;
     } catch (error) {
@@ -499,240 +318,21 @@ async function generateMealPlan() {
     }
 }
 
-// Calculate daily calories (Mifflin – St Jeor approximation)
-function calculateDailyCalories(profile) {
-    const age = safeNumber(profile.age);
-    const weight = safeNumber(profile.weight);
-    const height = safeNumber(profile.height);
-    let bmr;
-    if (profile.gender === 'male') {
-        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-    } else {
-        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-    }
-    const activityFactors = {
-        'low': 1.2,
-        'moderate': 1.375,
-        'high': 1.55
-    };
-    const factor = activityFactors[profile.activityLevel] || 1.2;
-    let calories = Math.round(bmr * factor);
-    if (profile.goal === 'weight_loss') calories = Math.max(1200, Math.round(calories - 500));
-    if (profile.goal === 'gain') calories = Math.round(calories + 300);
-    return calories;
-}
-
-// Display plan to UI
-function displayMealPlan(weeklyPlan, profile) {
-    const planContainer = document.getElementById('planContainer');
-    if (!planContainer) return;
-
-    planContainer.innerHTML = '';
-    Object.keys(weeklyPlan).forEach(day => {
-        const dayCard = document.createElement('div');
-        dayCard.className = 'day-card';
-
-        const dayHeader = document.createElement('h3');
-        dayHeader.textContent = day;
-        dayCard.appendChild(dayHeader);
-
-        const meals = weeklyPlan[day];
-        const ul = document.createElement('ul');
-        Object.keys(meals).forEach(mt => {
-            const li = document.createElement('li');
-            const meal = meals[mt];
-            li.innerHTML = `<strong>${mt}:</strong> ${meal.title} — ${meal.serving_size || ''} (${meal.calories || 'N/A'} kcal)`;
-            ul.appendChild(li);
-        });
-        dayCard.appendChild(ul);
-        planContainer.appendChild(dayCard);
-    });
-}
-
-// Create summary charts (stub-simple)
-async function createCharts(weeklyPlan, profile) {
-    // For performance and compatibility we keep it lightweight.
-    try {
-        // If your existing charts library is loaded, call into it here.
-        // This function intentionally left as a low-impact call.
-        return true;
-    } catch (e) {
-        console.warn('Chart creation failed:', e);
-    }
-}
-
-// PDF export initialization
-function initializePdfExport() {
-    // lazy load html2pdf
-    if (typeof window.html2pdf !== 'undefined') {
-        Html2PdfLoaded = true;
-    } else {
-        const s = document.createElement('script');
-        s.src = 'https://raw.githack.com/eKoopmans/html2pdf/master/dist/html2pdf.bundle.min.js';
-        s.onload = () => { Html2PdfLoaded = true; };
-        document.head.appendChild(s);
-    }
-}
-
-// Robust PDF export with wait-for-resources and multi-page support
+// ✅ FIX: PDF export use correct container
 async function generateAndDownloadPdf() {
     async function waitForHtml2pdf(timeout = 7000) {
         const start = Date.now();
         while (typeof window.html2pdf === 'undefined') {
-            if (Date.now() - start > timeout) throw new Error('html2pdf not available after wait');
+            if (Date.now() - start > timeout) throw new Error('html2pdf not available');
             await new Promise(r => setTimeout(r, 100));
         }
     }
-
-    async function waitForImages(el, timeout = 5000) {
-        const imgs = Array.from(el.querySelectorAll('img'));
-        if (imgs.length === 0) return;
-        await Promise.all(imgs.map(img => new Promise(resolve => {
-            if (img.complete) return resolve();
-            const onEnd = () => { resolve(); };
-            img.addEventListener('load', onEnd, { once: true });
-            img.addEventListener('error', onEnd, { once: true });
-            setTimeout(resolve, timeout);
-        })));
-    }
-
-    // ensure html2pdf is available
-    try {
-        if (typeof window.html2pdf === 'undefined') {
-            initializePdfExport?.();
-            await waitForHtml2pdf(7000);
-        }
-    } catch (err) {
-        console.warn('html2pdf not available:', err);
-    }
-
-    const content = document.getElementById('planExport');
+    const content = document.getElementById('planContainer'); // FIXED ✅
     if (!content) {
         alert('No plan content to export.');
         return;
     }
-
-    // wait for images & charts to finish
-    await waitForImages(content, 5000);
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-    // Options with page splitting
-    const opt = {
-        margin:       [0.5, 0.5, 0.5, 0.5], // top, right, bottom, left (inches)
-        filename:     'meal-plan.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, allowTaint: false },
-        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
-        pagebreak:    { mode: ['css', 'legacy'] } // auto-split across pages
-    };
-
-    try {
-        if (typeof window.html2pdf !== 'undefined') {
-            await window.html2pdf().set(opt).from(content).save();
-            console.log('PDF generated via html2pdf (multi-page).');
-        } else {
-            // Fallback: html2canvas + jsPDF with manual page splitting
-            const canvas = await html2canvas(content, { scale: 2, useCORS: true });
-            const imgData = canvas.toDataURL('image/jpeg', 1.0);
-
-            const pdf = new jsPDF('p', 'pt', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-
-            // scale canvas width to PDF width
-            const imgProps = pdf.getImageProperties(imgData);
-            const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-            let heightLeft = imgHeight;
-            let position = 0;
-
-            // First page
-            pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-            heightLeft -= pageHeight;
-
-            // Add more pages if needed
-            while (heightLeft > 0) {
-                position -= pageHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-                heightLeft -= pageHeight;
-            }
-
-            pdf.save('meal-plan.pdf');
-            console.log('PDF generated via fallback (multi-page).');
-        }
-    } catch (e) {
-        console.error('PDF export failed:', e);
-        alert('Failed to generate PDF: ' + (e.message || e));
-    }
+    await waitForHtml2pdf();
+    const opt = { margin: 0.5, filename: 'meal-plan.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } };
+    await window.html2pdf().set(opt).from(content).save();
 }
-
-
-// Save plan to tracker (send to tracker button handler)
-function sendPlanToTracker() {
-    if (!currentMealPlan) {
-        alert('No plan generated yet.');
-        return;
-    }
-    try {
-        localStorage.setItem('last_sent_plan', JSON.stringify({
-            plan: currentMealPlan,
-            profile: currentUserProfile,
-            sentAt: new Date().toISOString()
-        }));
-        // redirect to tracker page (if exists)
-        if (window.location.pathname.endsWith('index.html')) {
-            window.location.href = 'tracker.html';
-        } else {
-            // try relative
-            window.location.href = 'tracker.html';
-        }
-    } catch (e) {
-        console.error('Failed to send plan to tracker:', e);
-        alert('Failed to send plan to tracker: ' + (e.message || e));
-    }
-}
-
-// Load existing plan from storage
-function loadExistingPlan() {
-    try {
-        const raw = localStorage.getItem('last_generated_plan_v1');
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.plan) {
-            currentMealPlan = parsed.plan;
-            currentUserProfile = parsed.profile;
-            displayMealPlan(parsed.plan, parsed.profile);
-        }
-    } catch (e) {
-        console.warn('Could not load existing plan from localStorage:', e);
-    }
-}
-
-// Simple form initialization
-function initializeForm() {
-    const genBtn = document.getElementById('generateBtn');
-    if (genBtn) genBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await generateMealPlan();
-    });
-
-    const pdfBtn = document.getElementById('downloadPdfBtn');
-    if (pdfBtn) pdfBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await generateAndDownloadPdf();
-    });
-
-    const sendBtn = document.getElementById('sendToTrackerBtn');
-    if (sendBtn) sendBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        sendPlanToTracker();
-    });
-}
-
-// Misc helpers and utilities (kept small)
-function formatNumber(n) {
-    return Number(n).toLocaleString();
-}
-
-// End of file (any additional functions from the original file remain unchanged)

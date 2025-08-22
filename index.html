@@ -2292,12 +2292,21 @@
         }
 
         console.log('🍽️ Diet Planner with Fixed Integration & PDF ready! 🎉');
-            document.addEventListener("DOMContentLoaded", () => {
-    initializeForm();
-    loadExistingPlan();
+           document.addEventListener("DOMContentLoaded", () => {
+    console.log("🚀 DOM Loaded - initializing...");
+
+    initializeTheme();
+    initializeNavigation();
     initializeMobileMenu();
+    initializeIntersectionObserver();
+
+    loadMealsDatabase();
+    loadExistingPlan();
+    initializeForm();
+    initializePdfExport();
     initializeResultsToggle();
 });
+
     </script>
 </body>
 </html>

@@ -1082,6 +1082,7 @@
             initializeNavigation();
             initializeMobileMenu();
             loadMealsDatabase();
+            loadExistingPlan();
             initializeForm();
             initializeResultsToggle();
             
@@ -1176,7 +1177,7 @@
             });
         }
 
-        // Mobile Menu Management
+  // Mobile Menu Management
         function initializeMobileMenu() {
             const mobileMenuButton = document.getElementById('mobileMenuButton');
             const mobileOverlay = document.getElementById('mobileOverlay');
@@ -1370,35 +1371,29 @@
         }
 // Load meals database
 async function loadMealsDatabase() {
-    mealDatabase = createFallbackMeals();
+    mealDatabase = createFallbackMeals(); // <-- calling function here
     console.log('✅ Using embedded meals database');
     return mealDatabase;
 }
 
-// Create proper fallback meals (region + dietType)
+// Create comprehensive fallback meals
 function createFallbackMeals() {
     return {
-        "DefaultRegion": {
-            "Regular": {
-                breakfast: [
-                    { id: 1, title: "Oatmeal with Fruits", serving_size: "1 bowl", calories: 250, protein: 8, carbs: 45, fat: 4, fiber: 5 },
-                    { id: 2, title: "Boiled Eggs", serving_size: "2 eggs", calories: 150, protein: 12, carbs: 1, fat: 10, fiber: 0 }
-                ],
-                lunch: [
-                    { id: 3, title: "Grilled Chicken Salad", serving_size: "1 plate", calories: 350, protein: 30, carbs: 15, fat: 12, fiber: 6 },
-                    { id: 4, title: "Veggie Wrap", serving_size: "1 wrap", calories: 300, protein: 10, carbs: 40, fat: 8, fiber: 5 }
-                ],
-                dinner: [
-                    { id: 5, title: "Paneer Curry with Rice", serving_size: "1 plate", calories: 400, protein: 20, carbs: 50, fat: 15, fiber: 7 },
-                    { id: 6, title: "Fish with Quinoa", serving_size: "1 plate", calories: 450, protein: 35, carbs: 40, fat: 14, fiber: 4 }
-                ],
-                snacks: [
-                    { id: 7, title: "Fruit Smoothie", serving_size: "1 glass", calories: 180, protein: 5, carbs: 35, fat: 2, fiber: 3 }
-                ]
-            }
-        }
+        "Breakfast": [
+            { name: "Oatmeal with Fruits", calories: 250, protein: 8, carbs: 45, fats: 4 },
+            { name: "Boiled Eggs", calories: 150, protein: 12, carbs: 1, fats: 10 }
+        ],
+        "Lunch": [
+            { name: "Grilled Chicken Salad", calories: 350, protein: 30, carbs: 15, fats: 12 },
+            { name: "Veggie Wrap", calories: 300, protein: 10, carbs: 40, fats: 8 }
+        ],
+        "Dinner": [
+            { name: "Paneer Curry with Rice", calories: 400, protein: 20, carbs: 50, fats: 15 },
+            { name: "Fish with Quinoa", calories: 450, protein: 35, carbs: 40, fats: 14 }
+        ]
     };
 }
+
 
         // Calculate BMR and target calories
         function calculateTargetCalories(profile) {
@@ -1526,309 +1521,222 @@ function createFallbackMeals() {
             };
         }
 
-     // Replace your loadMealsDatabase() with this fetch-based loader.
-// Make sure `meals.json` is reachable by the browser (same origin or CORS-enabled).
-async function loadMealsDatabase() {
-    if (mealDatabase) return mealDatabase; // already loaded
+        // Generate meal plan
+        async function generateMealPlan() {
+            try {
+                await loadMealsDatabase();
 
-    try {
-        // Try relative path first (recommended for GitHub Pages)
-        const resp = await fetch('./meals.json', { cache: "no-cache" });
-        if (!resp.ok) throw new Error('Failed to fetch meals.json: ' + resp.status);
-        mealDatabase = await resp.json();
-        console.log('✅ Loaded meals database from meals.json');
-        return mealDatabase;
-    } catch (err) {
-        console.warn('Could not load meals.json via ./meals.json, falling back to default (if present).', err);
-        // If you have a fallback function you want to keep:
-        // mealDatabase = createFallbackMeals();
-        // return mealDatabase;
-        throw err;
-    }
-}
+                const profile = {
+                    age: safeNumber(document.getElementById('age').value),
+                    gender: document.getElementById('gender').value,
+                    height: safeNumber(document.getElementById('height').value),
+                    weight: safeNumber(document.getElementById('weight').value),
+                    goal: document.getElementById('goal').value,
+                    dietType: document.getElementById('dietType').value,
+                    region: document.getElementById('region').value,
+                    activityLevel: document.getElementById('activityLevel').value,
+                    targetCalories: safeNumber(document.getElementById('targetCalories').value)
+                };
 
-// New generateMealPlan() — compatible with your meals.json schema
-async function generateMealPlan() {
-    try {
-        // 1) load the DB (throws if fetch fails)
-        await loadMealsDatabase();
-
-        // 2) Build profile from the form (same as your current code)
-        const profile = {
-            age: safeNumber(document.getElementById('age').value),
-            gender: document.getElementById('gender').value,
-            height: safeNumber(document.getElementById('height').value),
-            weight: safeNumber(document.getElementById('weight').value),
-            goal: document.getElementById('goal').value,
-            dietType: document.getElementById('dietType').value,
-            region: document.getElementById('region').value,
-            activityLevel: document.getElementById('activityLevel').value,
-            targetCalories: safeNumber(document.getElementById('targetCalories').value)
-        };
-
-        if (!profile.targetCalories || profile.targetCalories === 0) {
-            profile.targetCalories = calculateTargetCalories(profile);
-        }
-
-        // 3) locate region and diet in the JSON
-        const regionMeals = mealDatabase[profile.region];
-        if (!regionMeals) throw new Error(`No meals for region "${profile.region}" in meals.json`);
-
-        // Use requested diet, fallback to 'Regular' or first available
-        let dietMeals = regionMeals[profile.dietType];
-        if (!dietMeals) {
-            dietMeals = regionMeals['Regular'] || Object.values(regionMeals)[0];
-            if (!dietMeals) throw new Error(`No diet meals available for region "${profile.region}"`);
-        }
-
-        // 4) Identify available meal types in that diet object
-        // prefer the 4 main meal types, otherwise choose any present keys
-        const preferred = ['breakfast','lunch','dinner','snacks'];
-        let availableMealTypes = preferred.filter(t => Array.isArray(dietMeals[t]) && dietMeals[t].length > 0);
-
-        // If some preferred types are missing, add other available keys (pre_workout, post_workout...) until we have at least 3-4 types
-        if (availableMealTypes.length < 4) {
-            const otherTypes = Object.keys(dietMeals).filter(k => !availableMealTypes.includes(k) && Array.isArray(dietMeals[k]));
-            availableMealTypes = availableMealTypes.concat(otherTypes).slice(0, 4);
-        }
-
-        // As last fallback, take all keys (shouldn't be needed for your data)
-        if (availableMealTypes.length === 0) availableMealTypes = Object.keys(dietMeals);
-
-        // 5) plan generation algorithm (deterministic)
-        const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-        const weeklyPlan = {};
-        const usedIds = new Set();
-
-        // simple calorie distribution (same as your current code)
-        const calorieDistribution = { breakfast: 0.25, lunch: 0.35, dinner: 0.35, snacks: 0.05 };
-
-        days.forEach((day, dayIndex) => {
-            weeklyPlan[day] = {};
-
-            availableMealTypes.forEach((mealType, mealTypeIndex) => {
-                const mealArray = dietMeals[mealType] || [];
-
-                // compute meal target (fall back to equal partition if mealType not in calorieDistribution)
-                const cdist = calorieDistribution[mealType] || (1 / availableMealTypes.length);
-                const targetForMeal = Math.round(profile.targetCalories * cdist);
-
-                let chosen = null;
-
-                if (mealArray.length === 0) {
-                    // create default if nothing available
-                    chosen = createDefaultMeal(mealType, targetForMeal);
-                } else {
-                    // Find candidate list that has numeric calories
-                    const candidates = mealArray.filter(m => {
-                        const c = safeNumber(m.calories || m.kcal || 0);
-                        return c > 0;
-                    });
-
-                    const pool = (candidates.length ? candidates : mealArray);
-
-                    // deterministic index using day and mealType
-                    const idx = (dayIndex * (mealTypeIndex + 1) + dayIndex + mealTypeIndex) % pool.length;
-                    chosen = pool[idx];
-
-                    // If chosen lacks some expected properties, normalize
-                    if (!chosen.id) chosen.id = Date.now() + Math.floor(Math.random()*1000);
-                    if (!chosen.title && chosen.name) chosen.title = chosen.name;
-                    if (!chosen.serving_size && chosen.serving) chosen.serving_size = chosen.serving;
-                    // ensure numeric macros
-                    ['calories','protein','carbs','fat','fiber'].forEach(k=>{
-                        if (chosen[k] === undefined) chosen[k] = 0;
-                        else chosen[k] = safeNumber(chosen[k]);
-                    });
+                if (!profile.targetCalories || profile.targetCalories === 0) {
+                    profile.targetCalories = calculateTargetCalories(profile);
                 }
 
-                // ensure uniqueness if possible (if chosen has id already used, it's OK to reuse; we keep it)
-                weeklyPlan[day][mealType] = chosen;
-                usedIds.add(chosen.id);
-            });
-        });
-
-        // 6) persist and show results
-        currentMealPlan = weeklyPlan;
-        currentUserProfile = profile;
-        localStorage.setItem('last_generated_plan_v1', JSON.stringify({
-            plan: weeklyPlan,
-            profile: profile,
-            generated: new Date().toISOString()
-        }));
-
-        displayMealPlan(weeklyPlan, profile);
-        await createCharts(weeklyPlan, profile);
-
-        console.log('✅ Meal plan generated successfully from meals.json');
-        return weeklyPlan;
-
-    } catch (err) {
-        console.error('generateMealPlan failed:', err);
-        throw err;
-    }
-}
-
-// Display meal plan with stats
-function displayMealPlan(weeklyPlan, profile) {
-    displayStatsCards(weeklyPlan, profile);
-    displayMealTable(weeklyPlan);
-}
-
-// Display stats cards
-function displayStatsCards(weeklyPlan, profile) {
-    const weeklyStats = calculateWeeklyStats(weeklyPlan);
-    const container = document.getElementById('statsGrid');
-    
-    const targetDifference = Math.round(((weeklyStats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
-    
-    container.innerHTML = `
-        <div class="stat-card fade-in">
-            <div class="stat-title">Calories</div>
-            <div class="stat-value">${Math.round(weeklyStats.avgCalories)}</div>
-            <div class="stat-target">/ ${profile.targetCalories}</div>
-        </div>
-        <div class="stat-card fade-in">
-            <div class="stat-title">Protein</div>
-            <div class="stat-value">${Math.round(weeklyStats.avgProtein)}g</div>
-            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.15 / 4)}g</div>
-        </div>
-        <div class="stat-card fade-in">
-            <div class="stat-title">Carbs</div>
-            <div class="stat-value">${Math.round(weeklyStats.avgCarbs)}g</div>
-            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.5 / 4)}g</div>
-        </div>
-        <div class="stat-card fade-in">
-            <div class="stat-title">Fat</div>
-            <div class="stat-value">${Math.round(weeklyStats.avgFat)}g</div>
-            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.35 / 9)}g</div>
-        </div>
-        <div class="stat-card fade-in">
-            <div class="stat-title">Fiber</div>
-            <div class="stat-value">${Math.round(weeklyStats.avgFiber)}g</div>
-            <div class="stat-target">/ 25g</div>
-        </div>
-        <div class="stat-card fade-in">
-            <div class="stat-title">Target Diff</div>
-            <div class="stat-value ${targetDifference >= 0 ? 'text-success' : 'text-warning'}">
-                ${targetDifference >= 0 ? '+' : ''}${targetDifference}%
-            </div>
-        </div>
-    `;
-}
-
-// Display meal table
-// Replace your existing displayMealTable with this function
-function displayMealTable(weeklyPlan) {
-    const container = document.getElementById('mealPlanTable');
-    if (!container) return;
-
-    const days = Object.keys(weeklyPlan || {});
-    const mealTypes = [
-        { key: 'breakfast', name: '🌅 Breakfast' },
-        { key: 'lunch', name: '🍽️ Lunch' },
-        { key: 'dinner', name: '🌙 Dinner' },
-        { key: 'snacks', name: '🍎 Snack' }
-    ];
-
-    // small helper to avoid raw HTML injection / keep things safe
-    function escapeHtml(str) {
-        if (str === null || str === undefined) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
-    // helper to create a readable title for a meal object
-    function mealTitle(meal) {
-        if (!meal) return 'No meal';
-        if (typeof meal === 'string') return meal; // already a title/placeholder
-        // prefer title, then name, then build from foods array
-        if (meal.title && meal.title.trim()) return meal.title;
-        if (meal.name && meal.name.trim()) return meal.name;
-        if (Array.isArray(meal.foods) && meal.foods.length) {
-            // foods might be objects { name, quantity }
-            return meal.foods.map(f => {
-                if (typeof f === 'string') return f;
-                const qty = f.quantity ? ` (${f.quantity})` : '';
-                return `${f.name || ''}${qty}`;
-            }).join(', ');
-        }
-        // fallback to any "options" or descriptive fields
-        if (Array.isArray(meal.options) && meal.options.length) return meal.options.join(', ');
-        if (meal.title_option && typeof meal.title_option === 'string') return meal.title_option;
-        // last resort: if there's an id, show a simple label
-        if (meal.id) return `Meal #${meal.id}`;
-        return 'Custom Meal';
-    }
-
-    // helper to get numeric nutrient
-    function num(v) {
-        return safeNumber(v);
-    }
-
-    let html = '<table class="table">';
-    html += '<thead><tr>';
-    html += '<th>Day</th>';
-    mealTypes.forEach(meal => {
-        html += `<th>${escapeHtml(meal.name)}</th>`;
-    });
-    html += '<th>Daily Total</th>';
-    html += '</tr></thead><tbody>';
-
-    days.forEach(day => {
-        html += '<tr>';
-        html += `<td class="day-header">${escapeHtml(day)}</td>`;
-
-        let totalCalories = 0;
-
-        mealTypes.forEach(mealType => {
-            const meal = (weeklyPlan[day] || {})[mealType.key];
-
-            if (meal) {
-                // meal may be object or string
-                const titleText = mealTitle(meal);
-                // calories might be under calories or kcal etc.
-                const calories = num(meal.calories || meal.kcal || meal.calories_kcal || 0);
-                totalCalories += calories;
-
-                const serving = meal.serving_size || meal.servingSize || '';
-                const protein = num(meal.protein || meal.prot || 0);
-                const carbs = num(meal.carbs || meal.carbohydrates || 0);
-                const fat = num(meal.fat || meal.fats || 0);
-                const fiber = num(meal.fiber || 0);
-
-                html += `<td>
-                    <div class="meal-item">${escapeHtml(titleText)}</div>
-                    <div class="meal-serving text-primary">${escapeHtml(String(calories))} kcal</div>`;
-
-                if (serving) {
-                    html += `<div class="meal-serving">${escapeHtml(serving)}</div>`;
+                const regionMeals = mealDatabase[profile.region];
+                if (!regionMeals) {
+                    throw new Error(`No meals available for region: ${profile.region}`);
                 }
 
-                // Show macro info only if present (avoid showing NaN)
-                if (protein || carbs || fat || fiber) {
-                    html += `<div class="meal-nutrients">
-                        P: ${escapeHtml(String(protein))}g • C: ${escapeHtml(String(carbs))}g • F: ${escapeHtml(String(fat))}g${(typeof fiber !== 'undefined' ? ` • Fib: ${escapeHtml(String(fiber))}g` : '')}
-                    </div>`;
+                let dietMeals = regionMeals[profile.dietType];
+                if (!dietMeals) {
+                    dietMeals = regionMeals['Regular'] || Object.values(regionMeals)[0];
+                    if (!dietMeals) {
+                        throw new Error(`No meals available for diet type: ${profile.dietType} in region: ${profile.region}`);
+                    }
                 }
 
-                html += '</td>';
-            } else {
-                html += '<td><div class="text-muted">No meal</div></td>';
+                const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
+
+                currentMealPlan = weeklyPlan;
+                currentUserProfile = profile;
+
+                localStorage.setItem('last_generated_plan_v1', JSON.stringify({
+                    plan: weeklyPlan,
+                    profile: profile,
+                    generated: new Date().toISOString()
+                }));
+
+                displayMealPlan(weeklyPlan, profile);
+                await createCharts(weeklyPlan, profile);
+
+                console.log('✅ Meal plan generated successfully!');
+                return weeklyPlan;
+            } catch (error) {
+                console.error('Error generating meal plan:', error);
+                throw error;
             }
-        });
+        }
 
-        html += `<td><strong class="text-success">${Math.round(totalCalories)} kcal</strong></td>`;
-        html += '</tr>';
-    });
+        // Display meal plan with stats
+        function displayMealPlan(weeklyPlan, profile) {
+            displayStatsCards(weeklyPlan, profile);
+            displayMealTable(weeklyPlan);
+        }
 
-    html += '</tbody></table>';
-    container.innerHTML = html;
-}
+        // Display stats cards
+        function displayStatsCards(weeklyPlan, profile) {
+            const weeklyStats = calculateWeeklyStats(weeklyPlan);
+            const container = document.getElementById('statsGrid');
+            
+            const targetDifference = Math.round(((weeklyStats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
+            
+            container.innerHTML = `
+                <div class="stat-card fade-in">
+                    <div class="stat-title">Calories</div>
+                    <div class="stat-value">${Math.round(weeklyStats.avgCalories)}<span class="stat-unit"></span></div>
+                    <div class="stat-target">/ ${profile.targetCalories}</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-title">Protein</div>
+                    <div class="stat-value">${Math.round(weeklyStats.avgProtein)}<span class="stat-unit">g</span></div>
+                    <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.15 / 4)}g</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-title">Carbs</div>
+                    <div class="stat-value">${Math.round(weeklyStats.avgCarbs)}<span class="stat-unit">g</span></div>
+                    <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.5 / 4)}g</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-title">Fat</div>
+                    <div class="stat-value">${Math.round(weeklyStats.avgFat)}<span class="stat-unit">g</span></div>
+                    <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.35 / 9)}g</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-title">Fiber</div>
+                    <div class="stat-value">${Math.round(weeklyStats.avgFiber)}<span class="stat-unit">g</span></div>
+                    <div class="stat-target">/ 25g</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-title">Target Diff</div>
+                    <div class="stat-value ${targetDifference >= 0 ? 'text-success' : 'text-warning'}">
+                        ${targetDifference >= 0 ? '+' : ''}${targetDifference}<span class="stat-unit">%</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display meal table
+        // Replace your existing displayMealTable with this function
+        function displayMealTable(weeklyPlan) {
+            const container = document.getElementById('mealPlanTable');
+            if (!container) return;
+
+            const days = Object.keys(weeklyPlan || {});
+            const mealTypes = [
+                { key: 'breakfast', name: '🌅 Breakfast' },
+                { key: 'lunch', name: '🍽️ Lunch' },
+                { key: 'dinner', name: '🌙 Dinner' },
+                { key: 'snacks', name: '🍎 Snack' }
+            ];
+
+            // small helper to avoid raw HTML injection / keep things safe
+            function escapeHtml(str) {
+                if (str === null || str === undefined) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            // helper to create a readable title for a meal object
+            function mealTitle(meal) {
+                if (!meal) return 'No meal';
+                if (typeof meal === 'string') return meal; // already a title/placeholder
+                // prefer title, then name, then build from foods array
+                if (meal.title && meal.title.trim()) return meal.title;
+                if (meal.name && meal.name.trim()) return meal.name;
+                if (Array.isArray(meal.foods) && meal.foods.length) {
+                    // foods might be objects { name, quantity }
+                    return meal.foods.map(f => {
+                        if (typeof f === 'string') return f;
+                        const qty = f.quantity ? ` (${f.quantity})` : '';
+                        return `${f.name || ''}${qty}`;
+                    }).join(', ');
+                }
+                // fallback to any "options" or descriptive fields
+                if (Array.isArray(meal.options) && meal.options.length) return meal.options.join(', ');
+                if (meal.title_option && typeof meal.title_option === 'string') return meal.title_option;
+                // last resort: if there's an id, show a simple label
+                if (meal.id) return `Meal #${meal.id}`;
+                return 'Custom Meal';
+            }
+
+            // helper to get numeric nutrient
+            function num(v) {
+                return safeNumber(v);
+            }
+
+            let html = '<table class="table">';
+            html += '<thead><tr>';
+            html += '<th>Day</th>';
+            mealTypes.forEach(meal => {
+                html += `<th>${escapeHtml(meal.name)}</th>`;
+            });
+            html += '<th>Daily Total</th>';
+            html += '</tr></thead><tbody>';
+
+            days.forEach(day => {
+                html += '<tr>';
+                html += `<td class="day-header">${escapeHtml(day)}</td>`;
+
+                let totalCalories = 0;
+
+                mealTypes.forEach(mealType => {
+                    const meal = (weeklyPlan[day] || {})[mealType.key];
+
+                    if (meal) {
+                        // meal may be object or string
+                        const titleText = mealTitle(meal);
+                        // calories might be under calories or kcal etc.
+                        const calories = num(meal.calories || meal.kcal || meal.calories_kcal || 0);
+                        totalCalories += calories;
+
+                        const serving = meal.serving_size || meal.servingSize || '';
+                        const protein = num(meal.protein || meal.prot || 0);
+                        const carbs = num(meal.carbs || meal.carbohydrates || 0);
+                        const fat = num(meal.fat || meal.fats || 0);
+                        const fiber = num(meal.fiber || 0);
+
+                        html += `<td>
+                            <div class="meal-item">${escapeHtml(titleText)}</div>
+                            <div class="meal-serving text-primary">${escapeHtml(String(calories))} kcal</div>`;
+
+                        if (serving) {
+                            html += `<div class="meal-serving">${escapeHtml(serving)}</div>`;
+                        }
+
+                        // Show macro info only if present (avoid showing NaN)
+                        if (protein || carbs || fat || fiber) {
+                            html += `<div class="meal-nutrients">
+                                P: ${escapeHtml(String(protein))}g • C: ${escapeHtml(String(carbs))}g • F: ${escapeHtml(String(fat))}g${(typeof fiber !== 'undefined' ? ` • Fib: ${escapeHtml(String(fiber))}g` : '')}
+                            </div>`;
+                        }
+
+                        html += '</td>';
+                    } else {
+                        html += '<td><div class="text-muted">No meal</div></td>';
+                    }
+                });
+
+                html += `<td><strong class="text-success">${Math.round(totalCalories)} kcal</strong></td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
 
 
         // Calculate weekly statistics
@@ -2149,106 +2057,227 @@ function displayMealTable(weeklyPlan) {
             });
         }
 
-// FIXED PDF export - Full working version
-async function downloadPDF() {
-    try {
-        if (!currentMealPlan || !currentUserProfile) {
-            alert("Please generate a meal plan first!");
-            return;
+        // FIXED PDF export - Full working version
+        async function downloadPDF() {
+            try {
+                if (!currentMealPlan || !currentUserProfile) {
+                    alert("Please generate a meal plan first!");
+                    return;
+                }
+
+                // ensure html2pdf lib is loaded
+                try {
+                    await loadHtml2Pdf();
+                } catch (err) {
+                    console.error('Failed to load html2pdf library:', err);
+                    alert('Failed to load PDF library. Check your connection and try again.');
+                    return;
+                }
+
+                const html2pdfLib = (typeof html2pdf !== 'undefined') ? html2pdf : (window && window.html2pdf ? window.html2pdf : null);
+                if (!html2pdfLib) {
+                    console.error('html2pdf not available after loading.');
+                    alert('PDF library not available. Try reloading the page.');
+                    return;
+                }
+
+                const days = Object.keys(currentMealPlan);
+                const mealTypes = [
+                    { key: 'breakfast', name: '🌅 Breakfast' },
+                    { key: 'lunch', name: '🍽️ Lunch' },
+                    { key: 'dinner', name: '🌙 Dinner' },
+                    { key: 'snacks', name: '🍎 Snack' }
+                ];
+
+                const weeklyStats = calculateWeeklyStats(currentMealPlan);
+
+                // builder that prefers foods[] when present
+                function buildFoodListForMeal(meal) {
+                    if (!meal) return 'No meal data';
+                    if (Array.isArray(meal.foods) && meal.foods.length) {
+                        return meal.foods.map(f => {
+                            if (!f) return '';
+                            if (typeof f === 'string') return f;
+                            const name = f.name || f.title || f.label || '';
+                            const qty = f.quantity || f.qty || f.amount || '';
+                            return qty ? `${name} (${qty})` : name;
+                        }).filter(Boolean).join(', ');
+                    }
+                    if (Array.isArray(meal.options) && meal.options.length) {
+                        return meal.options.join(', ');
+                    }
+                    if (meal.title && meal.title.trim()) return meal.title;
+                    if (meal.name && meal.name.trim()) return meal.name;
+                    if (meal.id) return `Meal #${meal.id}`;
+                    return 'Custom Meal';
+                }
+
+                // Build HTML content (simple, reliable styling)
+                let html = `
+                    <div style="font-family: Arial, Helvetica, sans-serif; padding:18px;">
+                        <h1 style="text-align:center; color:#007bff; margin-bottom:6px;">🍽️ The Diet Planner</h1>
+                        <p style="text-align:center; color:#6c757d; margin-top:0;">Personalized Meal Plan — ${new Date().toLocaleDateString()}</p>
+
+                        <h2 style="color:#212529; margin-top:18px;">📈 Weekly Overview</h2>
+                        <p><strong>Average Calories:</strong> ${Math.round(weeklyStats.avgCalories)} kcal</p>
+                        <p><strong>Average Protein:</strong> ${Math.round(weeklyStats.avgProtein)} g</p>
+                        <p><strong>Average Carbs:</strong> ${Math.round(weeklyStats.avgCarbs)} g</p>
+                        <p><strong>Average Fat:</strong> ${Math.round(weeklyStats.avgFat)} g</p>
+                        <p><strong>Average Fiber:</strong> ${Math.round(weeklyStats.avgFiber)} g</p>
+
+                        <h2 style="color:#212529; margin-top:22px;">🗓️ 7-Day Meal Plan</h2>
+                `;
+
+                days.forEach((day, index) => {
+                    html += `
+                        <h3 style="color:#007bff; margin-bottom:6px;">${day} (Day ${index + 1})</h3>
+                        <table style="width:100%; border-collapse:collapse; margin-bottom:14px; font-size:13px;">
+                            <thead>
+                                <tr style="background:#f3f4f6;">
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:left;">Meal</th>
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:left;">Food</th>
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:center;">Cal</th>
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:center;">P (g)</th>
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:center;">C (g)</th>
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:center;">F (g)</th>
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:center;">Fib (g)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    mealTypes.forEach(mealType => {
+                        const meal = (currentMealPlan[day] || {})[mealType.key];
+                        if (!meal) return;
+
+                        const foodList = buildFoodListForMeal(meal);
+                        const calories = safeNumber(meal.calories || meal.kcal || meal.calories_kcal || 0);
+                        const protein = safeNumber(meal.protein || meal.prot || 0);
+                        const carbs = safeNumber(meal.carbs || meal.carbohydrates || 0);
+                        const fat = safeNumber(meal.fat || meal.fats || 0);
+                        const fiber = safeNumber(meal.fiber || 0);
+                        const serving = meal.serving_size || meal.servingSize || '';
+
+                        function escapeHtmlForPDF(str) {
+                            if (str === null || str === undefined) return '';
+                            return String(str)
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/"/g, '&quot;')
+                                .replace(/'/g, '&#039;');
+                        }
+
+                        html += `
+                            <tr>
+                                <td style="padding:8px; border:1px solid #e6e7e9; vertical-align:top; width:12%;"><strong>${mealType.name}</strong></td>
+                                <td style="padding:8px; border:1px solid #e6e7e9; vertical-align:top; width:48%;">
+                                    <div style="font-weight:600; margin-bottom:4px;">${escapeHtmlForPDF(foodList)}</div>
+                                    <div style="color:#6c757d; font-size:12px;">Serving: ${escapeHtmlForPDF(serving || 'Standard serving')}</div>
+                                </td>
+                                <td style="padding:8px; border:1px solid #e6e7e9; text-align:center; vertical-align:top; width:8%;">${calories}</td>
+                                <td style="padding:8px; border:1px solid #e6e7e9; text-align:center; vertical-align:top; width:6%;">${protein}</td>
+                                <td style="padding:8px; border:1px solid #e6e7e9; text-align:center; vertical-align:top; width:6%;">${carbs}</td>
+                                <td style="padding:8px; border:1px solid #e6e7e9; text-align:center; vertical-align:top; width:6%;">${fat}</td>
+                                <td style="padding:8px; border:1px solid #e6e7e9; text-align:center; vertical-align:top; width:6%;">${fiber}</td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `</tbody></table>`;
+                });
+
+                const tempDiv = document.createElement('div');
+                tempDiv.style.boxSizing = 'border-box';
+                tempDiv.style.width = '800px';
+                tempDiv.style.padding = '8px';
+                tempDiv.innerHTML = html;
+                document.body.appendChild(tempDiv);
+
+                const opt = {
+                    margin:       10,
+                    filename:     `TheDietPlanner-MealPlan-${new Date().toISOString().split('T')[0]}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                console.log("📄 Generating PDF...");
+                try {
+                    await html2pdfLib().from(tempDiv).set(opt).save();
+                    console.log("✅ PDF downloaded successfully!");
+                } catch (saveErr) {
+                    console.warn('html2pdf save() failed, falling back to blob output:', saveErr);
+                    try {
+                        const blob = await html2pdfLib().from(tempDiv).set(opt).output('blob');
+                        const url = URL.createObjectURL(blob);
+                        window.open(url, '_blank');
+                        setTimeout(() => URL.revokeObjectURL(url), 2000);
+                    } catch (blobErr) {
+                        console.error('PDF fallback also failed:', blobErr);
+                        alert('PDF generation failed. See console for details.');
+                    }
+                } finally {
+                    if (tempDiv && tempDiv.parentNode) tempDiv.parentNode.removeChild(tempDiv);
+                }
+
+            } catch (err) {
+                console.error("❌ PDF generation failed:", err);
+                alert("Failed to generate PDF. Check console for errors.");
+            }
         }
 
-        const days = Object.keys(currentMealPlan);
-        const mealTypes = [
-            { key: 'breakfast', name: '🌅 Breakfast' },
-            { key: 'lunch', name: '🍽️ Lunch' },
-            { key: 'dinner', name: '🌙 Dinner' },
-            { key: 'snacks', name: '🍎 Snack' }
-        ];
-
-        const weeklyStats = calculateWeeklyStats(currentMealPlan);
-
-        let html = `
-            <h1 style="text-align:center; color:#28a745;">🍴 The Diet Planner</h1>
-            <p style="text-align:center; font-size:14px; color:#6c757d;">Personalized Meal Plan</p>
-
-            <h2>📈 Weekly Overview</h2>
-            <p><b>Average Calories:</b> ${Math.round(weeklyStats.avgCalories)} kcal</p>
-            <p><b>Average Protein:</b> ${Math.round(weeklyStats.avgProtein)} g</p>
-            <p><b>Average Carbs:</b> ${Math.round(weeklyStats.avgCarbs)} g</p>
-            <p><b>Average Fat:</b> ${Math.round(weeklyStats.avgFat)} g</p>
-            <p><b>Average Fiber:</b> ${Math.round(weeklyStats.avgFiber)} g</p>
-
-            <h2>🗓️ 7-Day Meal Plan</h2>
-        `;
-
-        // Loop through each day
-        days.forEach((day, index) => {
-            html += `<h3 style="color:#007bff;">${day} (Day ${index + 1})</h3>
-                     <table border="1" cellspacing="0" cellpadding="6" style="width:100%; border-collapse:collapse; margin-bottom:15px;">
-                        <tr style="background:#f1f1f1;">
-                            <th>Meal</th><th>Food</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th>
-                        </tr>`;
-
-            mealTypes.forEach(mealType => {
-                const meal = currentMealPlan[day][mealType.key];
-                if (meal) {
-                    const calories = safeNumber(meal.calories);
-
-                    // Show real food names with quantities if available
-                    const foodList = (meal.foods && meal.foods.length > 0)
-                        ? meal.foods.map(f => `${f.name} (${f.quantity})`).join(', ')
-                        : meal.title;
-
-                    html += `<tr style="border-bottom: 1px solid #e9ecef;">
-                        <td style="padding: 8px; font-weight: 600; color: #007bff;">${mealType.name}</td>
-                        <td style="padding: 8px;">
-                            <div style="font-weight: 600; color: #212529; margin-bottom: 3px;">${foodList}</div>
-                            <div style="color: #6c757d; font-size: 0.85rem;"><strong>Serving:</strong> ${meal.serving_size || 'Standard serving'}</div>
-                        </td>
-                        <td style="padding: 8px; text-align:center;">${calories}</td>
-                        <td style="padding: 8px; text-align:center;">${safeNumber(meal.protein)}g</td>
-                        <td style="padding: 8px; text-align:center;">${safeNumber(meal.carbs)}g</td>
-                        <td style="padding: 8px; text-align:center;">${safeNumber(meal.fat)}g</td>
-                        <td style="padding: 8px; text-align:center;">${safeNumber(meal.fiber)}g</td>
-                    </tr>`;
+        // Load existing plan on page load
+        function loadExistingPlan() {
+            try {
+                const stored = localStorage.getItem('last_generated_plan_v1');
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    const generated = new Date(data.generated);
+                    const now = new Date();
+                    const daysDiff = (now - generated) / (1000 * 60 * 60 * 24);
+                    
+                    if (daysDiff <= 7 && data.plan && data.profile) {
+                        currentMealPlan = data.plan;
+                        currentUserProfile = data.profile;
+                        
+                        // Auto-populate form with previous data
+                        if (currentUserProfile) {
+                            Object.keys(currentUserProfile).forEach(key => {
+                                const field = document.getElementById(key);
+                                if (field && currentUserProfile[key]) {
+                                    field.value = currentUserProfile[key];
+                                }
+                            });
+                        }
+                        
+                        // Display the plan in form view (don't auto-show results)
+                        if (currentMealPlan) {
+                            displayMealPlan(currentMealPlan, currentUserProfile);
+                            createCharts(currentMealPlan, currentUserProfile);
+                        }
+                        
+                        console.log('✅ Loaded existing meal plan from localStorage');
+                    }
                 }
-            });
+            } catch (error) {
+                console.error('Failed to load existing plan:', error);
+            }
+        }
 
-            html += `</table>`;
-        });
+        console.log('🍽️ Diet Planner with Fixed Integration & PDF ready! 🎉');
+           document.addEventListener("DOMContentLoaded", () => {
+    console.log("🚀 DOM Loaded - initializing...");
 
-        // Create container for html2pdf
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = html;
-        document.body.appendChild(tempDiv);
+    initializeTheme();
+    initializeNavigation();
+    initializeMobileMenu();
+    loadMealsDatabase();
+    loadExistingPlan();
+    initializeForm();
+    initializeResultsToggle();
+});
 
-        // PDF options
-        const opt = {
-            margin: 10,
-            filename: `TheDietPlanner-MealPlan-${new Date().toISOString().split('T')[0]}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        console.log("📄 Generating PDF...");
-        await html2pdf().from(tempDiv).set(opt).save();
-        document.body.removeChild(tempDiv);
-
-        console.log("✅ PDF downloaded successfully!");
-    } catch (err) {
-        console.error("❌ PDF generation failed:", err);
-        alert("Failed to generate PDF. Check console for errors.");
-    }
-}
-
-
-        initializeTheme();
-        initializeNavigation();
-        initializeMobileMenu();
-        loadMealsDatabase();
-        initializeForm();
-        initializeResultsToggle();
-</script>
+    </script>
 </body>
 </html>

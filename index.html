@@ -1369,32 +1369,37 @@
         function hideLoading() {
             document.getElementById('loading').style.display = 'none';
         }
-
-        // Load meals database
-        async function loadMealsDatabase() {
-            mealDatabase = createFallbackMeals();
-            console.log('✅ Using embedded meals database');
-            return mealDatabase;
-        }
-
-        // Create comprehensive fallback meals
-       function createFallbackMeals() {
-    return {
-        "Breakfast": [
-            { name: "Oatmeal with Fruits", calories: 250, protein: 8, carbs: 45, fats: 4 },
-            { name: "Boiled Eggs", calories: 150, protein: 12, carbs: 1, fats: 10 }
-        ],
-        "Lunch": [
-            { name: "Grilled Chicken Salad", calories: 350, protein: 30, carbs: 15, fats: 12 },
-            { name: "Veggie Wrap", calories: 300, protein: 10, carbs: 40, fats: 8 }
-        ],
-        "Dinner": [
-            { name: "Paneer Curry with Rice", calories: 400, protein: 20, carbs: 50, fats: 15 },
-            { name: "Fish with Quinoa", calories: 450, protein: 35, carbs: 40, fats: 14 }
-        ]
-    };
+// Load meals database
+async function loadMealsDatabase() {
+    mealDatabase = createFallbackMeals();
+    console.log('✅ Using embedded meals database');
+    return mealDatabase;
 }
 
+// Create proper fallback meals (region + dietType)
+function createFallbackMeals() {
+    return {
+        "DefaultRegion": {
+            "Regular": {
+                breakfast: [
+                    { id: 1, title: "Oatmeal with Fruits", serving_size: "1 bowl", calories: 250, protein: 8, carbs: 45, fat: 4, fiber: 5 },
+                    { id: 2, title: "Boiled Eggs", serving_size: "2 eggs", calories: 150, protein: 12, carbs: 1, fat: 10, fiber: 0 }
+                ],
+                lunch: [
+                    { id: 3, title: "Grilled Chicken Salad", serving_size: "1 plate", calories: 350, protein: 30, carbs: 15, fat: 12, fiber: 6 },
+                    { id: 4, title: "Veggie Wrap", serving_size: "1 wrap", calories: 300, protein: 10, carbs: 40, fat: 8, fiber: 5 }
+                ],
+                dinner: [
+                    { id: 5, title: "Paneer Curry with Rice", serving_size: "1 plate", calories: 400, protein: 20, carbs: 50, fat: 15, fiber: 7 },
+                    { id: 6, title: "Fish with Quinoa", serving_size: "1 plate", calories: 450, protein: 35, carbs: 40, fat: 14, fiber: 4 }
+                ],
+                snacks: [
+                    { id: 7, title: "Fruit Smoothie", serving_size: "1 glass", calories: 180, protein: 5, carbs: 35, fat: 2, fiber: 3 }
+                ]
+            }
+        }
+    };
+}
 
         // Calculate BMR and target calories
         function calculateTargetCalories(profile) {
@@ -2294,7 +2299,7 @@
     initializeMobileMenu();
     initializeIntersectionObserver();
 
-    loadMealsDatabase();
+    loadMealsDatabase();.
     loadExistingPlan();
     initializeForm();
     initializePdfExport();

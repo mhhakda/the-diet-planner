@@ -1670,6 +1670,108 @@ async function generateMealPlan() {
     }
 }
 
+// Display meal plan with stats
+function displayMealPlan(weeklyPlan, profile) {
+    displayStatsCards(weeklyPlan, profile);
+    displayMealTable(weeklyPlan);
+}
+
+// Display stats cards
+function displayStatsCards(weeklyPlan, profile) {
+    const weeklyStats = calculateWeeklyStats(weeklyPlan);
+    const container = document.getElementById('statsGrid');
+    
+    const targetDifference = Math.round(((weeklyStats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
+    
+    container.innerHTML = `
+        <div class="stat-card fade-in">
+            <div class="stat-title">Calories</div>
+            <div class="stat-value">${Math.round(weeklyStats.avgCalories)}</div>
+            <div class="stat-target">/ ${profile.targetCalories}</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Protein</div>
+            <div class="stat-value">${Math.round(weeklyStats.avgProtein)}g</div>
+            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.15 / 4)}g</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Carbs</div>
+            <div class="stat-value">${Math.round(weeklyStats.avgCarbs)}g</div>
+            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.5 / 4)}g</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Fat</div>
+            <div class="stat-value">${Math.round(weeklyStats.avgFat)}g</div>
+            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.35 / 9)}g</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Fiber</div>
+            <div class="stat-value">${Math.round(weeklyStats.avgFiber)}g</div>
+            <div class="stat-target">/ 25g</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Target Diff</div>
+            <div class="stat-value ${targetDifference >= 0 ? 'text-success' : 'text-warning'}">
+                ${targetDifference >= 0 ? '+' : ''}${targetDifference}%
+            </div>
+        </div>
+    `;
+}
+
+// Display meal table
+function displayMealTable(weeklyPlan) {
+    const container = document.getElementById('mealPlanTable');
+    const days = Object.keys(weeklyPlan);
+    const mealTypes = [
+        { key: 'breakfast', name: '🌅 Breakfast' },
+        { key: 'lunch', name: '🍽️ Lunch' },
+        { key: 'dinner', name: '🌙 Dinner' },
+        { key: 'snacks', name: '🍎 Snack' }
+    ];
+
+    let html = '<table class="table">';
+    html += '<thead><tr>';
+    html += '<th>Day</th>';
+    mealTypes.forEach(meal => {
+        html += `<th>${meal.name}</th>`;
+    });
+    html += '<th>Daily Total</th>';
+    html += '</tr></thead><tbody>';
+
+    days.forEach(day => {
+        html += '<tr>';
+        html += `<td class="day-header">${day}</td>`;
+        
+        let totalCalories = 0;
+        mealTypes.forEach(mealType => {
+            const meal = weeklyPlan[day][mealType.key];
+            if (meal) {
+                const calories = safeNumber(meal.calories);
+                totalCalories += calories;
+                html += `<td>
+                    <div class="meal-item">${meal.title}</div>
+                    <div class="meal-serving text-primary">${calories} kcal</div>`;
+                if (meal.serving_size) {
+                    html += `<div class="meal-serving">${meal.serving_size}</div>`;
+                }
+                if (meal.protein !== undefined) {
+                    html += `<div class="meal-nutrients">
+                        P: ${safeNumber(meal.protein)}g • C: ${safeNumber(meal.carbs)}g • F: ${safeNumber(meal.fat)}g
+                    </div>`;
+                }
+                html += '</td>';
+            } else {
+                html += '<td><div class="text-muted">No meal</div></td>';
+            }
+        });
+        
+        html += `<td><strong class="text-success">${Math.round(totalCalories)} kcal</strong></td>`;
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
 
         // Calculate weekly statistics
         function calculateWeeklyStats(weeklyPlan) {

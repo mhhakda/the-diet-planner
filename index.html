@@ -1527,164 +1527,149 @@ function createFallbackMeals() {
             };
         }
 
-        // Generate meal plan
-        async function generateMealPlan() {
-            try {
-                await loadMealsDatabase();
+     // Replace your loadMealsDatabase() with this fetch-based loader.
+// Make sure `meals.json` is reachable by the browser (same origin or CORS-enabled).
+async function loadMealsDatabase() {
+    if (mealDatabase) return mealDatabase; // already loaded
 
-                const profile = {
-                    age: safeNumber(document.getElementById('age').value),
-                    gender: document.getElementById('gender').value,
-                    height: safeNumber(document.getElementById('height').value),
-                    weight: safeNumber(document.getElementById('weight').value),
-                    goal: document.getElementById('goal').value,
-                    dietType: document.getElementById('dietType').value,
-                    region: document.getElementById('region').value,
-                    activityLevel: document.getElementById('activityLevel').value,
-                    targetCalories: safeNumber(document.getElementById('targetCalories').value)
-                };
+    try {
+        // Try relative path first (recommended for GitHub Pages)
+        const resp = await fetch('./meals.json', { cache: "no-cache" });
+        if (!resp.ok) throw new Error('Failed to fetch meals.json: ' + resp.status);
+        mealDatabase = await resp.json();
+        console.log('✅ Loaded meals database from meals.json');
+        return mealDatabase;
+    } catch (err) {
+        console.warn('Could not load meals.json via ./meals.json, falling back to default (if present).', err);
+        // If you have a fallback function you want to keep:
+        // mealDatabase = createFallbackMeals();
+        // return mealDatabase;
+        throw err;
+    }
+}
 
-                if (!profile.targetCalories || profile.targetCalories === 0) {
-                    profile.targetCalories = calculateTargetCalories(profile);
-                }
+// New generateMealPlan() — compatible with your meals.json schema
+async function generateMealPlan() {
+    try {
+        // 1) load the DB (throws if fetch fails)
+        await loadMealsDatabase();
 
-                const regionMeals = mealDatabase[profile.region];
-                if (!regionMeals) {
-                    throw new Error(`No meals available for region: ${profile.region}`);
-                }
+        // 2) Build profile from the form (same as your current code)
+        const profile = {
+            age: safeNumber(document.getElementById('age').value),
+            gender: document.getElementById('gender').value,
+            height: safeNumber(document.getElementById('height').value),
+            weight: safeNumber(document.getElementById('weight').value),
+            goal: document.getElementById('goal').value,
+            dietType: document.getElementById('dietType').value,
+            region: document.getElementById('region').value,
+            activityLevel: document.getElementById('activityLevel').value,
+            targetCalories: safeNumber(document.getElementById('targetCalories').value)
+        };
 
-                let dietMeals = regionMeals[profile.dietType];
-                if (!dietMeals) {
-                    dietMeals = regionMeals['Regular'] || Object.values(regionMeals)[0];
-                    if (!dietMeals) {
-                        throw new Error(`No meals available for diet type: ${profile.dietType} in region: ${profile.region}`);
-                    }
-                }
-
-                const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
-
-                currentMealPlan = weeklyPlan;
-                currentUserProfile = profile;
-
-                localStorage.setItem('last_generated_plan_v1', JSON.stringify({
-                    plan: weeklyPlan,
-                    profile: profile,
-                    generated: new Date().toISOString()
-                }));
-
-                displayMealPlan(weeklyPlan, profile);
-                await createCharts(weeklyPlan, profile);
-
-                console.log('✅ Meal plan generated successfully!');
-                return weeklyPlan;
-            } catch (error) {
-                console.error('Error generating meal plan:', error);
-                throw error;
-            }
+        if (!profile.targetCalories || profile.targetCalories === 0) {
+            profile.targetCalories = calculateTargetCalories(profile);
         }
 
-        // Display meal plan with stats
-        function displayMealPlan(weeklyPlan, profile) {
-            displayStatsCards(weeklyPlan, profile);
-            displayMealTable(weeklyPlan);
+        // 3) locate region and diet in the JSON
+        const regionMeals = mealDatabase[profile.region];
+        if (!regionMeals) throw new Error(`No meals for region "${profile.region}" in meals.json`);
+
+        // Use requested diet, fallback to 'Regular' or first available
+        let dietMeals = regionMeals[profile.dietType];
+        if (!dietMeals) {
+            dietMeals = regionMeals['Regular'] || Object.values(regionMeals)[0];
+            if (!dietMeals) throw new Error(`No diet meals available for region "${profile.region}"`);
         }
 
-        // Display stats cards
-        function displayStatsCards(weeklyPlan, profile) {
-            const weeklyStats = calculateWeeklyStats(weeklyPlan);
-            const container = document.getElementById('statsGrid');
-            
-            const targetDifference = Math.round(((weeklyStats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
-            
-            container.innerHTML = `
-                <div class="stat-card fade-in">
-                    <div class="stat-title">Calories</div>
-                    <div class="stat-value">${Math.round(weeklyStats.avgCalories)}<span class="stat-unit"></span></div>
-                    <div class="stat-target">/ ${profile.targetCalories}</div>
-                </div>
-                <div class="stat-card fade-in">
-                    <div class="stat-title">Protein</div>
-                    <div class="stat-value">${Math.round(weeklyStats.avgProtein)}<span class="stat-unit">g</span></div>
-                    <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.15 / 4)}g</div>
-                </div>
-                <div class="stat-card fade-in">
-                    <div class="stat-title">Carbs</div>
-                    <div class="stat-value">${Math.round(weeklyStats.avgCarbs)}<span class="stat-unit">g</span></div>
-                    <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.5 / 4)}g</div>
-                </div>
-                <div class="stat-card fade-in">
-                    <div class="stat-title">Fat</div>
-                    <div class="stat-value">${Math.round(weeklyStats.avgFat)}<span class="stat-unit">g</span></div>
-                    <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.35 / 9)}g</div>
-                </div>
-                <div class="stat-card fade-in">
-                    <div class="stat-title">Fiber</div>
-                    <div class="stat-value">${Math.round(weeklyStats.avgFiber)}<span class="stat-unit">g</span></div>
-                    <div class="stat-target">/ 25g</div>
-                </div>
-                <div class="stat-card fade-in">
-                    <div class="stat-title">Target Diff</div>
-                    <div class="stat-value ${targetDifference >= 0 ? 'text-success' : 'text-warning'}">
-                        ${targetDifference >= 0 ? '+' : ''}${targetDifference}<span class="stat-unit">%</span>
-                    </div>
-                </div>
-            `;
+        // 4) Identify available meal types in that diet object
+        // prefer the 4 main meal types, otherwise choose any present keys
+        const preferred = ['breakfast','lunch','dinner','snacks'];
+        let availableMealTypes = preferred.filter(t => Array.isArray(dietMeals[t]) && dietMeals[t].length > 0);
+
+        // If some preferred types are missing, add other available keys (pre_workout, post_workout...) until we have at least 3-4 types
+        if (availableMealTypes.length < 4) {
+            const otherTypes = Object.keys(dietMeals).filter(k => !availableMealTypes.includes(k) && Array.isArray(dietMeals[k]));
+            availableMealTypes = availableMealTypes.concat(otherTypes).slice(0, 4);
         }
 
-        // Display meal table
-        function displayMealTable(weeklyPlan) {
-            const container = document.getElementById('mealPlanTable');
-            const days = Object.keys(weeklyPlan);
-            const mealTypes = [
-                { key: 'breakfast', name: '🌅 Breakfast' },
-                { key: 'lunch', name: '🍽️ Lunch' },
-                { key: 'dinner', name: '🌙 Dinner' },
-                { key: 'snacks', name: '🍎 Snack' }
-            ];
+        // As last fallback, take all keys (shouldn't be needed for your data)
+        if (availableMealTypes.length === 0) availableMealTypes = Object.keys(dietMeals);
 
-            let html = '<table class="table">';
-            html += '<thead><tr>';
-            html += '<th>Day</th>';
-            mealTypes.forEach(meal => {
-                html += `<th>${meal.name}</th>`;
+        // 5) plan generation algorithm (deterministic)
+        const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+        const weeklyPlan = {};
+        const usedIds = new Set();
+
+        // simple calorie distribution (same as your current code)
+        const calorieDistribution = { breakfast: 0.25, lunch: 0.35, dinner: 0.35, snacks: 0.05 };
+
+        days.forEach((day, dayIndex) => {
+            weeklyPlan[day] = {};
+
+            availableMealTypes.forEach((mealType, mealTypeIndex) => {
+                const mealArray = dietMeals[mealType] || [];
+
+                // compute meal target (fall back to equal partition if mealType not in calorieDistribution)
+                const cdist = calorieDistribution[mealType] || (1 / availableMealTypes.length);
+                const targetForMeal = Math.round(profile.targetCalories * cdist);
+
+                let chosen = null;
+
+                if (mealArray.length === 0) {
+                    // create default if nothing available
+                    chosen = createDefaultMeal(mealType, targetForMeal);
+                } else {
+                    // Find candidate list that has numeric calories
+                    const candidates = mealArray.filter(m => {
+                        const c = safeNumber(m.calories || m.kcal || 0);
+                        return c > 0;
+                    });
+
+                    const pool = (candidates.length ? candidates : mealArray);
+
+                    // deterministic index using day and mealType
+                    const idx = (dayIndex * (mealTypeIndex + 1) + dayIndex + mealTypeIndex) % pool.length;
+                    chosen = pool[idx];
+
+                    // If chosen lacks some expected properties, normalize
+                    if (!chosen.id) chosen.id = Date.now() + Math.floor(Math.random()*1000);
+                    if (!chosen.title && chosen.name) chosen.title = chosen.name;
+                    if (!chosen.serving_size && chosen.serving) chosen.serving_size = chosen.serving;
+                    // ensure numeric macros
+                    ['calories','protein','carbs','fat','fiber'].forEach(k=>{
+                        if (chosen[k] === undefined) chosen[k] = 0;
+                        else chosen[k] = safeNumber(chosen[k]);
+                    });
+                }
+
+                // ensure uniqueness if possible (if chosen has id already used, it's OK to reuse; we keep it)
+                weeklyPlan[day][mealType] = chosen;
+                usedIds.add(chosen.id);
             });
-            html += '<th>Daily Total</th>';
-            html += '</tr></thead><tbody>';
+        });
 
-            days.forEach(day => {
-                html += '<tr>';
-                html += `<td class="day-header">${day}</td>`;
-                
-                let totalCalories = 0;
-                mealTypes.forEach(mealType => {
-                    const meal = weeklyPlan[day][mealType.key];
-                    if (meal) {
-                        const calories = safeNumber(meal.calories);
-                        totalCalories += calories;
-                        html += `<td>
-                            <div class="meal-item">${meal.title}</div>
-                            <div class="meal-serving text-primary">${calories} kcal</div>`;
-                        if (meal.serving_size) {
-                            html += `<div class="meal-serving">${meal.serving_size}</div>`;
-                        }
-                        if (meal.protein !== undefined) {
-                            html += `<div class="meal-nutrients">
-                                P: ${safeNumber(meal.protein)}g • C: ${safeNumber(meal.carbs)}g • F: ${safeNumber(meal.fat)}g
-                            </div>`;
-                        }
-                        html += '</td>';
-                    } else {
-                        html += '<td><div class="text-muted">No meal</div></td>';
-                    }
-                });
-                
-                html += `<td><strong class="text-success">${Math.round(totalCalories)} kcal</strong></td>`;
-                html += '</tr>';
-            });
+        // 6) persist and show results
+        currentMealPlan = weeklyPlan;
+        currentUserProfile = profile;
+        localStorage.setItem('last_generated_plan_v1', JSON.stringify({
+            plan: weeklyPlan,
+            profile: profile,
+            generated: new Date().toISOString()
+        }));
 
-            html += '</tbody></table>';
-            container.innerHTML = html;
-        }
+        displayMealPlan(weeklyPlan, profile);
+        await createCharts(weeklyPlan, profile);
+
+        console.log('✅ Meal plan generated successfully from meals.json');
+        return weeklyPlan;
+
+    } catch (err) {
+        console.error('generateMealPlan failed:', err);
+        throw err;
+    }
+}
+
 
         // Calculate weekly statistics
         function calculateWeeklyStats(weeklyPlan) {

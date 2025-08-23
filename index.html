@@ -1369,28 +1369,177 @@
         function hideLoading() {
             document.getElementById('loading').style.display = 'none';
         }
-// Load meals database
+// Load meals database (REPLACE existing loadMealsDatabase and createFallbackMeals)
 async function loadMealsDatabase() {
-    mealDatabase = createFallbackMeals(); // <-- calling function here
-    console.log('✅ Using embedded meals database');
-    return mealDatabase;
+    // If already loaded, return it
+    if (mealDatabase) return mealDatabase;
+
+    // Try to fetch your meals.json from a few likely relative locations.
+    // Put meals.json in the same folder as index.html (preferred).
+    const candidates = [
+        'meals.json',
+        '/meals.json',
+        'data/meals.json'
+        // If you want to try a remote URL (Dropbox raw link), add it here.
+    ];
+
+    let raw = null;
+    for (const url of candidates) {
+        try {
+            const res = await fetch(url, { cache: 'no-store' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            raw = await res.json();
+            console.log(`✅ Loaded meals.json from: ${url}`);
+            break;
+        } catch (err) {
+            // keep trying other candidates
+            console.warn(`Could not load meals from ${url}:`, err);
+        }
+    }
+
+    // If fetch failed, fall back (keeps app working)
+    if (!raw) {
+        console.warn('⚠️ meals.json not found or invalid — using embedded fallback data.');
+        mealDatabase = createFallbackMeals();
+        return mealDatabase;
+    }
+
+    // Normalize structure:
+    // Expecting raw to be { "RegionName": { "DietType": { "breakfast":[...], "lunch":[...], ... } } }
+    // We'll convert to exactly the structure the app expects:
+    // mealDatabase[region][dietType] = { breakfast: [...], lunch: [...], dinner: [...], snacks: [...] }
+
+    const normalizedDB = {};
+    const STANDARD_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snacks'];
+
+    // helper to coerce meal objects into the shape the app expects
+    function normalizeMealObject(meal, idx, region, diet, mealType) {
+        if (!meal || typeof meal !== 'object') {
+            // create a minimal placeholder
+            return {
+                id: `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
+                title: `Option ${idx + 1}`,
+                serving_size: '1 serving',
+                calories: 0,
+                protein: 0,
+                carbs: 0,
+                fat: 0,
+                fiber: 0,
+                foods: []
+            };
+        }
+
+        // Prefer common field names but tolerant to variations
+        const title = (meal.title || meal.name || meal.label || '').toString().trim();
+        const serving_size = meal.serving_size || meal.servingSize || meal.serving || '';
+        const calories = safeNumber(meal.calories ?? meal.kcal ?? meal.calories_kcal ?? meal.cal ?? 0);
+        const protein = safeNumber(meal.protein ?? meal.prot ?? 0);
+        const carbs = safeNumber(meal.carbs ?? meal.carbohydrates ?? meal.carb ?? 0);
+        const fat = safeNumber(meal.fat ?? meal.fats ?? 0);
+        const fiber = safeNumber(meal.fiber ?? meal.fib ?? 0);
+
+        // Foods array: try to convert "ingredients" string into a single food item if necessary
+        let foods = [];
+        if (Array.isArray(meal.foods) && meal.foods.length) {
+            foods = meal.foods.map(f => {
+                if (typeof f === 'string') return { name: f };
+                if (typeof f === 'object') return f;
+                return { name: String(f) };
+            });
+        } else if (meal.ingredients && typeof meal.ingredients === 'string') {
+            // ingredients may be comma-separated
+            const parts = meal.ingredients.split(',').map(s => s.trim()).filter(Boolean);
+            if (parts.length === 1) {
+                foods = [{ name: parts[0] }];
+            } else if (parts.length > 1) {
+                foods = parts.map(p => ({ name: p }));
+            }
+        }
+
+        return {
+            id: meal.id ?? `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
+            title: title || `Option ${idx + 1}`,
+            serving_size,
+            calories,
+            protein,
+            carbs,
+            fat,
+            fiber,
+            foods
+        };
+    }
+
+    try {
+        Object.keys(raw).forEach(regionKey => {
+            const regionContents = raw[regionKey];
+            // skip non-objects
+            if (!regionContents || typeof regionContents !== 'object') return;
+            normalizedDB[regionKey] = {};
+
+            Object.keys(regionContents).forEach(dietKey => {
+                const dietContents = regionContents[dietKey];
+                // dietContents should be an object with meal-type arrays
+                if (!dietContents || typeof dietContents !== 'object') return;
+
+                const normalizedMealsForDiet = {};
+
+                STANDARD_MEAL_TYPES.forEach(mt => {
+                    // support keys with various casing: 'Breakfast', 'breakfast', 'BREAKFAST'
+                    let arr = dietContents[mt] 
+                              || dietContents[mt.charAt(0).toUpperCase() + mt.slice(1)]
+                              || dietContents[mt.toUpperCase()]
+                              || dietContents[mt.replace('_',' ')]
+                              || [];
+
+                    if (!Array.isArray(arr)) arr = [];
+
+                    normalizedMealsForDiet[mt] = arr.map((m, idx) => normalizeMealObject(m, idx, regionKey, dietKey, mt));
+                });
+
+                normalizedDB[regionKey][dietKey] = normalizedMealsForDiet;
+            });
+        });
+
+        // If normalization produced an empty db for some reason, fallback
+        const hasData = Object.keys(normalizedDB).length > 0;
+        if (!hasData) {
+            console.warn('Normalized meals.json empty — using fallback');
+            mealDatabase = createFallbackMeals();
+        } else {
+            mealDatabase = normalizedDB;
+            console.log('✅ meals.json loaded and normalized successfully.');
+        }
+
+        return mealDatabase;
+    } catch (err) {
+        console.error('Failed while normalizing meals.json — falling back.', err);
+        mealDatabase = createFallbackMeals();
+        return mealDatabase;
+    }
 }
 
-// Create comprehensive fallback meals
+// Fallback small dataset (kept to avoid crashing if meals.json missing)
 function createFallbackMeals() {
     return {
-        "Breakfast": [
-            { name: "Oatmeal with Fruits", calories: 250, protein: 8, carbs: 45, fats: 4 },
-            { name: "Boiled Eggs", calories: 150, protein: 12, carbs: 1, fats: 10 }
-        ],
-        "Lunch": [
-            { name: "Grilled Chicken Salad", calories: 350, protein: 30, carbs: 15, fats: 12 },
-            { name: "Veggie Wrap", calories: 300, protein: 10, carbs: 40, fats: 8 }
-        ],
-        "Dinner": [
-            { name: "Paneer Curry with Rice", calories: 400, protein: 20, carbs: 50, fats: 15 },
-            { name: "Fish with Quinoa", calories: 450, protein: 35, carbs: 40, fats: 14 }
-        ]
+        "India": {
+            "Regular": {
+                breakfast: [
+                    { id: 'fb1', title: "Oatmeal with Fruits", serving_size: "1 serving", calories: 250, protein: 8, carbs: 45, fat: 4, fiber: 5 },
+                    { id: 'fb2', title: "Boiled Eggs", serving_size: "2 eggs", calories: 150, protein: 12, carbs: 1, fat: 10, fiber: 0 }
+                ],
+                lunch: [
+                    { id: 'fl1', title: "Grilled Chicken Salad", serving_size: "1 bowl", calories: 350, protein: 30, carbs: 15, fat: 12, fiber: 6 },
+                    { id: 'fl2', title: "Veggie Wrap", serving_size: "1 wrap", calories: 300, protein: 10, carbs: 40, fat: 8, fiber: 5 }
+                ],
+                dinner: [
+                    { id: 'fd1', title: "Paneer Curry with Rice", serving_size: "1 plate", calories: 400, protein: 20, carbs: 50, fat: 15, fiber: 5 },
+                    { id: 'fd2', title: "Fish with Quinoa", serving_size: "1 plate", calories: 450, protein: 35, carbs: 40, fat: 14, fiber: 4 }
+                ],
+                snacks: [
+                    { id: 'fs1', title: "Fruit and Nuts", serving_size: "1 small bowl", calories: 150, protein: 4, carbs: 20, fat: 6, fiber: 3 }
+                ]
+            }
+        }
     };
 }
 

@@ -281,42 +281,113 @@ async function generateMealPlan() {
 
         currentUserProfile = profile;
 
-        // ✅ FIX: smart region + diet selection
-        let regionKey = findKey(Object.keys(mealDatabase), profile.region);
-        if (!regionKey) regionKey = Object.keys(mealDatabase)[0];
-        let regionMeals = mealDatabase[regionKey];
+           // ✅ SMART region + diet selection (robust lookup + logging)
+        (function selectRegionAndDiet() {
+            const availableRegionKeys = Object.keys(mealDatabase || {});
+            const rawRegion = profile.region || '';
+            const rawDiet = profile.dietType || '';
 
-        let dietKey = findKey(Object.keys(regionMeals), profile.dietType, dietSynonyms);
-        if (!dietKey) dietKey = "Regular";
-        let dietMeals = regionMeals[dietKey];
+            console.log('Meal DB regions:', availableRegionKeys);
+            console.log('User selected region (raw):', rawRegion, 'diet (raw):', rawDiet);
 
-        if (!dietMeals) throw new Error(`No meals available for diet type: ${profile.dietType} in region: ${profile.region}`);
+            // helper: normalize user input
+            function normalizeInput(s) {
+                return String(s || '').trim().replace(/\s+/g, '_').replace(/-+/g, '_').replace(/[^\w_]/g, '').toLowerCase();
+            }
 
-        const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
+            // try: exact key, case-insensitive key, normalized match, synonyms map
+            // Use your existing findKey helper to keep compatibility but add extra checks / logging.
+            let regionKey = findKey(availableRegionKeys, rawRegion);
+            if (!regionKey) {
+                const norm = normalizeInput(rawRegion);
+                regionKey = availableRegionKeys.find(k => normalizeInput(k) === norm);
+                if (regionKey) {
+                    console.log('Normalized region match ->', regionKey);
+                }
+            }
 
-        currentMealPlan = weeklyPlan;
-        currentUserProfile = profile;
+            // synonyms (common variants) — add entries here if you find more mismatches
+            const regionSynonyms = {
+                'east_asian': 'East_Asia',
+                'east_asia': 'East_Asia',
+                'australia': 'Australia',
+                'australian': 'Australia',
+                'latin_america': 'Latin_America'
+            };
+            if (!regionKey) {
+                const mapped = regionSynonyms[normalizeInput(rawRegion)];
+                if (mapped && availableRegionKeys.includes(mapped)) {
+                    regionKey = mapped;
+                    console.log('Region mapped via synonyms ->', regionKey);
+                }
+            }
 
-        localStorage.setItem('last_generated_plan_v1', JSON.stringify({
-            plan: weeklyPlan,
-            profile: profile,
-            generated: new Date().toISOString()
-        }));
+            // ultimate fallback: global -> first region key
+            if (!regionKey) {
+                if (availableRegionKeys.includes('global')) {
+                    regionKey = 'global';
+                    console.warn('Falling back to "global" meals for region:', rawRegion);
+                } else if (availableRegionKeys.length > 0) {
+                    regionKey = availableRegionKeys[0];
+                    console.warn('Falling back to first available region:', regionKey, 'for selected region:', rawRegion);
+                } else {
+                    regionKey = null;
+                }
+            }
 
-        displayMealPlan(weeklyPlan, profile);
-        await createCharts(weeklyPlan, profile);
+            if (!regionKey) {
+                // No meal data anywhere
+                throw new Error('No meal data available. Please contact site admin or reload meals.');
+            }
 
-        document.getElementById('planContent')?.classList.remove('d-none');
-        document.getElementById('planPlaceholder')?.classList.add('d-none');
-        document.getElementById('analyticsContent')?.classList.remove('d-none');
-        document.getElementById('analyticsPlaceholder')?.classList.add('d-none');
+            // Now select regionMeals and diet type inside region
+            let regionMeals = mealDatabase[regionKey];
+            if (!regionMeals || typeof regionMeals !== 'object') {
+                throw new Error(`Region data for "${regionKey}" is missing or invalid.`);
+            }
 
-        return weeklyPlan;
-    } catch (error) {
-        console.error('Error generating meal plan:', error);
-        alert('Failed to generate meal plan: ' + (error.message || error));
-    }
-}
+            // Diet selection with synonyms mapping
+            const availableDietKeys = Object.keys(regionMeals || {});
+            console.log('Available diets in region', regionKey, ':', availableDietKeys);
+
+            // reuse your dietSynonyms map; allow normalization fallback
+            let dietKey = findKey(availableDietKeys, rawDiet, dietSynonyms);
+            if (!dietKey) {
+                const normDiet = normalizeInput(rawDiet);
+                dietKey = availableDietKeys.find(k => normalizeInput(k) === normDiet);
+            }
+            if (!dietKey) {
+                // prefer Regular if exists
+                if (availableDietKeys.includes('Regular')) dietKey = 'Regular';
+                else dietKey = availableDietKeys[0];
+                console.warn('Diet fallback used ->', dietKey);
+            }
+
+            // final sanity
+            const dietMeals = regionMeals[dietKey];
+            if (!Array.isArray(dietMeals?.breakfast) && !Array.isArray(dietMeals?.lunch) && !Array.isArray(dietMeals?.dinner) && !Array.isArray(dietMeals?.snacks)) {
+                // If the selected diet object structure is not as expected, attempt to find any array inside regionMeals
+                const found = availableDietKeys.find(k => {
+                    const m = regionMeals[k];
+                    return m && (Array.isArray(m.breakfast) || Array.isArray(m.lunch) || Array.isArray(m.dinner) || Array.isArray(m.snacks));
+                });
+                if (found) {
+                    console.warn('Selected diet object missing expected meal arrays; switching to', found);
+                    dietKey = found;
+                } else {
+                    throw new Error(`No valid meal arrays found for region "${regionKey}" and any diet type.`);
+                }
+            }
+
+            // Expose selected keys to outer scope
+            profile._selectedRegionKey = regionKey;
+            profile._selectedDietKey = dietKey;
+            console.log('Final selection -> regionKey:', regionKey, 'dietKey:', dietKey);
+        })();
+
+        // now regionMeals and dietMeals based on chosen keys
+        let regionMeals = mealDatabase[ profile._selectedRegionKey ];
+        let dietMeals = regionMeals[ profile._selectedDietKey ];
 
 // ✅ FIX: PDF export use correct container
 async function generateAndDownloadPdf() {

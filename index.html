@@ -1669,10 +1669,10 @@ function createFallbackMeals() {
                 fiber: 5
             };
         }
-
         // Generate meal plan
         async function generateMealPlan() {
             try {
+                // keep your existing loader call
                 await loadMealsDatabase();
 
                 const profile = {
@@ -1691,17 +1691,79 @@ function createFallbackMeals() {
                     profile.targetCalories = calculateTargetCalories(profile);
                 }
 
-                const regionMeals = mealDatabase[profile.region];
+                // Robust region key finder (tolerant to form values vs meals.json keys)
+                function findRegionKey(selectedRegion) {
+                    if (!selectedRegion) return null;
+                    const keys = Object.keys(mealDatabase || {});
+                    // direct
+                    if (selectedRegion in (mealDatabase || {})) return selectedRegion;
+
+                    // common mapping — keep minimal so we don't change config elsewhere
+                    const mapping = {
+                        'East_Asian': 'East_Asian',
+                        'East_Asia': 'East_Asian',
+                        'East Asia': 'East_Asian',
+                        'Australian': 'Australian',
+                        'Australia': 'Australian',
+                        'USA': 'USA',
+                        'India': 'India',
+                        'Europe': 'Europe',
+                        'Middle_Eastern': 'Middle_Eastern',
+                        'Latin_American': 'Latin_American',
+                        'Nordic': 'Nordic',
+                        'African': 'African'
+                    };
+
+                    if (mapping[selectedRegion] && mapping[selectedRegion] in (mealDatabase || {})) {
+                        return mapping[selectedRegion];
+                    }
+
+                    // normalize for underscores/spaces/case
+                    const normalized = selectedRegion.replace(/[_\s]+/g, ' ').toLowerCase();
+                    for (const k of keys) {
+                        if (k.toLowerCase() === normalized) return k;
+                    }
+
+                    // substring matches (try to be permissive)
+                    for (const k of keys) {
+                        if (k.toLowerCase().includes(normalized) || normalized.includes(k.toLowerCase())) return k;
+                    }
+
+                    return null;
+                }
+
+                const regionKey = findRegionKey(profile.region);
+                if (!regionKey) {
+                    throw new Error(`No meals available for region: ${profile.region}`);
+                }
+
+                const regionMeals = mealDatabase[regionKey];
                 if (!regionMeals) {
                     throw new Error(`No meals available for region: ${profile.region}`);
                 }
 
-                let dietMeals = regionMeals[profile.dietType];
-                if (!dietMeals) {
-                    dietMeals = regionMeals['Regular'] || Object.values(regionMeals)[0];
-                    if (!dietMeals) {
-                        throw new Error(`No meals available for diet type: ${profile.dietType} in region: ${profile.region}`);
+                // Robust diet lookup
+                function findDietMeals(regionMealsObj, dietTypeRequested) {
+                    if (!regionMealsObj) return null;
+                    if (!dietTypeRequested) return regionMealsObj['Regular'] || Object.values(regionMealsObj)[0];
+
+                    // direct
+                    if (dietTypeRequested in regionMealsObj) return regionMealsObj[dietTypeRequested];
+
+                    const dNormalized = dietTypeRequested.replace(/[_\s]+/g, ' ').toLowerCase();
+                    for (const key of Object.keys(regionMealsObj)) {
+                        if (key.toLowerCase() === dNormalized) return regionMealsObj[key];
                     }
+                    for (const key of Object.keys(regionMealsObj)) {
+                        if (key.toLowerCase().includes(dNormalized) || dNormalized.includes(key.toLowerCase())) return regionMealsObj[key];
+                    }
+
+                    return regionMealsObj['Regular'] || Object.values(regionMealsObj)[0];
+                }
+
+                const dietMeals = findDietMeals(regionMeals, profile.dietType);
+                if (!dietMeals) {
+                    throw new Error(`No meals available for diet type: ${profile.dietType} in region: ${profile.region}`);
                 }
 
                 const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
@@ -1774,6 +1836,29 @@ function createFallbackMeals() {
             `;
         }
 
+        // helper: safe title builder used in several places (keeps display consistent)
+        function getMealTitle(meal) {
+            if (!meal) return 'No meal';
+            if (typeof meal === 'string') return meal;
+            const candidates = [meal.title, meal.name, meal.display_name, meal.dish_name, meal.label];
+            for (const c of candidates) {
+                if (c && String(c).trim()) return String(c).trim();
+            }
+            if (Array.isArray(meal.foods) && meal.foods.length) {
+                const parts = meal.foods.map(f => {
+                    if (!f) return '';
+                    if (typeof f === 'string') return f;
+                    const name = f.name || f.item || f.title || '';
+                    const qty = f.quantity || f.qty || f.amount || '';
+                    return (qty ? `${name} (${qty})` : name).trim();
+                }).filter(Boolean);
+                if (parts.length) return parts.join(', ');
+            }
+            if (Array.isArray(meal.options) && meal.options.length) return meal.options.join(', ');
+            if (meal.id) return `Meal #${meal.id}`;
+            return 'Custom Meal';
+        }
+
         // Display meal table
         // Replace your existing displayMealTable with this function
         function displayMealTable(weeklyPlan) {
@@ -1797,29 +1882,6 @@ function createFallbackMeals() {
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#039;');
-            }
-
-            // helper to create a readable title for a meal object
-            function mealTitle(meal) {
-                if (!meal) return 'No meal';
-                if (typeof meal === 'string') return meal; // already a title/placeholder
-                // prefer title, then name, then build from foods array
-                if (meal.title && meal.title.trim()) return meal.title;
-                if (meal.name && meal.name.trim()) return meal.name;
-                if (Array.isArray(meal.foods) && meal.foods.length) {
-                    // foods might be objects { name, quantity }
-                    return meal.foods.map(f => {
-                        if (typeof f === 'string') return f;
-                        const qty = f.quantity ? ` (${f.quantity})` : '';
-                        return `${f.name || ''}${qty}`;
-                    }).join(', ');
-                }
-                // fallback to any "options" or descriptive fields
-                if (Array.isArray(meal.options) && meal.options.length) return meal.options.join(', ');
-                if (meal.title_option && typeof meal.title_option === 'string') return meal.title_option;
-                // last resort: if there's an id, show a simple label
-                if (meal.id) return `Meal #${meal.id}`;
-                return 'Custom Meal';
             }
 
             // helper to get numeric nutrient
@@ -1846,8 +1908,8 @@ function createFallbackMeals() {
                     const meal = (weeklyPlan[day] || {})[mealType.key];
 
                     if (meal) {
-                        // meal may be object or string
-                        const titleText = mealTitle(meal);
+                        // get readable title
+                        const titleText = getMealTitle(meal);
                         // calories might be under calories or kcal etc.
                         const calories = num(meal.calories || meal.kcal || meal.calories_kcal || 0);
                         totalCalories += calories;
@@ -1967,7 +2029,12 @@ function createFallbackMeals() {
 
                 const calorieCtx = document.getElementById('calorieChart');
                 if (calorieCtx) {
-                    new Chart(calorieCtx, {
+                    // destroy existing chart instance if present to avoid "canvas in use" error
+                    if (window.calorieChartInstance && typeof window.calorieChartInstance.destroy === 'function') {
+                        window.calorieChartInstance.destroy();
+                    }
+
+                    window.calorieChartInstance = new Chart(calorieCtx, {
                         type: 'bar',
                         data: {
                             labels: days.map(day => day.substr(0, 3)),
@@ -2029,11 +2096,16 @@ function createFallbackMeals() {
 
                 const macrosCtx = document.getElementById('macrosChart');
                 if (macrosCtx) {
+                    // destroy existing macros chart if present
+                    if (window.macrosChartInstance && typeof window.macrosChartInstance.destroy === 'function') {
+                        window.macrosChartInstance.destroy();
+                    }
+
                     const proteinCals = weeklyStats.totalProtein * 4;
                     const carbsCals = weeklyStats.totalCarbs * 4;
                     const fatCals = weeklyStats.totalFat * 9;
 
-                    new Chart(macrosCtx, {
+                    window.macrosChartInstance = new Chart(macrosCtx, {
                         type: 'doughnut',
                         data: {
                             labels: ['Protein', 'Carbs', 'Fat'],
@@ -2099,7 +2171,7 @@ function createFallbackMeals() {
 
             // Show loading overlay
             const overlay = document.getElementById('redirectOverlay');
-            overlay.style.display = 'flex';
+            if (overlay) overlay.style.display = 'flex';
 
             // Prepare integration data
             const integrationData = {
@@ -2137,7 +2209,7 @@ function createFallbackMeals() {
                 
             } catch (error) {
                 console.error('Failed to store meal plan data:', error);
-                overlay.style.display = 'none';
+                if (overlay) overlay.style.display = 'none';
                 alert('❌ Failed to prepare data for Diet Tracker. Please try again.');
             }
         }
@@ -2155,15 +2227,32 @@ function createFallbackMeals() {
             const days = Object.keys(currentMealPlan);
             const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
+            function buildFoodListForMeal(meal) {
+                if (!meal) return 'No meal';
+                if (meal.title && meal.title.trim()) return meal.title;
+                if (meal.name && meal.name.trim()) return meal.name;
+                if (Array.isArray(meal.foods) && meal.foods.length) {
+                    return meal.foods.map(f => {
+                        if (!f) return '';
+                        if (typeof f === 'string') return f;
+                        const name = f.name || f.title || f.item || '';
+                        const qty = f.quantity || f.qty || f.amount || '';
+                        return qty ? `${name} (${qty})` : name;
+                    }).filter(Boolean).join(', ');
+                }
+                return meal.id ? `Meal #${meal.id}` : 'Custom Meal';
+            }
+
             days.forEach(day => {
                 mealTypes.forEach(mealType => {
                     const meal = currentMealPlan[day][mealType];
                     if (meal) {
+                        const foodName = buildFoodListForMeal(meal).replace(/"/g, '""');
                         const row = [
                             day,
                             mealType.charAt(0).toUpperCase() + mealType.slice(1),
-                            `"${meal.title.replace(/"/g, '""')}"`,
-                            `"${meal.serving_size || 'N/A'}"`,
+                            `"${foodName}"`,
+                            `"${(meal.serving_size || 'N/A').toString().replace(/"/g, '""')}"`,
                             safeNumber(meal.calories),
                             safeNumber(meal.protein),
                             safeNumber(meal.carbs),

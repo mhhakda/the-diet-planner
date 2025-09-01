@@ -1880,96 +1880,111 @@ function createFallbackMeals() {
             return 'Custom Meal';
         }
 
-        // Display meal table
-        // Replace your existing displayMealTable with this function
-        function displayMealTable(weeklyPlan) {
-            const container = document.getElementById('mealPlanTable');
-            if (!container) return;
+// Display meal table
+function displayMealTable(weeklyPlan) {
+    const container = document.getElementById('mealPlanTable');
+    if (!container) return;
 
-            const days = Object.keys(weeklyPlan || {});
-            const mealTypes = [
-                { key: 'breakfast', name: '🌅 Breakfast' },
-                { key: 'lunch', name: '🍽️ Lunch' },
-                { key: 'dinner', name: '🌙 Dinner' },
-                { key: 'snacks', name: '🍎 Snack' }
-            ];
+    const days = Object.keys(weeklyPlan || {});
+    const mealTypes = [
+        { key: 'breakfast', name: '🌅 Breakfast' },
+        { key: 'lunch', name: '🍽️ Lunch' },
+        { key: 'dinner', name: '🌙 Dinner' },
+        { key: 'snacks', name: '🍎 Snack' }
+    ];
 
-            // small helper to avoid raw HTML injection / keep things safe
-            function escapeHtml(str) {
-                if (str === null || str === undefined) return '';
-                return String(str)
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;');
-            }
+    // small helper to avoid raw HTML injection / keep things safe
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
 
-            // helper to get numeric nutrient
-            function num(v) {
-                return safeNumber(v);
-            }
-
-            let html = '<table class="table">';
-            html += '<thead><tr>';
-            html += '<th>Day</th>';
-            mealTypes.forEach(meal => {
-                html += `<th>${escapeHtml(meal.name)}</th>`;
-            });
-            html += '<th>Daily Total</th>';
-            html += '</tr></thead><tbody>';
-
-            days.forEach(day => {
-                html += '<tr>';
-                html += `<td class="day-header">${escapeHtml(day)}</td>`;
-
-                let totalCalories = 0;
-
-                mealTypes.forEach(mealType => {
-                    const meal = (weeklyPlan[day] || {})[mealType.key];
-
-                    if (meal) {
-                        // get readable title
-                        const titleText = getMealTitle(meal);
-                        // calories might be under calories or kcal etc.
-                        const calories = num(meal.calories || meal.kcal || meal.calories_kcal || 0);
-                        totalCalories += calories;
-
-                        const serving = meal.serving_size || meal.servingSize || '';
-                        const protein = num(meal.protein || meal.prot || 0);
-                        const carbs = num(meal.carbs || meal.carbohydrates || 0);
-                        const fat = num(meal.fat || meal.fats || 0);
-                        const fiber = num(meal.fiber || 0);
-
-                        html += `<td>
-                            <div class="meal-item">${escapeHtml(titleText)}</div>
-                            <div class="meal-serving text-primary">${escapeHtml(String(calories))} kcal</div>`;
-
-                        if (serving) {
-                            html += `<div class="meal-serving">${escapeHtml(serving)}</div>`;
-                        }
-
-                        // Show macro info only if present (avoid showing NaN)
-                        if (protein || carbs || fat || fiber) {
-                            html += `<div class="meal-nutrients">
-                                P: ${escapeHtml(String(protein))}g • C: ${escapeHtml(String(carbs))}g • F: ${escapeHtml(String(fat))}g${(typeof fiber !== 'undefined' ? ` • Fib: ${escapeHtml(String(fiber))}g` : '')}
-                            </div>`;
-                        }
-
-                        html += '</td>';
-                    } else {
-                        html += '<td><div class="text-muted">No meal</div></td>';
-                    }
-                });
-
-                html += `<td><strong class="text-success">${Math.round(totalCalories)} kcal</strong></td>`;
-                html += '</tr>';
-            });
-
-            html += '</tbody></table>';
-            container.innerHTML = html;
+    // build a readable title from meal object
+    function getMealTitle(meal) {
+        if (!meal) return 'No meal';
+        if (typeof meal === 'string') return meal;
+        if (meal.title && meal.title.trim()) return meal.title.trim();
+        if (meal.name && meal.name.trim()) return meal.name.trim();
+        if (Array.isArray(meal.foods) && meal.foods.length) {
+            return meal.foods.map(f => {
+                if (typeof f === 'string') return f;
+                const qty = f.quantity ? ` (${f.quantity})` : '';
+                return `${f.name || ''}${qty}`;
+            }).join(', ');
         }
+        if (Array.isArray(meal.options) && meal.options.length) {
+            return meal.options.join(', ');
+        }
+        if (meal.id) return `Meal #${meal.id}`;
+        return 'Meal';
+    }
 
+    // helper to get numeric nutrient
+    function num(v) {
+        return safeNumber(v);
+    }
+
+    let html = '<table class="table">';
+    html += '<thead><tr>';
+    html += '<th>Day</th>';
+    mealTypes.forEach(meal => {
+        html += `<th>${escapeHtml(meal.name)}</th>`;
+    });
+    html += '<th>Daily Total</th>';
+    html += '</tr></thead><tbody>';
+
+    days.forEach(day => {
+        html += '<tr>';
+        html += `<td class="day-header">${escapeHtml(day)}</td>`;
+
+        let totalCalories = 0;
+
+        mealTypes.forEach(mealType => {
+            const meal = (weeklyPlan[day] || {})[mealType.key];
+
+            if (meal) {
+                const titleText = getMealTitle(meal);
+                const calories = num(meal.calories || meal.kcal || meal.calories_kcal || 0);
+                totalCalories += calories;
+
+                const serving = meal.serving_size || meal.servingSize || '';
+                const protein = num(meal.protein || meal.prot || 0);
+                const carbs = num(meal.carbs || meal.carbohydrates || 0);
+                const fat = num(meal.fat || meal.fats || 0);
+                const fiber = num(meal.fiber || 0);
+
+                html += `<td>
+                    <div class="meal-item">${escapeHtml(titleText)}</div>
+                    <div class="meal-serving text-primary">${escapeHtml(String(calories))} kcal</div>`;
+
+                if (serving) {
+                    html += `<div class="meal-serving">${escapeHtml(serving)}</div>`;
+                }
+
+                if (protein || carbs || fat || fiber) {
+                    html += `<div class="meal-nutrients">
+                        P: ${escapeHtml(String(protein))}g • C: ${escapeHtml(String(carbs))}g • F: ${escapeHtml(String(fat))}g${(typeof fiber !== 'undefined' ? ` • Fib: ${escapeHtml(String(fiber))}g` : '')}
+                    </div>`;
+                }
+
+                html += '</td>';
+            } else {
+                html += '<td><div class="text-muted">No meal</div></td>';
+            }
+        });
+
+        html += `<td><strong class="text-success">${Math.round(totalCalories)} kcal</strong></td>`;
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
 
         // Calculate weekly statistics
         function calculateWeeklyStats(weeklyPlan) {

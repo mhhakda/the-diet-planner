@@ -1064,9 +1064,12 @@
         let currentTheme = localStorage.getItem('theme') || 'light';
         let isResultsVisible = false;
 
-        // Fixed URLs for proper integration
-        const DIET_TRACKER_URL = 'https://thedietplanner.com/diet-tracker';
-        const INTEGRATION_STORAGE_KEY = 'dietplanner_integration_v3';
+       <script>
+// Global constants
+const DIET_TRACKER_URL = "https://thedietplanner.com/diet-tracker";
+const INTEGRATION_STORAGE_KEY = "dietplanner_mealplan";
+</script>
+
 
         // Safe number parsing helper
         function safeNumber(v) {

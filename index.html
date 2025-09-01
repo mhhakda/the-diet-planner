@@ -1904,25 +1904,46 @@ function displayMealTable(weeklyPlan) {
             .replace(/'/g, '&#039;');
     }
 
-    // build a readable title from meal object
-    function getMealTitle(meal) {
-        if (!meal) return 'No meal';
-        if (typeof meal === 'string') return meal;
-        if (meal.title && meal.title.trim()) return meal.title.trim();
-        if (meal.name && meal.name.trim()) return meal.name.trim();
-        if (Array.isArray(meal.foods) && meal.foods.length) {
-            return meal.foods.map(f => {
-                if (typeof f === 'string') return f;
-                const qty = f.quantity ? ` (${f.quantity})` : '';
-                return `${f.name || ''}${qty}`;
-            }).join(', ');
-        }
-        if (Array.isArray(meal.options) && meal.options.length) {
-            return meal.options.join(', ');
-        }
-        if (meal.id) return `Meal #${meal.id}`;
-        return 'Meal';
+ // --- Replace or add this helper in your JS ---
+function getMealTitle(meal) {
+    if (!meal) return 'No meal';
+
+    // 1) Use explicit title if present and meaningful
+    if (meal.title && typeof meal.title === 'string' && meal.title.trim() && !/^option\s*\d+/i.test(meal.title)) {
+        return meal.title.trim();
     }
+    if (meal.name && typeof meal.name === 'string' && meal.name.trim() && !/^option\s*\d+/i.test(meal.name)) {
+        return meal.name.trim();
+    }
+
+    // 2) Use foods[] names (first 3) if present
+    if (Array.isArray(meal.foods) && meal.foods.length) {
+        const names = meal.foods.map(f => {
+            if (!f) return '';
+            if (typeof f === 'string') return f;
+            return (f.name || f.title || '').trim();
+        }).filter(Boolean);
+        if (names.length) {
+            // join up to 3 items into a short name
+            const slice = names.slice(0, 3);
+            if (slice.length === 1) return slice[0];
+            if (slice.length === 2) return `${slice[0]} & ${slice[1]}`;
+            return `${slice[0]}, ${slice[1]} & ${slice[2]}`;
+        }
+    }
+
+    // 3) As a last short fallback use ingredients first 6 words (but trimmed)
+    if (meal.ingredients && typeof meal.ingredients === 'string') {
+        const words = meal.ingredients.trim().split(/\s+/).slice(0, 6);
+        if (words.length) return words.join(' ') + (words.length >= 6 ? '...' : '');
+    }
+
+    // 4) stable fallback (safe and short)
+    const region = meal.region || 'UnknownRegion';
+    const id = (typeof meal.id !== 'undefined' ? String(meal.id) : Math.floor(Math.random()*100000));
+    return `Meal ${region}-${id}`;
+}
+
 
     // helper to get numeric nutrient
     function num(v) {

@@ -2162,57 +2162,51 @@ function createFallbackMeals() {
             }
         }
 
-        // FIXED - Send to Diet Tracker with Redirect
-        function sendToTrackerAndRedirect() {
-            if (!currentMealPlan || !currentUserProfile) {
-                alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.');
-                return;
-            }
+// FIXED - Send to Diet Tracker with Redirect
+function sendToTrackerAndRedirect() {
+    if (!currentMealPlan || !currentUserProfile) {
+        alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.');
+        return;
+    }
 
-            // Show loading overlay
-            const overlay = document.getElementById('redirectOverlay');
-            if (overlay) overlay.style.display = 'flex';
+    const overlay = document.getElementById('redirectOverlay');
+    if (overlay) overlay.style.display = 'flex';
 
-            // Prepare integration data
-            const integrationData = {
-                version: '3.0',
-                timestamp: new Date().toISOString(),
-                source: 'thedietplanner-diet-planner',
-                userProfile: currentUserProfile,
-                mealPlan: currentMealPlan,
-                dailyTargets: {
-                    calories: currentUserProfile.targetCalories,
-                    protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4),
-                    carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4),
-                    fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9),
-                    fiber: 25,
-                    water: 2000
-                }
-            };
-
-            try {
-                // Store data in localStorage for Diet Tracker to access
-                localStorage.setItem(INTEGRATION_STORAGE_KEY, JSON.stringify(integrationData));
-                localStorage.setItem('planned_meals_v1', JSON.stringify(integrationData));
-                localStorage.setItem('diettracker_import', JSON.stringify(integrationData));
-                localStorage.setItem('meal_plan_transfer', JSON.stringify(integrationData));
-                
-                console.log('✅ Meal plan data stored for Diet Tracker');
-                
-                // Add success marker
-                localStorage.setItem('meal_plan_sent', 'true');
-                
-                // Redirect after 2 seconds
-                setTimeout(() => {
-                    window.location.href = DIET_TRACKER_URL;
-                }, 2000);
-                
-            } catch (error) {
-                console.error('Failed to store meal plan data:', error);
-                if (overlay) overlay.style.display = 'none';
-                alert('❌ Failed to prepare data for Diet Tracker. Please try again.');
-            }
+    const integrationData = {
+        version: '3.0',
+        timestamp: new Date().toISOString(),
+        source: 'thedietplanner-diet-planner',
+        userProfile: currentUserProfile,
+        mealPlan: currentMealPlan,
+        dailyTargets: {
+            calories: currentUserProfile.targetCalories,
+            protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4),
+            carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4),
+            fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9),
+            fiber: 25,
+            water: 2000
         }
+    };
+
+    try {
+        localStorage.setItem(INTEGRATION_STORAGE_KEY, JSON.stringify(integrationData));
+        localStorage.setItem('planned_meals_v1', JSON.stringify(integrationData));
+        localStorage.setItem('diettracker_import', JSON.stringify(integrationData));
+        localStorage.setItem('meal_plan_transfer', JSON.stringify(integrationData));
+
+        console.log('✅ Meal plan data stored for Diet Tracker');
+        localStorage.setItem('meal_plan_sent', 'true');
+
+        setTimeout(() => {
+            window.location.href = DIET_TRACKER_URL;
+        }, 2000);
+
+    } catch (error) {
+        console.error('Failed to store meal plan data:', error);
+        if (overlay) overlay.style.display = 'none';
+        alert('❌ Failed to prepare data for Diet Tracker. Please try again.');
+    }
+}
 
         // Export Functions
         function downloadCSV() {

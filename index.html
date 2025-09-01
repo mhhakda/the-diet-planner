@@ -1904,24 +1904,39 @@ function displayMealTable(weeklyPlan) {
             .replace(/'/g, '&#039;');
     }
 
-    // build a readable title from meal object
+    // Helper: stable readable title for meals
     function getMealTitle(meal) {
         if (!meal) return 'No meal';
-        if (typeof meal === 'string') return meal;
-        if (meal.title && meal.title.trim()) return meal.title.trim();
-        if (meal.name && meal.name.trim()) return meal.name.trim();
+        // prefer explicit non-placeholder title
+        if (typeof meal.title === 'string' && meal.title.trim() && !/^option\s*\d+/i.test(meal.title)) {
+            return meal.title.trim();
+        }
+        if (typeof meal.name === 'string' && meal.name.trim() && !/^option\s*\d+/i.test(meal.name)) {
+            return meal.name.trim();
+        }
+        // prefer foods[] names (first 3)
         if (Array.isArray(meal.foods) && meal.foods.length) {
-            return meal.foods.map(f => {
+            const names = meal.foods.map(f => {
+                if (!f) return '';
                 if (typeof f === 'string') return f;
-                const qty = f.quantity ? ` (${f.quantity})` : '';
-                return `${f.name || ''}${qty}`;
-            }).join(', ');
+                return (f.name || f.title || '').trim();
+            }).filter(Boolean);
+            if (names.length) {
+                const slice = names.slice(0, 3);
+                if (slice.length === 1) return slice[0];
+                if (slice.length === 2) return `${slice[0]} & ${slice[1]}`;
+                return `${slice[0]}, ${slice[1]} & ${slice[2]}`;
+            }
         }
-        if (Array.isArray(meal.options) && meal.options.length) {
-            return meal.options.join(', ');
+        // fallback to short ingredients snippet (max 6 words)
+        if (meal.ingredients && typeof meal.ingredients === 'string') {
+            const words = meal.ingredients.trim().split(/\s+/).slice(0, 6);
+            if (words.length) return words.join(' ') + (words.length >= 6 ? '...' : '');
         }
-        if (meal.id) return `Meal #${meal.id}`;
-        return 'Meal';
+        // stable fallback
+        const region = meal.region || 'UnknownRegion';
+        const id = (typeof meal.id !== 'undefined' ? String(meal.id) : String(Math.floor(Math.random()*900000)+100000));
+        return `Meal ${region}-${id}`;
     }
 
     // helper to get numeric nutrient
@@ -2235,10 +2250,13 @@ function sendToTrackerAndRedirect() {
 
         console.log('✅ Meal plan data stored for Diet Tracker');
 
+        // Get configurable redirect URL
+        const redirectUrl = document.body && document.body.getAttribute('data-diet-tracker-url') ? document.body.getAttribute('data-diet-tracker-url') : (typeof DIET_TRACKER_URL !== 'undefined' ? DIET_TRACKER_URL : '/diet-tracker');
+
         // Try to open in a new tab first (works even if inside iframe)
         let opened = false;
         try {
-            const newWin = window.open(DIET_TRACKER_URL, '_blank');
+            const newWin = window.open(redirectUrl, '_blank');
             opened = !!(newWin && !newWin.closed);
         } catch (err) {
             opened = false;
@@ -2257,7 +2275,7 @@ function sendToTrackerAndRedirect() {
         try {
             if (window.top === window.self) {
                 // not inside iframe — safe to navigate
-                window.location.href = DIET_TRACKER_URL;
+                setTimeout(() => { window.location.href = redirectUrl; }, 2000);
                 return;
             }
 
@@ -2271,7 +2289,7 @@ function sendToTrackerAndRedirect() {
                 if (overlay) overlay.style.display = 'none';
                 // Provide user a fallback link
                 const fallback = confirm('Sent data for Diet Tracker. The page could not open in a new tab automatically. Click OK to open the Diet Tracker in a new tab.');
-                if (fallback) window.open(DIET_TRACKER_URL, '_blank');
+                if (fallback) window.open(redirectUrl, '_blank');
                 return;
             } catch (pmErr) {
                 console.warn('postMessage to parent failed', pmErr);
@@ -2284,7 +2302,7 @@ function sendToTrackerAndRedirect() {
         // Last-resort: show fallback link
         if (overlay) overlay.style.display = 'none';
         const userOk = confirm('Data stored for Diet Tracker. Click OK to open the Diet Tracker in a new tab.');
-        if (userOk) window.open(DIET_TRACKER_URL, '_blank');
+        if (userOk) window.open(redirectUrl, '_blank');
 
     } catch (error) {
         console.error('Failed to store meal plan data:', error);
@@ -2306,32 +2324,17 @@ function sendToTrackerAndRedirect() {
             const days = Object.keys(currentMealPlan);
             const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
-            function buildFoodListForMeal(meal) {
-                if (!meal) return 'No meal';
-                if (meal.title && meal.title.trim()) return meal.title;
-                if (meal.name && meal.name.trim()) return meal.name;
-                if (Array.isArray(meal.foods) && meal.foods.length) {
-                    return meal.foods.map(f => {
-                        if (!f) return '';
-                        if (typeof f === 'string') return f;
-                        const name = f.name || f.title || f.item || '';
-                        const qty = f.quantity || f.qty || f.amount || '';
-                        return qty ? `${name} (${qty})` : name;
-                    }).filter(Boolean).join(', ');
-                }
-                return meal.id ? `Meal #${meal.id}` : 'Custom Meal';
-            }
-
             days.forEach(day => {
                 mealTypes.forEach(mealType => {
                     const meal = currentMealPlan[day][mealType];
                     if (meal) {
-                        const foodName = buildFoodListForMeal(meal).replace(/"/g, '""');
+                        const titleSafe = (meal.title && typeof meal.title === 'string') ? meal.title.replace(/"/g, '""') : getMealTitle(meal).replace(/"/g, '""');
+
                         const row = [
                             day,
                             mealType.charAt(0).toUpperCase() + mealType.slice(1),
-                            `"${foodName}"`,
-                            `"${(meal.serving_size || 'N/A').toString().replace(/"/g, '""')}"`,
+                            `"${titleSafe}"`,
+                            `"${(meal.serving_size || 'N/A').replace(/"/g, '""')}"`,
                             safeNumber(meal.calories),
                             safeNumber(meal.protein),
                             safeNumber(meal.carbs),
@@ -2354,6 +2357,24 @@ function sendToTrackerAndRedirect() {
             document.body.removeChild(link);
             
             console.log('✅ CSV file downloaded successfully!');
+            clearDietTrackerStorage();
+        }
+
+        // Helper to clear diet tracker storage after exports
+        function clearDietTrackerStorage() {
+            try {
+                const keys = [
+                    INTEGRATION_STORAGE_KEY || 'dietplanner_integration_v3',
+                    'planned_meals_v1',
+                    'diettracker_import',
+                    'meal_plan_transfer',
+                    'meal_plan_sent'
+                ];
+                keys.forEach(k => localStorage.removeItem(k));
+                console.log('✅ Cleared diet tracker integration keys from localStorage');
+            } catch (e) {
+                console.warn('Failed clearing diet tracker storage:', e);
+            }
         }
 
         // Lazy load html2pdf
@@ -2467,7 +2488,11 @@ function sendToTrackerAndRedirect() {
                         const meal = (currentMealPlan[day] || {})[mealType.key];
                         if (!meal) return;
 
-                        const foodList = buildFoodListForMeal(meal);
+                        const foodList = (Array.isArray(meal.foods) && meal.foods.length)
+                            ? meal.foods.map(f => (typeof f === 'string' ? f : ((f.name||f.title||'').trim() + (f.quantity ? ` (${f.quantity})` : '')))).filter(Boolean).slice(0,5).join(', ')
+                            : '';
+
+                        const titleText = getMealTitle(meal);
                         const calories = safeNumber(meal.calories || meal.kcal || meal.calories_kcal || 0);
                         const protein = safeNumber(meal.protein || meal.prot || 0);
                         const carbs = safeNumber(meal.carbs || meal.carbohydrates || 0);
@@ -2487,7 +2512,7 @@ function sendToTrackerAndRedirect() {
 
                         html += `
                             <tr>
-                                <td style="padding:8px; border:1px solid #e6e7e9; vertical-align:top; width:12%;"><strong>${mealType.name}</strong></td>
+                                <td style="padding:8px; border:1px solid #e6e7e9; vertical-align:top; width:12%;"><strong>${escapeHtmlForPDF(titleText)}</strong></td>
                                 <td style="padding:8px; border:1px solid #e6e7e9; vertical-align:top; width:48%;">
                                     <div style="font-weight:600; margin-bottom:4px;">${escapeHtmlForPDF(foodList)}</div>
                                     <div style="color:#6c757d; font-size:12px;">Serving: ${escapeHtmlForPDF(serving || 'Standard serving')}</div>
@@ -2523,6 +2548,7 @@ function sendToTrackerAndRedirect() {
                 try {
                     await html2pdfLib().from(tempDiv).set(opt).save();
                     console.log("✅ PDF downloaded successfully!");
+                    clearDietTrackerStorage();
                 } catch (saveErr) {
                     console.warn('html2pdf save() failed, falling back to blob output:', saveErr);
                     try {
@@ -2530,6 +2556,7 @@ function sendToTrackerAndRedirect() {
                         const url = URL.createObjectURL(blob);
                         window.open(url, '_blank');
                         setTimeout(() => URL.revokeObjectURL(url), 2000);
+                        clearDietTrackerStorage();
                     } catch (blobErr) {
                         console.error('PDF fallback also failed:', blobErr);
                         alert('PDF generation failed. See console for details.');

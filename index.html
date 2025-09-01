@@ -2162,16 +2162,18 @@ function createFallbackMeals() {
             }
         }
 
-// FIXED - Send to Diet Tracker with Redirect
+// FIXED - Send to Diet Tracker with Redirect / New Tab Fallback
 function sendToTrackerAndRedirect() {
     if (!currentMealPlan || !currentUserProfile) {
         alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.');
         return;
     }
 
+    // Show loading overlay
     const overlay = document.getElementById('redirectOverlay');
     if (overlay) overlay.style.display = 'flex';
 
+    // Prepare integration data
     const integrationData = {
         version: '3.0',
         timestamp: new Date().toISOString(),
@@ -2189,20 +2191,25 @@ function sendToTrackerAndRedirect() {
     };
 
     try {
+        // Store data in localStorage for Diet Tracker to access
         localStorage.setItem(INTEGRATION_STORAGE_KEY, JSON.stringify(integrationData));
         localStorage.setItem('planned_meals_v1', JSON.stringify(integrationData));
         localStorage.setItem('diettracker_import', JSON.stringify(integrationData));
         localStorage.setItem('meal_plan_transfer', JSON.stringify(integrationData));
-
-        console.log('✅ Meal plan data stored for Diet Tracker');
         localStorage.setItem('meal_plan_sent', 'true');
 
-        setTimeout(() => {
-            window.location.href = DIET_TRACKER_URL;
-        }, 2000);
+        console.log('✅ Meal plan data stored for Diet Tracker');
+
+        // Attempt redirect
+        try {
+            window.location.href = https://thedietplanner.com/diet-tracker;
+        } catch (e) {
+            console.warn('⚠️ Direct redirect blocked by CSP, opening in new tab instead.');
+            window.open(https://thedietplanner.com/diet-tracker, '_blank');
+        }
 
     } catch (error) {
-        console.error('Failed to store meal plan data:', error);
+        console.error('❌ Failed to store meal plan data:', error);
         if (overlay) overlay.style.display = 'none';
         alert('❌ Failed to prepare data for Diet Tracker. Please try again.');
     }

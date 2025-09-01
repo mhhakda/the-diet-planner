@@ -1064,9 +1064,30 @@
         let currentTheme = localStorage.getItem('theme') || 'light';
         let isResultsVisible = false;
 
-        // Fixed URLs for proper integration
-        const DIET_TRACKER_URL = 'https://thedietplanner.com/diet-tracker';
-        const INTEGRATION_STORAGE_KEY = 'dietplanner_integration_v3';
+      // Integration storage key (kept, unchanged)
+const INTEGRATION_STORAGE_KEY = 'dietplanner_integration_v3';
+
+// Diet tracker URL: configurable and non-hardcoded.
+// Priority:
+// 1) window.__DIET_TRACKER_URL  (set by hosting environment or page)
+// 2) <meta name="diet-tracker-url" content="https://...">
+// 3) fallback to same-origin '/diet-tracker'
+const DIET_TRACKER_URL = (function () {
+    try {
+        if (typeof window.__DIET_TRACKER_URL === 'string' && window.__DIET_TRACKER_URL.trim()) {
+            return window.__DIET_TRACKER_URL.trim();
+        }
+        const meta = document.querySelector('meta[name="diet-tracker-url"]');
+        if (meta && meta.content && meta.content.trim()) {
+            return meta.content.trim();
+        }
+        // fallback to same origin path (will work for your hosted site)
+        return `${location.protocol}//${location.host}/diet-tracker`;
+    } catch (e) {
+        console.warn('Error resolving DIET_TRACKER_URL, using default /diet-tracker', e);
+        return '/diet-tracker';
+    }
+})();
 
         // Safe number parsing helper
         function safeNumber(v) {

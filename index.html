@@ -333,6 +333,26 @@
 
     <!-- ======= Inline script: cleaned & completed ======= -->
     <script>
+        <script>
+/* -------- Diet Planner shim: queue calls until functions exist -------- */
+window.__dpFnQueue = window.__dpFnQueue || [];
+
+(function createDpStubs(){
+  // names of functions your HTML uses
+  const NAMES = ['sendToTrackerAndRedirect','downloadCSV','downloadPDF'];
+  NAMES.forEach(name => {
+    if (typeof window[name] !== 'function') {
+      window[name] = function(){
+        // queue the call (so it can be invoked later when real fn available)
+        const args = Array.prototype.slice.call(arguments);
+        window.__dpFnQueue.push({ name, args });
+        // return a harmless value (some callers expect truthy)
+        return true;
+      };
+    }
+  });
+})();
+
     /* ---------------------------
        Global state & helpers
        --------------------------- */

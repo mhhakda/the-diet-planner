@@ -1111,6 +1111,7 @@ function sendToTrackerAndRedirect() {
         alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.'); 
         return; 
     }
+
     const overlay = document.getElementById('redirectOverlay'); 
     if (overlay) overlay.style.display = 'flex';
 
@@ -1140,38 +1141,29 @@ function sendToTrackerAndRedirect() {
         console.log('✅ Meal plan data stored for Diet Tracker');
     } catch (err) {
         console.error('❌ Failed to store meal plan for tracker:', err);
+        if (overlay) overlay.style.display = 'none';
+        return;
     }
+
+    // 🔹 Ask user before redirecting
+    const confirmRedirect = confirm("Meal plan is ready to send.\nDo you want to open Diet Tracker now?");
+    if (confirmRedirect) {
+        const redirectUrl = document.body?.getAttribute('data-diet-tracker-url') || DIET_TRACKER_URL;
+        window.open(redirectUrl, '_blank');
+    }
+
+    if (overlay) overlay.style.display = 'none';
 }
 
-
-            const redirectUrl = document.body && document.body.getAttribute('data-diet-tracker-url') ? document.body.getAttribute('data-diet-tracker-url') : DIET_TRACKER_URL;
-            let opened = false;
-            try { const newWin = window.open(redirectUrl, '_blank'); opened = !!(newWin && !newWin.closed); } catch (err) { opened = false; console.warn('window.open failed', err); }
-
-            if (opened) { if (overlay) overlay.style.display = 'none'; setTimeout(()=>alert('✅ Sent to Diet Tracker. A new tab opened with the Diet Tracker.'),300); return; }
-
-            try {
-                if (window.top === window.self) { setTimeout(()=>{ window.location.href = redirectUrl; }, 1200); return; }
-                try {
-                    window.parent.postMessage({ type:'dietplanner_integration', source:'thedietplanner-diet-planner', payload: integrationData }, '*');
-                    if (overlay) overlay.style.display = 'none';
-                    const fallback = confirm('Sent data for Diet Tracker. The page could not open in a new tab automatically. Click OK to open the Diet Tracker in a new tab.');
-                    if (fallback) window.open(redirectUrl, '_blank');
-                    return;
-                } catch (pmErr) { console.warn('postMessage to parent failed', pmErr); }
-            } catch (navErr) { console.warn('Navigation attempt failed', navErr); }
-
-            if (overlay) overlay.style.display = 'none';
-            const userOk = confirm('Data stored for Diet Tracker. Click OK to open the Diet Tracker in a new tab.');
-            if (userOk) window.open(redirectUrl, '_blank');
-
-        } catch (error) {
-            console.error('Failed to store meal plan data:', error);
-            if (overlay) overlay.style.display = 'none';
-            alert('❌ Failed to prepare data for Diet Tracker. Please try again.');
-        }
+// ✅ Attach button click listener safely
+document.addEventListener("DOMContentLoaded", () => {
+    const sendBtn = document.getElementById("sendToTrackerBtn");
+    if (sendBtn) {
+        sendBtn.addEventListener("click", () => {
+            sendToTrackerAndRedirect();
+        });
     }
-
+});
     function downloadCSV() {
         if (!currentMealPlan || !currentUserProfile) { alert('❌ No meal plan available to export\nPlease generate a meal plan first.'); return; }
         let csvContent = '\uFEFF';

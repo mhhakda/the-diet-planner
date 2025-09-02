@@ -1,15 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="description" content="Diet Planner — generate personalised daily & weekly meal plans, export PDFs, and track meals. Uses your meals.json as the source of meal data." />
+    <meta name="diet-tracker-url" content="https://mhhakda.github.io/diet-tracker/">
     <title>🍽️ Diet Planner - The Diet Planner</title>
-
     <style>
-        /* ===== your CSS (unchanged, same as you provided) =====
-           For brevity: this is the exact CSS from Part 1/2 combined.
-           Paste your full CSS here (kept unchanged by me). */
+        /* ===== your CSS (kept exactly as provided in your earlier paste) ===== */
         :root{
             --bg-color:#ffffff; --surface-color:#f8f9fa; --card-bg:#ffffff; --text-primary:#212529;
             --text-secondary:#6c757d; --text-muted:#adb5bd; --border-color:#dee2e6; --primary-color:#007bff;
@@ -105,10 +103,8 @@
         @media (max-width:480px){ .stats-grid{ grid-template-columns:1fr; } .stat-card{ padding:.75rem .5rem; } .table th, .table td{ padding:.5rem .25rem; font-size:.75rem; } .chart-container canvas{ max-height:150px; } }
         .text-center{ text-align:center; } .text-muted{ color:var(--text-muted); } .text-primary{ color:var(--primary-color); } .text-success{ color:var(--success-color); } .text-warning{ color:var(--warning-color); } .text-danger{ color:var(--danger-color); } .d-none{ display:none; } .d-block{ display:block; } .mobile-overlay{ display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:999; } .mobile-overlay.active{ display:block; } .fade-in{ animation:fadeIn .6s ease-out; } @keyframes fadeIn{ from{ opacity:0; transform:translateY(20px);} to{ opacity:1; transform:translateY(0);} } .results-scroll::-webkit-scrollbar{ width:8px;} .results-scroll::-webkit-scrollbar-track{ background:var(--surface-color); border-radius:4px; } .results-scroll::-webkit-scrollbar-thumb{ background:var(--border-color); border-radius:4px; } .results-scroll::-webkit-scrollbar-thumb:hover{ background:var(--text-muted); }
     </style>
-
-    <!-- No external app script tag here (JS is inline at bottom). -->
 </head>
-<body data-theme="light" data-diet-tracker-url="">
+<body data-theme="light" data-diet-tracker-url="https://mhhakda.github.io/diet-tracker/">
 
     <!-- Skip link -->
     <a class="sr-only" href="#mainContent" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">Skip to content</a>
@@ -252,7 +248,7 @@
                                         </select>
                                         <div class="invalid-feedback" id="region-error"></div>
                                     </div>
-                                    
+
                                     <div class="form-group">
                                         <label for="activityLevel" class="form-label">Activity Level *</label>
                                         <select id="activityLevel" class="form-control" required>
@@ -292,7 +288,7 @@
                         </button>
                     </div>
 
-                    <div class="results-content">
+                    <div class="results-content" id="planContainer">
                         <div class="results-scroll" id="resultsScroll">
                             <!-- Stats Cards -->
                             <div class="stats-grid" id="statsGrid"></div>
@@ -331,76 +327,49 @@
         </main>
     </div>
 
-       <!-- ======= Inline script: cleaned & completed ======= -->
+    <!-- Single consolidated script block (no nested <script> tags) -->
     <script>
-/* -------- Diet Planner shim: queue calls until functions exist -------- */
-window.__dpFnQueue = window.__dpFnQueue || [];
+    /*************************************************************************
+     * Diet Planner - consolidated script
+     * Fixes applied:
+     * - single <script> block (no stray tags)
+     * - functions exposed to window at the end
+     * - sendToTracker does not auto-redirect unless user clicks and confirms
+     * - generate button wired and logs to console
+     *************************************************************************/
 
-(function createDpStubs(){
-  // names of functions your HTML uses
-  const NAMES = ['sendToTrackerAndRedirect','downloadCSV','downloadPDF'];
-  NAMES.forEach(name => {
-    if (typeof window[name] !== 'function') {
-      window[name] = function(){
-        // queue the call (so it can be invoked later when real fn available)
-        const args = Array.prototype.slice.call(arguments);
-        window.__dpFnQueue.push({ name, args });
-        // return a harmless value (some callers expect truthy)
-        return true;
-      };
-    }
-  });
-})();
-
-    /* ---------------------------
-       Global state & helpers
-       --------------------------- */
+    // Global state
     let currentMealPlan = null;
     let currentUserProfile = null;
     let mealDatabase = null;
+    let mealDbLoadPromise = null;
     let ChartsLoaded = false;
     let Html2PdfLoaded = false;
     let currentActiveSection = 'profile';
+    let sectionObserver;
     let currentTheme = localStorage.getItem('theme') || 'light';
-    let isResultsVisible = false;
 
     const INTEGRATION_STORAGE_KEY = 'dietplanner_integration_v3';
 
-    // Diet tracker URL resolution (configurable)
-    const DIET_TRACKER_URL = (function () {
-        try {
-            if (typeof window.__DIET_TRACKER_URL === 'string' && window.__DIET_TRACKER_URL.trim()) {
-                return window.__DIET_TRACKER_URL.trim();
-            }
-            const meta = document.querySelector('meta[name="diet-tracker-url"]');
-            if (meta && meta.content && meta.content.trim()) {
-                return meta.content.trim();
-            }
-            const bodyAttr = document.body && document.body.getAttribute('data-diet-tracker-url');
-            if (bodyAttr) return bodyAttr;
-            return `${location.protocol}//${location.host}/diet-tracker`;
-        } catch (e) {
-            console.warn('Error resolving DIET_TRACKER_URL, using default /diet-tracker', e);
-            return '/diet-tracker';
-        }
-    })();
-
+    // helper: safe number parsing
     function safeNumber(v) {
-        if (v === null || v === undefined) return 0;
-        if (typeof v === 'number') return isNaN(v) ? 0 : v;
-        const n = parseFloat(String(v).replace(/,/g, ''));
-        return isNaN(n) ? 0 : n;
+        if (v === null || v === undefined || v === '') return 0;
+        if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+        const n = parseFloat(String(v).replace(/[^\d.-]/g, ''));
+        return Number.isFinite(n) ? n : 0;
     }
 
     /* ---------------------------
        Initialization
-       --------------------------- */
+    --------------------------- */
     document.addEventListener('DOMContentLoaded', () => {
         initializeTheme();
         initializeNavigation();
         initializeMobileMenu();
+        initializeIntersectionObserver();
         initializeResultsToggle();
         initializeForm();
+        initializePdfExport();
 
         // wire up export/send buttons
         const sendBtn = document.getElementById('sendToTrackerBtn');
@@ -413,12 +382,12 @@ window.__dpFnQueue = window.__dpFnQueue || [];
         // attempt to load meals and existing plan (non-blocking)
         loadMealsDatabase().catch(()=>{});
         loadExistingPlan();
-        console.log('🍽️ Diet Planner loaded.');
+        console.log('🍽️ Diet Planner loaded successfully!');
     });
 
     /* ---------------------------
-       Theme
-       --------------------------- */
+       Theme & UI helpers
+    --------------------------- */
     function initializeTheme() {
         document.body.setAttribute('data-theme', currentTheme);
         updateThemeToggle();
@@ -433,18 +402,16 @@ window.__dpFnQueue = window.__dpFnQueue || [];
     }
     function updateThemeToggle() {
         const themeToggle = document.getElementById('themeToggle');
-        if (themeToggle) themeToggle.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+        if (!themeToggle) return;
+        themeToggle.textContent = currentTheme === 'light' ? '🌞' : '🌙';
     }
 
-    /* ---------------------------
-       Navigation & mobile menu
-       --------------------------- */
     function initializeNavigation() {
         const navItems = document.querySelectorAll('.nav-item');
         navItems.forEach(item => {
-            item.addEventListener('click', function() {
-                const targetSection = this.getAttribute('data-section');
-                handleNavigation(targetSection);
+            item.addEventListener('click', () => {
+                const section = item.getAttribute('data-section');
+                if (section) handleNavigation(section);
             });
         });
     }
@@ -490,6 +457,7 @@ window.__dpFnQueue = window.__dpFnQueue || [];
     function toggleMobileMenu() {
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('mobileOverlay');
+        if (!sidebar || !overlay) return;
         sidebar.classList.toggle('mobile-open');
         overlay.classList.toggle('active');
         const btn = document.getElementById('mobileMenuButton');
@@ -498,6 +466,7 @@ window.__dpFnQueue = window.__dpFnQueue || [];
     function closeMobileMenu() {
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('mobileOverlay');
+        if (!sidebar || !overlay) return;
         sidebar.classList.remove('mobile-open');
         overlay.classList.remove('active');
         const btn = document.getElementById('mobileMenuButton');
@@ -506,7 +475,7 @@ window.__dpFnQueue = window.__dpFnQueue || [];
 
     /* ---------------------------
        Show/hide form & results
-       --------------------------- */
+    --------------------------- */
     function initializeResultsToggle() {
         const editProfileBtn = document.getElementById('editProfileBtn');
         if (editProfileBtn) editProfileBtn.addEventListener('click', showForm);
@@ -518,7 +487,7 @@ window.__dpFnQueue = window.__dpFnQueue || [];
             resultsContainer.classList.remove('visible');
             resultsContainer.setAttribute('aria-hidden','true');
         }
-        setTimeout(()=>{ if (formSection) formSection.classList.remove('hidden'); isResultsVisible=false; }, 200);
+        setTimeout(()=>{ if (formSection) formSection.classList.remove('hidden'); }, 200);
         updateActiveNavItem('profile');
         currentActiveSection = 'profile';
     }
@@ -527,19 +496,19 @@ window.__dpFnQueue = window.__dpFnQueue || [];
         const formSection = document.getElementById('formSection');
         const resultsContainer = document.getElementById('resultsContainer');
         if (formSection) formSection.classList.add('hidden');
-        setTimeout(()=>{ if (resultsContainer){ resultsContainer.classList.add('visible'); resultsContainer.setAttribute('aria-hidden','false'); } isResultsVisible=true; const resultsScroll = document.getElementById('resultsScroll'); if (resultsScroll) resultsScroll.scrollTop = 0; }, 200);
+        setTimeout(()=>{ if (resultsContainer){ resultsContainer.classList.add('visible'); resultsContainer.setAttribute('aria-hidden','false'); } const resultsScroll = document.getElementById('resultsScroll'); if (resultsScroll) resultsScroll.scrollTop = 0; }, 200);
     }
 
     /* ---------------------------
        Form handling & validation
-       --------------------------- */
+    --------------------------- */
     function initializeForm() {
         const generateBtn = document.getElementById('generateBtn');
-        if (generateBtn) generateBtn.addEventListener('click', function(e){ e.preventDefault(); handleFormSubmit(e); });
+        if (generateBtn) generateBtn.addEventListener('click', handleFormSubmit);
     }
 
     async function handleFormSubmit(e) {
-        e.preventDefault();
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
         if (!validateForm()) return;
 
         const generateBtn = document.getElementById('generateBtn');
@@ -549,7 +518,7 @@ window.__dpFnQueue = window.__dpFnQueue || [];
 
         try {
             await generateMealPlan();
-            setTimeout(()=>{ hideLoading(); showResults(); updateActiveNavItem('plan'); currentActiveSection='plan'; }, 600);
+            setTimeout(()=>{ hideLoading(); showResults(); updateActiveNavItem('plan'); currentActiveSection='plan'; }, 400);
         } catch (err) {
             console.error('Error generating meal plan:', err);
             hideLoading();
@@ -603,9 +572,9 @@ window.__dpFnQueue = window.__dpFnQueue || [];
 
     /* ---------------------------
        Meals DB loading & normalization
-       --------------------------- */
-    async function loadMealsDatabase() {
-        if (mealDatabase) return mealDatabase;
+    --------------------------- */
+    async function loadMealsDatabase(forceReload = false) {
+        if (mealDatabase && !forceReload) return mealDatabase;
         const candidates = ['meals.json','/meals.json','data/meals.json'];
         let raw = null;
         for (const url of candidates) {
@@ -625,6 +594,7 @@ window.__dpFnQueue = window.__dpFnQueue || [];
             return mealDatabase;
         }
 
+        // Normalize shape: region -> diet -> { breakfast, lunch, dinner, snacks: [] }
         const normalizedDB = {};
         const STANDARD_MEAL_TYPES = ['breakfast','lunch','dinner','snacks'];
 
@@ -702,13 +672,21 @@ window.__dpFnQueue = window.__dpFnQueue || [];
                         { id: 'fs1', title: "Fruit and Nuts", serving_size: "1 small bowl", calories: 150, protein: 4, carbs: 20, fat: 6, fiber: 3 }
                     ]
                 }
+            },
+            "USA": {
+                "Regular": {
+                    breakfast: [{ id:'us_b1', title:'Scrambled Eggs with Toast', calories:320, protein:18, carbs:28, fat:14, fiber:3 }],
+                    lunch: [{ id:'us_l1', title:'Turkey Sandwich', calories:450, protein:30, carbs:45, fat:12, fiber:4 }],
+                    dinner: [{ id:'us_d1', title:'Grilled Salmon', calories:600, protein:40, carbs:30, fat:28, fiber:3 }],
+                    snacks: [{ id:'us_s1', title:'Greek Yogurt', calories:120, protein:12, carbs:8, fat:2, fiber:0 }]
+                }
             }
         };
     }
 
     /* ---------------------------
        BMR & target calories
-       --------------------------- */
+    --------------------------- */
     function calculateTargetCalories(profile) {
         const age = safeNumber(profile.age);
         const weight = safeNumber(profile.weight);
@@ -728,7 +706,7 @@ window.__dpFnQueue = window.__dpFnQueue || [];
 
     /* ---------------------------
        Meal selection algorithm
-       --------------------------- */
+    --------------------------- */
     function selectMealsForWeek(meals, targetCalories, profile) {
         const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
         const mealTypes = ['breakfast','lunch','dinner','snacks'];
@@ -785,7 +763,7 @@ window.__dpFnQueue = window.__dpFnQueue || [];
 
     /* ---------------------------
        Generate / display plan
-       --------------------------- */
+    --------------------------- */
     async function generateMealPlan() {
         try {
             await loadMealsDatabase();
@@ -895,7 +873,6 @@ window.__dpFnQueue = window.__dpFnQueue || [];
         `;
     }
 
-    // Global getMealTitle used by multiple places
     function getMealTitle(meal) {
         if (!meal) return 'No meal';
         if (typeof meal === 'string') return meal;
@@ -1010,7 +987,7 @@ window.__dpFnQueue = window.__dpFnQueue || [];
 
     /* ---------------------------
        Charts (lazy load)
-       --------------------------- */
+    --------------------------- */
     async function loadChartJS() {
         if (ChartsLoaded || window.Chart) return Promise.resolve();
         return new Promise((resolve, reject) => {
@@ -1035,135 +1012,87 @@ window.__dpFnQueue = window.__dpFnQueue || [];
             const isDark = currentTheme === 'dark';
             const textColor = isDark ? '#ffffff' : '#212529';
             const gridColor = isDark ? '#404040' : '#dee2e6';
-const calorieCtx = document.getElementById('calorieChart');
-if (calorieCtx) {
-    if (window.calorieChartInstance && typeof window.calorieChartInstance.destroy === 'function') {
-        window.calorieChartInstance.destroy();
-    }
-    window.calorieChartInstance = new Chart(calorieCtx, {
-        type: 'bar',
-        data: {
-            labels: days.map(d => d.substr(0, 3)),
-            datasets: [
-                {
-                    label: 'Daily Calories',
-                    data: dailyCalories,
-                    backgroundColor: 'rgba(0,123,255,0.8)',
-                    borderColor: 'rgba(0,123,255,1)',
-                    borderWidth: 1,
-                    borderRadius: 2
-                },
-                {
-                    label: 'Target',
-                    data: Array(7).fill(profile.targetCalories),
-                    type: 'line',
-                    borderColor: 'rgba(40,167,69,1)',
-                    backgroundColor: 'rgba(40,167,69,0.1)',
-                    borderWidth: 2,
-                    fill: false,
-                    pointBackgroundColor: 'rgba(40,167,69,1)',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 1,
-                    pointRadius: 3
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        usePointStyle: true,
-                        padding: 15,
-                        color: textColor,
-                        font: { size: 11 }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    grid: { color: gridColor },
-                    ticks: { color: textColor, font: { size: 10 } }
-                },
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Calories',
-                        color: textColor,
-                        font: { size: 11 }
+
+            const calorieCtx = document.getElementById('calorieChart');
+            if (calorieCtx) {
+                if (window.calorieChartInstance && typeof window.calorieChartInstance.destroy === 'function') window.calorieChartInstance.destroy();
+                window.calorieChartInstance = new Chart(calorieCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: days.map(d => d.substr(0,3)),
+                        datasets: [
+                            { label:'Daily Calories', data: dailyCalories, backgroundColor:'rgba(0,123,255,0.8)', borderColor:'rgba(0,123,255,1)', borderWidth:1, borderRadius:2 },
+                            { label:'Target', data: Array(7).fill(profile.targetCalories), type:'line', borderColor:'rgba(40,167,69,1)', backgroundColor:'rgba(40,167,69,0.1)', borderWidth:2, fill:false, pointBackgroundColor:'rgba(40,167,69,1)', pointBorderColor:'#fff', pointBorderWidth:1, pointRadius:3 }
+                        ]
                     },
-                    grid: { color: gridColor },
-                    ticks: { color: textColor, font: { size: 10 } }
-                }
+                    options: {
+                        responsive:true, maintainAspectRatio:false,
+                        plugins:{ legend:{ position:'top', labels:{ usePointStyle:true, padding:15, color:textColor, font:{ size:11 } } } },
+                        scales:{ x:{ grid:{ color:gridColor }, ticks:{ color:textColor, font:{ size:10 } } }, y:{ beginAtZero:true, title:{ display:true, text:'Calories', color:textColor, font:{ size:11 } }, grid:{ color:gridColor }, ticks:{ color:textColor, font:{ size:10 } } } }
+                    }
+                });
+            }
+
+            const macrosCtx = document.getElementById('macrosChart');
+            if (macrosCtx) {
+                if (window.macrosChartInstance && typeof window.macrosChartInstance.destroy === 'function') window.macrosChartInstance.destroy();
+                const proteinCals = weeklyStats.totalProtein * 4;
+                const carbsCals = weeklyStats.totalCarbs * 4;
+                const fatCals = weeklyStats.totalFat * 9;
+                window.macrosChartInstance = new Chart(macrosCtx, {
+                    type: 'doughnut',
+                    data: { labels:['Protein','Carbs','Fat'], datasets:[{ data:[proteinCals,carbsCals,fatCals], backgroundColor:['rgba(0,123,255,0.8)','rgba(40,167,69,0.8)','rgba(255,193,7,0.8)'], borderColor:['rgba(0,123,255,1)','rgba(40,167,69,1)','rgba(255,193,7,1)'], borderWidth:1 }] },
+                    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ usePointStyle:true, padding:10, color:textColor, font:{ size:10 } } }, tooltip:{ callbacks:{ label:function(context){ const label = context.label; const value = context.raw; const total = context.dataset.data.reduce((a,b)=>a+b,0); const percentage = Math.round((value/total)*100); return `${label}: ${percentage}% (${Math.round(value)} cal)`; } } } }, cutout:'60%' }
+                });
+            }
+        } catch (err) {
+            console.error('Failed to create charts:', err);
+        }
+    }
+
+    /* ---------------------------
+       Send to Tracker / Export
+    --------------------------- */
+    function sendToTrackerAndRedirect() {
+        if (!currentMealPlan || !currentUserProfile) {
+            alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.');
+            return;
+        }
+        const overlay = document.getElementById('redirectOverlay'); if (overlay) overlay.style.display = 'flex';
+        const integrationData = { version:'3.0', timestamp:new Date().toISOString(), source:'thedietplanner-diet-planner', userProfile:currentUserProfile, mealPlan:currentMealPlan, dailyTargets:{ calories: currentUserProfile.targetCalories, protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4), carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4), fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9), fiber: 25, water: 2000 } };
+        try {
+            const payloadStr = JSON.stringify(integrationData);
+            localStorage.setItem(INTEGRATION_STORAGE_KEY, payloadStr);
+            localStorage.setItem('planned_meals_v1', payloadStr);
+            localStorage.setItem('diettracker_import', payloadStr);
+            localStorage.setItem('meal_plan_transfer', payloadStr);
+            localStorage.setItem('meal_plan_sent', 'true');
+            console.log('✅ Meal plan data stored for Diet Tracker');
+        } catch (err) {
+            console.error('❌ Failed to store meal plan for tracker:', err);
+            if (overlay) overlay.style.display = 'none';
+            return;
+        }
+
+        // Ask user before redirecting
+        const confirmRedirect = confirm("Meal plan is ready to send.\nDo you want to open Diet Tracker now?");
+        if (confirmRedirect) {
+            const redirectUrl = document.body?.getAttribute('data-diet-tracker-url') || window.location.origin + '/diet-tracker';
+            // try to open in new tab; if blocked, fallback to same tab
+            let opened = false;
+            try {
+                const newWin = window.open(redirectUrl, '_blank');
+                opened = !!(newWin && !newWin.closed);
+            } catch (err) { opened = false; }
+            if (!opened) {
+                // navigate same tab after short delay
+                setTimeout(()=> { window.location.href = redirectUrl; }, 600);
             }
         }
-     }); // ✅ this closes new Chart(...)
-}
 
-/* ---------------------------
-   Send to Tracker / Export
---------------------------- */
-function sendToTrackerAndRedirect() {
-    if (!currentMealPlan || !currentUserProfile) { 
-        alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.'); 
-        return; 
-    }
-
-    const overlay = document.getElementById('redirectOverlay'); 
-    if (overlay) overlay.style.display = 'flex';
-
-    const integrationData = { 
-        version:'3.0', 
-        timestamp:new Date().toISOString(), 
-        source:'thedietplanner-diet-planner', 
-        userProfile:currentUserProfile, 
-        mealPlan:currentMealPlan, 
-        dailyTargets:{ 
-            calories: currentUserProfile.targetCalories, 
-            protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4), 
-            carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4), 
-            fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9), 
-            fiber: 25, 
-            water: 2000 
-        } 
-    };
-
-    try {
-        const payloadStr = JSON.stringify(integrationData);
-        localStorage.setItem(INTEGRATION_STORAGE_KEY, payloadStr);
-        localStorage.setItem('planned_meals_v1', payloadStr);
-        localStorage.setItem('diettracker_import', payloadStr);
-        localStorage.setItem('meal_plan_transfer', payloadStr);
-        localStorage.setItem('meal_plan_sent', 'true');
-        console.log('✅ Meal plan data stored for Diet Tracker');
-    } catch (err) {
-        console.error('❌ Failed to store meal plan for tracker:', err);
         if (overlay) overlay.style.display = 'none';
-        return;
     }
 
-    // 🔹 Ask user before redirecting
-    const confirmRedirect = confirm("Meal plan is ready to send.\nDo you want to open Diet Tracker now?");
-    if (confirmRedirect) {
-        const redirectUrl = document.body?.getAttribute('data-diet-tracker-url') || DIET_TRACKER_URL;
-        window.open(redirectUrl, '_blank');
-    }
-
-    if (overlay) overlay.style.display = 'none';
-}
-
-// ✅ Attach button click listener safely
-document.addEventListener("DOMContentLoaded", () => {
-    const sendBtn = document.getElementById("sendToTrackerBtn");
-    if (sendBtn) {
-        sendBtn.addEventListener("click", () => {
-            sendToTrackerAndRedirect();
-        });
-    }
-});
     function downloadCSV() {
         if (!currentMealPlan || !currentUserProfile) { alert('❌ No meal plan available to export\nPlease generate a meal plan first.'); return; }
         let csvContent = '\uFEFF';
@@ -1198,7 +1127,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /* ---------------------------
        PDF export (robust)
-       --------------------------- */
+    --------------------------- */
     async function loadHtml2Pdf() {
         if (Html2PdfLoaded || window.html2pdf) return Promise.resolve();
         return new Promise((resolve, reject) => {
@@ -1282,7 +1211,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /* ---------------------------
        Load existing saved plan
-       --------------------------- */
+    --------------------------- */
     function loadExistingPlan() {
         try {
             const stored = localStorage.getItem('last_generated_plan_v1');
@@ -1291,43 +1220,29 @@ document.addEventListener("DOMContentLoaded", () => {
             const generated = new Date(data.generated);
             const now = new Date();
             const daysDiff = (now - generated) / (1000 * 60 * 60 * 24);
-               if (daysDiff <= 7 && data.plan && data.profile) {
-        currentMealPlan = data.plan;
-        currentUserProfile = data.profile;
-        displayMealPlan(currentMealPlan, currentUserProfile);
-        createCharts(currentMealPlan, currentUserProfile);
-        console.log("✅ Loaded existing meal plan from localStorage");
+            if (daysDiff <= 7 && data.plan && data.profile) {
+                currentMealPlan = data.plan;
+                currentUserProfile = data.profile;
+                if (currentUserProfile) {
+                    Object.keys(currentUserProfile).forEach(key => {
+                        const field = document.getElementById(key);
+                        if (field && currentUserProfile[key]) field.value = currentUserProfile[key];
+                    });
+                }
+                if (currentMealPlan) {
+                    displayMealPlan(currentMealPlan, currentUserProfile);
+                    createCharts(currentMealPlan, currentUserProfile);
+                }
+                console.log('✅ Loaded existing meal plan from localStorage');
+            }
+        } catch (err) { console.error('Failed to load existing plan:', err); }
     }
-  } catch (err) {
-      console.error("Failed to load existing plan:", err);
-  }
-}
 
-// =========================
-// Initialize the application
-// =========================
-document.addEventListener("DOMContentLoaded", () => {
-    try {
-        initializeTheme();
-        initializeNavigation();
-        initializeMobileMenu();
-        initializeIntersectionObserver();
-        loadMealsDatabase();
-        loadExistingPlan();
-        initializeForm();
-        initializePdfExport();
-        console.log("🍽️ Diet Planner initialized successfully");
-    } catch (err) {
-        console.error("❌ Failed during initialization:", err);
-    }
-});
+    // Expose globally so HTML button can call it (also safe to call before function defined)
+    window.sendToTrackerAndRedirect = sendToTrackerAndRedirect;
+    window.downloadCSV = downloadCSV;
+    window.downloadPDF = downloadPDF;
 
-// ✅ Expose functions globally for buttons
-window.sendToTrackerAndRedirect = sendToTrackerAndRedirect;
-window.downloadCSV = downloadCSV;
-window.downloadPDF = downloadPDF;
-</script>
-
+    </script>
 </body>
 </html>
-

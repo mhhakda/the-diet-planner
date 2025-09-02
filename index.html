@@ -1303,9 +1303,45 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 }
 
-// Run on page load
+<script>
+// =========================
+// Initialize the application
+// =========================
 document.addEventListener("DOMContentLoaded", () => {
-    loadExistingPlan();
+    try {
+        initializeTheme();
+        initializeNavigation();
+        initializeMobileMenu();
+        initializeIntersectionObserver();
+        loadMealsDatabase();
+        loadExistingPlan();
+        initializeForm();
+        initializePdfExport();
+
+        console.log("🍽️ Diet Planner loaded successfully! 🎉");
+
+        // Bind reload meals button
+        const reloadBtn = document.getElementById("reloadMealsBtn");
+        if (reloadBtn) {
+            reloadBtn.addEventListener("click", async (e) => {
+                e.preventDefault();
+                reloadBtn.disabled = true;
+                const origText = reloadBtn.textContent;
+                reloadBtn.textContent = "Reloading meals...";
+                try {
+                    await loadMealsDatabase(true);
+                    alert("✅ Meals reloaded. Any generated plan will now use the new meal data.");
+                } catch (err) {
+                    alert("❌ Failed to reload meals: " + (err.message || err));
+                } finally {
+                    reloadBtn.disabled = false;
+                    reloadBtn.textContent = origText;
+                }
+            });
+        }
+    } catch (e) {
+        console.error("❌ Error during DOMContentLoaded init:", e);
+    }
 });
 
 // ✅ Expose functions globally for buttons

@@ -1291,35 +1291,28 @@ document.addEventListener("DOMContentLoaded", () => {
             const generated = new Date(data.generated);
             const now = new Date();
             const daysDiff = (now - generated) / (1000 * 60 * 60 * 24);
-            if (daysDiff <= 7 && data.plan && data.profile) {
-                currentMealPlan = data.plan;
-                currentUserProfile = data.profile;
-                if (currentUserProfile) {
-                    Object.keys(currentUserProfile).forEach(key => {
-                        const field = document.getElementById(key);
-                        if (field && currentUserProfile[key]) field.value = currentUserProfile[key];
-                    });
-                }
-                if (currentMealPlan) {
-                    displayMealPlan(currentMealPlan, currentUserProfile);
-                    createCharts(currentMealPlan, currentUserProfile);
-                }
-                console.log('✅ Loaded existing meal plan from localStorage');
-            }
-        } catch (err) { console.error('Failed to load existing plan:', err); }
+               if (daysDiff <= 7 && data.plan && data.profile) {
+        currentMealPlan = data.plan;
+        currentUserProfile = data.profile;
+        displayMealPlan(currentMealPlan, currentUserProfile);
+        createCharts(currentMealPlan, currentUserProfile);
+        console.log("✅ Loaded existing meal plan from localStorage");
     }
+} catch (err) {
+    console.error("Failed to load existing plan:", err);
+}
+}
 
-  // expose functions to global scope
-  window.sendToTrackerAndRedirect = sendToTrackerAndRedirect;
-  window.downloadCSV = downloadCSV;
-  window.downloadPDF = downloadPDF;
+// Run on page load
+document.addEventListener("DOMContentLoaded", () => {
+    loadExistingPlan();
+});
 
-  /* ---------------------------
-     End of script
-  --------------------------- */
+// ✅ Expose functions globally for buttons
+window.sendToTrackerAndRedirect = sendToTrackerAndRedirect;
+window.downloadCSV = downloadCSV;
+window.downloadPDF = downloadPDF;
 </script>
 
 </body>
 </html>
-
-

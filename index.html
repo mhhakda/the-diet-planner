@@ -4,7 +4,2648 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🍽️ Diet Planner - The Diet Planner</title>
+    <style><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍽️ Diet Planner - The Diet Planner</title>
     <style>
+        :root {
+            --bg-color: #ffffff;
+            --surface-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --text-muted: #adb5bd;
+            --border-color: #dee2e6;
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            --border-radius: 0.375rem;
+            --border-radius-lg: 0.5rem;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --progress-bg: #e9ecef;
+            --progress-height: 8px;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --surface-color: #2d2d2d;
+            --card-bg: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --text-muted: #6c6c6c;
+            --border-color: #404040;
+            --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
+            --progress-bg: #404040;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-family);
+            line-height: 1.5;
+            color: var(--text-primary);
+            background-color: var(--bg-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Navigation Styles */
+        .sidebar {
+            width: 280px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .tagline {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-menu {
+            padding: 1rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.25rem;
+            border-radius: var(--border-radius);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+
+        .nav-item:hover {
+            background: var(--surface-color);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--surface-color);
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .nav-icon {
+            margin-right: 0.75rem;
+            font-size: 1.1rem;
+        }
+
+        /* Mobile Navigation */
+        .mobile-header {
+            display: none;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1001;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-menu-button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+
+        .mobile-logo {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            color: var(--text-primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            background: var(--surface-color);
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .content-wrapper {
+            padding: 2rem;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-header {
+            margin-bottom: 2rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Form Section */
+        .form-section {
+            opacity: 1;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .form-section.hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
+            position: absolute;
+            width: 100%;
+        }
+
+        /* Results Container */
+        .results-container {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            pointer-events: none;
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            right: 2rem;
+            bottom: 2rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .results-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .results-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .edit-profile-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .edit-profile-btn:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .results-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .results-scroll {
+            flex: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            padding: 1rem;
+        }
+
+        /* Card Styles - Compact */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--surface-color);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        /* Form Styles */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            font-family: inherit;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .form-control.is-invalid {
+            border-color: var(--danger-color);
+        }
+
+        .invalid-feedback {
+            display: block;
+            margin-top: 0.25rem;
+            font-size: 0.8rem;
+            color: var(--danger-color);
+        }
+
+        /* Button Styles */
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            margin: 0.25rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: center;
+            text-decoration: none;
+            border: 1px solid transparent;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            color: #fff;
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #004085;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            color: #fff;
+            background-color: var(--text-secondary);
+            border-color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+            border-color: #4e555b;
+        }
+
+        .btn-success {
+            color: #fff;
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        .btn-success:hover {
+            background-color: #1e7e34;
+            border-color: #1c7430;
+        }
+
+        .btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+
+        /* Compact Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1rem 0.75rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .stat-unit {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .stat-target {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Compact Table Styles */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: var(--border-radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            margin: 0;
+            font-size: 0.85rem;
+        }
+
+        .table th {
+            background: var(--surface-color);
+            padding: 0.75rem 0.5rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table td {
+            padding: 0.75rem 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+
+        .table tbody tr:hover {
+            background: var(--surface-color);
+        }
+
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .meal-item {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            font-size: 0.85rem;
+        }
+
+        .meal-serving {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .meal-nutrients {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .day-header {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        /* Compact Chart Styles */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            text-align: center;
+        }
+
+        .chart-container canvas {
+            max-height: 200px;
+        }
+
+        /* Export Section - Compact */
+        .export-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .export-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        /* Loading Styles */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--card-bg);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            z-index: 1002;
+        }
+
+        .spinner {
+            border: 4px solid var(--progress-bg);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Redirect Loading Overlay */
+        .redirect-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            text-align: center;
+        }
+
+        .redirect-content {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            max-width: 400px;
+            color: var(--text-primary);
+        }
+
+        .redirect-spinner {
+            border: 4px solid var(--progress-bg);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .mobile-header {
+                display: flex;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .content-wrapper {
+                padding: 1rem;
+                padding-top: 5rem;
+            }
+
+            .results-container {
+                left: 1rem;
+                right: 1rem;
+                top: 5rem;
+                bottom: 1rem;
+            }
+
+            .results-content {
+                max-height: 85vh;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .btn-group {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
+
+            .results-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .edit-profile-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                padding: 0.75rem 0.5rem;
+            }
+
+            .table th,
+            .table td {
+                padding: 0.5rem 0.25rem;
+                font-size: 0.75rem;
+            }
+
+            .chart-container canvas {
+                max-height: 150px;
+            }
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .text-muted { color: var(--text-muted); }
+        .text-primary { color: var(--primary-color); }
+        .text-success { color: var(--success-color); }
+        .text-warning { color: var(--warning-color); }
+        .text-danger { color: var(--danger-color); }
+
+        .d-none { display: none; }
+        .d-block { display: block; }
+
+        /* Mobile overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .mobile-overlay.active {
+            display: block;
+        }
+
+        /* Fade in animation */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Scrollbar Styling */
+        .results-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .results-scroll::-webkit-scrollbar-track {
+            background: var(--surface-color);
+            border-radius: 4px;
+        }
+
+        .results-scroll::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .results-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <button class="mobile-menu-button" id="mobileMenuButton">☰</button>
+        <div class="mobile-logo">🍽️ Diet Planner</div>
+        <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
+    <!-- Redirect Loading Overlay -->
+    <div class="redirect-overlay" id="redirectOverlay">
+        <div class="redirect-content">
+            <div class="redirect-spinner"></div>
+            <h3 style="margin-bottom: 1rem;">🔄 Sending to Diet Tracker</h3>
+            <p>Preparing your personalized meal plan...</p>
+            <p style="font-size: 0.9em; color: var(--text-secondary); margin-top: 1rem;">
+                You'll be redirected automatically in a few seconds.
+            </p>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">🍽️ Diet Planner</div>
+                <div class="tagline">The Diet Planner</div>
+            </div>
+            <div class="nav-menu">
+                <button class="nav-item active" data-section="profile">
+                    <span class="nav-icon">👤</span>
+                    Profile Setup
+                </button>
+                <button class="nav-item" data-section="plan">
+                    <span class="nav-icon">📋</span>
+                    Weekly Plan
+                </button>
+                <button class="nav-item" data-section="analytics">
+                    <span class="nav-icon">📊</span>
+                    Analytics
+                </button>
+                <button class="nav-item" data-section="exports">
+                    <span class="nav-icon">📤</span>
+                    Export & Share
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                <!-- Loading State -->
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p class="loading-text">Creating your personalized meal plan...</p>
+                </div>
+
+                <!-- Form Section -->
+                <div class="form-section" id="formSection">
+                    <div class="section-header">
+                        <h1 class="section-title">👤 Complete Your Profile</h1>
+                        <p class="section-subtitle">Tell us about yourself to create your personalized meal plan</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Health Profile</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="dietForm">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="age" class="form-label">Age *</label>
+                                        <input type="number" id="age" class="form-control" min="13" max="120" required placeholder="Enter your age">
+                                        <div class="invalid-feedback" id="age-error"></div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="gender" class="form-label">Gender *</label>
+                                        <select id="gender" class="form-control" required>
+                                            <option value="">Select Gender</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="gender-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="height" class="form-label">Height (cm) *</label>
+                                        <input type="number" id="height" class="form-control" min="100" max="250" required placeholder="e.g., 175">
+                                        <div class="invalid-feedback" id="height-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="weight" class="form-label">Weight (kg) *</label>
+                                        <input type="number" id="weight" class="form-control" min="30" max="300" step="0.1" required placeholder="e.g., 70.5">
+                                        <div class="invalid-feedback" id="weight-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="goal" class="form-label">Health Goal *</label>
+                                        <select id="goal" class="form-control" required>
+                                            <option value="">Select Goal</option>
+                                            <option value="loss">Weight Loss</option>
+                                            <option value="gain">Weight Gain</option>
+                                            <option value="maintain">Maintain Weight</option>
+                                            <option value="muscle">Muscle Gain</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="goal-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="dietType" class="form-label">Dietary Preference *</label>
+                                       <select id="dietType" class="form-select" required>
+    <option value="Regular">Regular</option>
+    <option value="Keto">Ketogenic</option>
+    <option value="Low_Carb">Low Carb</option>
+    <option value="Vegetarian">Vegetarian</option>
+    <option value="Vegan">Vegan</option>
+    <option value="Mediterranean">Mediterranean</option>
+    <option value="High_Protein">High Protein</option>
+</select>
+
+                                        <div class="invalid-feedback" id="dietType-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="region" class="form-label">Region *</label>
+                                       <select id="region" class="form-select" required>
+    <option value="India">India</option>
+    <option value="USA">USA</option>
+    <option value="Europe">Europe</option>
+    <option value="Middle_Eastern">Middle East</option>
+    <option value="Latin_American">Latin America</option>
+    <option value="Nordic">Nordic</option>
+    <option value="East_Asian">East Asia</option>
+    <option value="African">Africa</option>
+    <option value="Australian">Australia</option>
+</select>
+
+                                        <div class="invalid-feedback" id="region-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="activityLevel" class="form-label">Activity Level *</label>
+                                        <select id="activityLevel" class="form-control" required>
+                                            <option value="">Select Activity Level</option>
+                                            <option value="low">Low (Sedentary)</option>
+                                            <option value="moderate">Moderate (Light exercise)</option>
+                                            <option value="high">High (Regular exercise)</option>
+                                            <option value="very-high">Very High (Intense exercise)</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="activityLevel-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="targetCalories" class="form-label">Target Daily Calories (optional)</label>
+                                        <input type="number" id="targetCalories" class="form-control" min="800" max="5000" placeholder="Auto-calculated if empty">
+                                        <div class="invalid-feedback" id="targetCalories-error"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center">
+                                    <button type="button" class="btn btn-primary btn-lg" id="generateBtn">
+                                        <span id="generateBtnText">Generate My Meal Plan</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Container -->
+                <div class="results-container" id="resultsContainer">
+                    <div class="results-header">
+                        <h1 class="results-title">🍽️ Your Meal Plan</h1>
+                        <button class="edit-profile-btn" id="editProfileBtn">
+                            <span>←</span>
+                            <span>Edit My Profile</span>
+                        </button>
+                    </div>
+                    
+                    <div class="results-content">
+                        <div class="results-scroll" id="resultsScroll">
+                            <!-- Stats Cards -->
+                            <div class="stats-grid" id="statsGrid">
+                                <!-- Stats will be populated here -->
+                            </div>
+
+                            <!-- Weekly Plan Table -->
+                            <div class="table-responsive">
+                                <div id="mealPlanTable">
+                                    <!-- Table will be populated here -->
+                                </div>
+                            </div>
+
+                            <!-- Analytics Charts -->
+                            <div class="charts-grid">
+                                <div class="chart-container">
+                                    <h3 class="chart-title">Daily Calorie Distribution</h3>
+                                    <canvas id="calorieChart" width="400" height="200"></canvas>
+                                </div>
+                                <div class="chart-container">
+                                    <h3 class="chart-title">Weekly Macros Breakdown</h3>
+                                    <canvas id="macrosChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Export Section -->
+                            <div class="export-section">
+                                <h3 class="export-title">📤 Export & Share</h3>
+                                <div class="btn-group">
+                                    <button class="btn btn-primary btn-lg" onclick="sendToTrackerAndRedirect()">
+                                        🔄 Send to Diet Tracker
+                                    </button>
+                                    <button class="btn btn-success" onclick="downloadCSV()">
+                                        📊 Download CSV
+                                    </button>
+                                    <button class="btn btn-success" onclick="downloadPDF()">
+                                        📄 Download PDF
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Diet Planner - Fixed Integration & PDF JavaScript with REAL MEAL TITLES
+        // Global variables
+        let currentMealPlan = null;
+        let currentUserProfile = null;
+        let mealDatabase = null;
+        let ChartsLoaded = false;
+        let Html2PdfLoaded = false;
+        let currentActiveSection = 'profile';
+        let currentTheme = localStorage.getItem('theme') || 'light';
+        let isResultsVisible = false;
+
+      // Integration storage key (kept, unchanged)
+const INTEGRATION_STORAGE_KEY = 'dietplanner_integration_v3';
+
+// Diet tracker URL: configurable and non-hardcoded.
+// Priority:
+// 1) window.__DIET_TRACKER_URL  (set by hosting environment or page)
+// 2) <meta name="diet-tracker-url" content="https://...">
+// 3) fallback to same-origin '/diet-tracker'
+const DIET_TRACKER_URL = (function () {
+    try {
+        if (typeof window.__DIET_TRACKER_URL === 'string' && window.__DIET_TRACKER_URL.trim()) {
+            return window.__DIET_TRACKER_URL.trim();
+        }
+        const meta = document.querySelector('meta[name="diet-tracker-url"]');
+        if (meta && meta.content && meta.content.trim()) {
+            return meta.content.trim();
+        }
+        // fallback to same origin path (will work for your hosted site)
+        return `${location.protocol}//${location.host}/diet-tracker`;
+    } catch (e) {
+        console.warn('Error resolving DIET_TRACKER_URL, using default /diet-tracker', e);
+        return '/diet-tracker';
+    }
+})();
+
+        // Safe number parsing helper
+        function safeNumber(v) {
+            if (v === null || v === undefined) return 0;
+            if (typeof v === 'number') return isNaN(v) ? 0 : v;
+            const n = parseFloat(String(v).replace(/,/g, ''));
+            return isNaN(n) ? 0 : n;
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTheme();
+            initializeNavigation();
+            initializeMobileMenu();
+            loadMealsDatabase();
+            loadExistingPlan();
+            initializeForm();
+            initializeResultsToggle();
+            
+            console.log('🍽️ Diet Planner loaded with REAL meal titles! 🎉');
+        });
+
+        // Theme Management
+        function initializeTheme() {
+            document.body.setAttribute('data-theme', currentTheme);
+            updateThemeToggle();
+            
+            const themeToggle = document.getElementById('themeToggle');
+            themeToggle.addEventListener('click', toggleTheme);
+        }
+
+        function toggleTheme() {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.body.setAttribute('data-theme', currentTheme);
+            localStorage.setItem('theme', currentTheme);
+            updateThemeToggle();
+        }
+
+        function updateThemeToggle() {
+            const themeToggle = document.getElementById('themeToggle');
+            themeToggle.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+        }
+
+        // Navigation Management
+        function initializeNavigation() {
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const targetSection = this.getAttribute('data-section');
+                    handleNavigation(targetSection);
+                });
+            });
+        }
+
+        function handleNavigation(sectionId) {
+            updateActiveNavItem(sectionId);
+            
+            if (sectionId === 'profile') {
+                showForm();
+            } else if (['plan', 'analytics', 'exports'].includes(sectionId) && currentMealPlan) {
+                showResults();
+                scrollToResultsSection(sectionId);
+            }
+            
+            closeMobileMenu();
+            currentActiveSection = sectionId;
+        }
+
+        function updateActiveNavItem(activeSection) {
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                const section = item.getAttribute('data-section');
+                if (section === activeSection) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        function scrollToResultsSection(sectionId) {
+            const resultsScroll = document.getElementById('resultsScroll');
+            let scrollTarget = 0;
+            
+            switch(sectionId) {
+                case 'plan':
+                    scrollTarget = 0;
+                    break;
+                case 'analytics':
+                    const chartsGrid = resultsScroll.querySelector('.charts-grid');
+                    if (chartsGrid) {
+                        scrollTarget = chartsGrid.offsetTop - 20;
+                    }
+                    break;
+                case 'exports':
+                    const exportSection = resultsScroll.querySelector('.export-section');
+                    if (exportSection) {
+                        scrollTarget = exportSection.offsetTop - 20;
+                    }
+                    break;
+            }
+            
+            resultsScroll.scrollTo({
+                top: scrollTarget,
+                behavior: 'smooth'
+            });
+        }
+
+  // Mobile Menu Management
+        function initializeMobileMenu() {
+            const mobileMenuButton = document.getElementById('mobileMenuButton');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            
+            if (mobileMenuButton) {
+                mobileMenuButton.addEventListener('click', toggleMobileMenu);
+            }
+            
+            if (mobileOverlay) {
+                mobileOverlay.addEventListener('click', closeMobileMenu);
+            }
+            
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    closeMobileMenu();
+                }
+            });
+        }
+
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            
+            sidebar.classList.toggle('mobile-open');
+            overlay.classList.toggle('active');
+        }
+
+        function closeMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            
+            sidebar.classList.remove('mobile-open');
+            overlay.classList.remove('active');
+        }
+
+        // Results Toggle Management
+        function initializeResultsToggle() {
+            const editProfileBtn = document.getElementById('editProfileBtn');
+            editProfileBtn.addEventListener('click', showForm);
+        }
+
+        function showForm() {
+            const formSection = document.getElementById('formSection');
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            resultsContainer.classList.remove('visible');
+            
+            setTimeout(() => {
+                formSection.classList.remove('hidden');
+                isResultsVisible = false;
+            }, 200);
+
+            updateActiveNavItem('profile');
+            currentActiveSection = 'profile';
+        }
+
+        function showResults() {
+            if (!currentMealPlan) {
+                console.warn('No meal plan available to show results');
+                return;
+            }
+
+            const formSection = document.getElementById('formSection');
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            formSection.classList.add('hidden');
+            
+            setTimeout(() => {
+                resultsContainer.classList.add('visible');
+                isResultsVisible = true;
+                
+                const resultsScroll = document.getElementById('resultsScroll');
+                resultsScroll.scrollTop = 0;
+            }, 200);
+        }
+
+        // Form Management
+        function initializeForm() {
+            const generateBtn = document.getElementById('generateBtn');
+            if (generateBtn) {
+                generateBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    handleFormSubmit(e);
+                });
+            }
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            if (!validateForm()) {
+                return;
+            }
+
+            const generateBtn = document.getElementById('generateBtn');
+            const generateBtnText = document.getElementById('generateBtnText');
+            
+            generateBtn.disabled = true;
+            generateBtnText.textContent = 'Generating...';
+            
+            showLoading();
+
+            try {
+                await generateMealPlan();
+                
+                setTimeout(() => {
+                    hideLoading();
+                    showResults();
+                    updateActiveNavItem('plan');
+                    currentActiveSection = 'plan';
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Error generating meal plan:', error);
+                hideLoading();
+                alert('Error generating meal plan: ' + error.message);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtnText.textContent = 'Generate My Meal Plan';
+            }
+        }
+
+        // Validation
+        function validateForm() {
+            const fields = ['age', 'gender', 'height', 'weight', 'goal', 'dietType', 'region', 'activityLevel'];
+            let isValid = true;
+
+            fields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                const errorDiv = document.getElementById(fieldId + '-error');
+                const control = field;
+                
+                control.classList.remove('is-invalid');
+                errorDiv.textContent = '';
+
+                if (!field.value.trim()) {
+                    control.classList.add('is-invalid');
+                    errorDiv.textContent = 'This field is required';
+                    isValid = false;
+                    return;
+                }
+
+                if (fieldId === 'age') {
+                    const age = safeNumber(field.value);
+                    if (age < 13 || age > 120) {
+                        control.classList.add('is-invalid');
+                        errorDiv.textContent = 'Age must be between 13 and 120';
+                        isValid = false;
+                    }
+                }
+
+                if (fieldId === 'height') {
+                    const height = safeNumber(field.value);
+                    if (height < 100 || height > 250) {
+                        control.classList.add('is-invalid');
+                        errorDiv.textContent = 'Height must be between 100-250 cm';
+                        isValid = false;
+                    }
+                }
+
+                if (fieldId === 'weight') {
+                    const weight = safeNumber(field.value);
+                    if (weight < 30 || weight > 300) {
+                        control.classList.add('is-invalid');
+                        errorDiv.textContent = 'Weight must be between 30-300 kg';
+                        isValid = false;
+                    }
+                }
+            });
+
+            const targetCalories = document.getElementById('targetCalories');
+            if (targetCalories.value.trim()) {
+                const calories = safeNumber(targetCalories.value);
+                if (calories < 800 || calories > 5000) {
+                    targetCalories.classList.add('is-invalid');
+                    document.getElementById('targetCalories-error').textContent = 'Target calories must be between 800-5000';
+                    isValid = false;
+                }
+            }
+
+            return isValid;
+        }
+
+        // Loading State Management
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+// Load meals database - FIXED to use real meal titles
+async function loadMealsDatabase() {
+    // If already loaded, return it
+    if (mealDatabase) return mealDatabase;
+
+    // Try to fetch your meals.json from a few likely relative locations.
+    // Put meals.json in the same folder as index.html (preferred).
+    const candidates = [
+        'meals.json',
+        '/meals.json',
+        'data/meals.json'
+        // If you want to try a remote URL (Dropbox raw link), add it here.
+    ];
+
+    let raw = null;
+    for (const url of candidates) {
+        try {
+            const res = await fetch(url, { cache: 'no-store' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            raw = await res.json();
+            console.log(`✅ Loaded meals.json from: ${url}`);
+            break;
+        } catch (err) {
+            // keep trying other candidates
+            console.warn(`Could not load meals from ${url}:`, err);
+        }
+    }
+
+    // If fetch failed, fall back (keeps app working)
+    if (!raw) {
+        console.warn('⚠️ meals.json not found or invalid — using embedded fallback data.');
+        mealDatabase = createFallbackMeals();
+        return mealDatabase;
+    }
+
+    // Normalize structure:
+    // Expecting raw to be { "RegionName": { "DietType": { "breakfast":[...], "lunch":[...], ... } } }
+    // We'll convert to exactly the structure the app expects:
+    // mealDatabase[region][dietType] = { breakfast: [...], lunch: [...], dinner: [...], snacks: [...] }
+
+    const normalizedDB = {};
+    const STANDARD_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snacks'];
+
+    // helper to coerce meal objects into the shape the app expects
+    function normalizeMealObject(meal, idx, region, diet, mealType) {
+        if (!meal || typeof meal !== 'object') {
+            // create a minimal placeholder
+            return {
+                id: `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
+                title: `${mealType} Option ${idx + 1}`,
+                serving_size: '1 serving',
+                calories: 0,
+                protein: 0,
+                carbs: 0,
+                fat: 0,
+                fiber: 0,
+                foods: []
+            };
+        }
+
+        // Prefer common field names but tolerant to variations
+        const title = (meal.title || meal.name || meal.label || '').toString().trim();
+        const serving_size = meal.serving_size || meal.servingSize || meal.serving || '';
+        const calories = safeNumber(meal.calories ?? meal.kcal ?? meal.calories_kcal ?? meal.cal ?? 0);
+        const protein = safeNumber(meal.protein ?? meal.prot ?? 0);
+        const carbs = safeNumber(meal.carbs ?? meal.carbohydrates ?? meal.carb ?? 0);
+        const fat = safeNumber(meal.fat ?? meal.fats ?? 0);
+        const fiber = safeNumber(meal.fiber ?? meal.fib ?? 0);
+
+        // Foods array: try to convert "ingredients" string into a single food item if necessary
+        let foods = [];
+        if (Array.isArray(meal.foods) && meal.foods.length) {
+            foods = meal.foods.map(f => {
+                if (typeof f === 'string') return { name: f };
+                if (typeof f === 'object') return f;
+                return { name: String(f) };
+            });
+        } else if (meal.ingredients && typeof meal.ingredients === 'string') {
+            // ingredients may be comma-separated
+            const parts = meal.ingredients.split(',').map(s => s.trim()).filter(Boolean);
+            if (parts.length === 1) {
+                foods = [{ name: parts[0] }];
+            } else if (parts.length > 1) {
+                foods = parts.map(p => ({ name: p }));
+            }
+        }
+
+        return {
+            id: meal.id ?? `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
+            title: title || `${mealType} Option ${idx + 1}`, // This ensures we have a real title
+            serving_size,
+            calories,
+            protein,
+            carbs,
+            fat,
+            fiber,
+            foods
+        };
+    }
+
+    try {
+        Object.keys(raw).forEach(regionKey => {
+            const regionContents = raw[regionKey];
+            // skip non-objects
+            if (!regionContents || typeof regionContents !== 'object') return;
+            normalizedDB[regionKey] = {};
+
+            Object.keys(regionContents).forEach(dietKey => {
+                const dietContents = regionContents[dietKey];
+                // dietContents should be an object with meal-type arrays
+                if (!dietContents || typeof dietContents !== 'object') return;
+
+                const normalizedMealsForDiet = {};
+
+                STANDARD_MEAL_TYPES.forEach(mt => {
+                    // support keys with various casing: 'Breakfast', 'breakfast', 'BREAKFAST'
+                    let arr = dietContents[mt] 
+                              || dietContents[mt.charAt(0).toUpperCase() + mt.slice(1)]
+                              || dietContents[mt.toUpperCase()]
+                              || dietContents[mt.replace('_',' ')]
+                              || [];
+
+                    if (!Array.isArray(arr)) arr = [];
+
+                    normalizedMealsForDiet[mt] = arr.map((m, idx) => normalizeMealObject(m, idx, regionKey, dietKey, mt));
+                });
+
+                normalizedDB[regionKey][dietKey] = normalizedMealsForDiet;
+            });
+        });
+
+        // If normalization produced an empty db for some reason, fallback
+        const hasData = Object.keys(normalizedDB).length > 0;
+        if (!hasData) {
+            console.warn('Normalized meals.json empty — using fallback');
+            mealDatabase = createFallbackMeals();
+        } else {
+            mealDatabase = normalizedDB;
+            console.log('✅ meals.json loaded and normalized successfully.');
+        }
+
+        return mealDatabase;
+    } catch (err) {
+        console.error('Failed while normalizing meals.json — falling back.', err);
+        mealDatabase = createFallbackMeals();
+        return mealDatabase;
+    }
+}
+
+// Fallback small dataset with REAL titles (kept to avoid crashing if meals.json missing)
+function createFallbackMeals() {
+    return {
+        "India": {
+            "Regular": {
+                breakfast: [
+                    { id: 'fb1', title: "Masala Oatmeal with Fresh Fruits", serving_size: "1 bowl", calories: 250, protein: 8, carbs: 45, fat: 4, fiber: 5, foods: [{name: "Oatmeal"}, {name: "Fresh Fruits"}, {name: "Cardamom"}] },
+                    { id: 'fb2', title: "Indian Spiced Boiled Eggs", serving_size: "2 eggs", calories: 150, protein: 12, carbs: 1, fat: 10, fiber: 0, foods: [{name: "Eggs"}, {name: "Turmeric"}, {name: "Salt"}] },
+                    { id: 'fb3', title: "Idli Sambar", serving_size: "3 idlis", calories: 180, protein: 6, carbs: 35, fat: 2, fiber: 4, foods: [{name: "Rice"}, {name: "Dal"}, {name: "Vegetables"}] }
+                ],
+                lunch: [
+                    { id: 'fl1', title: "Tandoori Chicken Salad", serving_size: "1 large bowl", calories: 350, protein: 30, carbs: 15, fat: 12, fiber: 6, foods: [{name: "Chicken breast"}, {name: "Mixed greens"}, {name: "Yogurt marinade"}] },
+                    { id: 'fl2', title: "Paneer Tikka Wrap", serving_size: "1 whole wrap", calories: 300, protein: 10, carbs: 40, fat: 8, fiber: 5, foods: [{name: "Paneer"}, {name: "Whole wheat roti"}, {name: "Vegetables"}] },
+                    { id: 'fl3', title: "Dal Palak with Brown Rice", serving_size: "1 plate", calories: 280, protein: 14, carbs: 48, fat: 5, fiber: 8, foods: [{name: "Lentils"}, {name: "Spinach"}, {name: "Brown rice"}] }
+                ],
+                dinner: [
+                    { id: 'fd1', title: "Palak Paneer with Quinoa", serving_size: "1 plate", calories: 400, protein: 20, carbs: 50, fat: 15, fiber: 5, foods: [{name: "Paneer"}, {name: "Spinach"}, {name: "Quinoa"}] },
+                    { id: 'fd2', title: "Fish Curry with Millet", serving_size: "1 plate", calories: 450, protein: 35, carbs: 40, fat: 14, fiber: 4, foods: [{name: "Fish"}, {name: "Coconut curry"}, {name: "Millet"}] },
+                    { id: 'fd3', title: "Rajma Chawal", serving_size: "1 bowl", calories: 380, protein: 16, carbs: 60, fat: 8, fiber: 12, foods: [{name: "Kidney beans"}, {name: "Basmati rice"}, {name: "Onions"}] }
+                ],
+                snacks: [
+                    { id: 'fs1', title: "Masala Roasted Nuts", serving_size: "1 small bowl", calories: 150, protein: 4, carbs: 20, fat: 6, fiber: 3, foods: [{name: "Mixed nuts"}, {name: "Spices"}] },
+                    { id: 'fs2', title: "Fruit Chaat", serving_size: "1 bowl", calories: 120, protein: 2, carbs: 28, fat: 1, fiber: 5, foods: [{name: "Seasonal fruits"}, {name: "Chaat masala"}, {name: "Lemon"}] }
+                ]
+            }
+        }
+    };
+}
+
+
+        // Calculate BMR and target calories
+        function calculateTargetCalories(profile) {
+            const age = safeNumber(profile.age);
+            const weight = safeNumber(profile.weight);
+            const height = safeNumber(profile.height);
+            
+            // Mifflin-St Jeor Equation
+            let bmr;
+            if (profile.gender === 'male') {
+                bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+            } else {
+                bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+            }
+
+            // Activity factor
+            const activityFactors = {
+                'low': 1.2,
+                'moderate': 1.375,
+                'high': 1.55,
+                'very-high': 1.725
+            };
+
+            let tdee = bmr * (activityFactors[profile.activityLevel] || 1.2);
+
+            // Goal adjustment
+            switch (profile.goal) {
+                case 'loss':
+                    tdee *= 0.8; // 20% deficit
+                    break;
+                case 'gain':
+                case 'muscle':
+                    tdee *= 1.15; // 15% surplus
+                    break;
+                case 'maintain':
+                default:
+                    // No change
+                    break;
+            }
+
+            return Math.round(tdee);
+        }
+
+        // FIXED: Smart meal selection algorithm - NOW USES REAL MEAL TITLES
+        function selectMealsForWeek(meals, targetCalories, profile) {
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks'];
+            const weeklyPlan = {};
+            const usedMealIds = new Set();
+
+            // Calorie distribution
+            const calorieDistribution = {
+                breakfast: 0.25,
+                lunch: 0.35,
+                dinner: 0.35,
+                snacks: 0.05
+            };
+
+            days.forEach((day, dayIndex) => {
+                weeklyPlan[day] = {};
+                
+                mealTypes.forEach((mealType, mealIndex) => {
+                    const targetForMeal = Math.round(targetCalories * calorieDistribution[mealType]);
+                    const availableMeals = meals[mealType] || [];
+                    
+                    if (availableMeals.length === 0) {
+                        console.warn(`⚠️ No meals available for ${profile.region}/${profile.dietType}/${mealType}`);
+                        weeklyPlan[day][mealType] = selectedMeal;
+                    usedMealIds.add(selectedMeal.id);
+                    
+                    console.log(`✅ Selected meal for ${day} ${mealType}: ${selectedMeal.title}`);
+                });
+            });
+
+            return weeklyPlan;
+        }
+
+        // FIXED: Emergency meal creation with real titles (only used if no meals.json data available)
+        function createEmergencyMeal(mealType, targetCalories) {
+            const emergencyMeals = {
+                breakfast: { 
+                    title: "Healthy Morning Bowl", 
+                    serving_size: "1 serving", 
+                    calories: Math.round(targetCalories),
+                    foods: [{name: "Mixed grains"}, {name: "Fresh fruits"}]
+                },
+                lunch: { 
+                    title: "Balanced Power Lunch", 
+                    serving_size: "1 serving", 
+                    calories: Math.round(targetCalories),
+                    foods: [{name: "Lean protein"}, {name: "Vegetables"}, {name: "Whole grains"}]
+                },
+                dinner: { 
+                    title: "Nutritious Evening Meal", 
+                    serving_size: "1 serving", 
+                    calories: Math.round(targetCalories),
+                    foods: [{name: "Quality protein"}, {name: "Fiber-rich vegetables"}]
+                },
+                snacks: { 
+                    title: "Energy Boost Snack", 
+                    serving_size: "1 serving", 
+                    calories: Math.round(targetCalories),
+                    foods: [{name: "Nuts and fruits"}]
+                }
+            };
+
+            return {
+                id: `emergency_${mealType}_${Date.now()}`,
+                ...emergencyMeals[mealType],
+                protein: Math.round(targetCalories * 0.15 / 4),
+                carbs: Math.round(targetCalories * 0.5 / 4),
+                fat: Math.round(targetCalories * 0.35 / 9),
+                fiber: 5
+            };
+        }
+
+        // Generate meal plan
+        async function generateMealPlan() {
+            try {
+                // keep your existing loader call
+                await loadMealsDatabase();
+
+                const profile = {
+                    age: safeNumber(document.getElementById('age').value),
+                    gender: document.getElementById('gender').value,
+                    height: safeNumber(document.getElementById('height').value),
+                    weight: safeNumber(document.getElementById('weight').value),
+                    goal: document.getElementById('goal').value,
+                    dietType: document.getElementById('dietType').value,
+                    region: document.getElementById('region').value,
+                    activityLevel: document.getElementById('activityLevel').value,
+                    targetCalories: safeNumber(document.getElementById('targetCalories').value)
+                };
+
+                if (!profile.targetCalories || profile.targetCalories === 0) {
+                    profile.targetCalories = calculateTargetCalories(profile);
+                }
+
+                // Robust region key finder (tolerant to form values vs meals.json keys)
+                function findRegionKey(selectedRegion) {
+                    if (!selectedRegion) return null;
+                    const keys = Object.keys(mealDatabase || {});
+                    // direct
+                    if (selectedRegion in (mealDatabase || {})) return selectedRegion;
+
+                    // common mapping — keep minimal so we don't change config elsewhere
+                    const mapping = {
+                        'East_Asian': 'East_Asian',
+                        'East_Asia': 'East_Asian',
+                        'East Asia': 'East_Asian',
+                        'Australian': 'Australian',
+                        'Australia': 'Australian',
+                        'USA': 'USA',
+                        'India': 'India',
+                        'Europe': 'Europe',
+                        'Middle_Eastern': 'Middle_Eastern',
+                        'Latin_American': 'Latin_American',
+                        'Nordic': 'Nordic',
+                        'African': 'African'
+                    };
+
+                    if (mapping[selectedRegion] && mapping[selectedRegion] in (mealDatabase || {})) {
+                        return mapping[selectedRegion];
+                    }
+
+                    // normalize for underscores/spaces/case
+                    const normalized = selectedRegion.replace(/[_\s]+/g, ' ').toLowerCase();
+                    for (const k of keys) {
+                        if (k.toLowerCase() === normalized) return k;
+                    }
+
+                    // substring matches (try to be permissive)
+                    for (const k of keys) {
+                        if (k.toLowerCase().includes(normalized) || normalized.includes(k.toLowerCase())) return k;
+                    }
+
+                    return null;
+                }
+
+                const regionKey = findRegionKey(profile.region);
+                if (!regionKey) {
+                    throw new Error(`No meals available for region: ${profile.region}`);
+                }
+
+                const regionMeals = mealDatabase[regionKey];
+                if (!regionMeals) {
+                    throw new Error(`No meals available for region: ${profile.region}`);
+                }
+
+                // Robust diet lookup
+                function findDietMeals(regionMealsObj, dietTypeRequested) {
+                    if (!regionMealsObj) return null;
+                    if (!dietTypeRequested) return regionMealsObj['Regular'] || Object.values(regionMealsObj)[0];
+
+                    // direct
+                    if (dietTypeRequested in regionMealsObj) return regionMealsObj[dietTypeRequested];
+
+                    const dNormalized = dietTypeRequested.replace(/[_\s]+/g, ' ').toLowerCase();
+                    for (const key of Object.keys(regionMealsObj)) {
+                        if (key.toLowerCase() === dNormalized) return regionMealsObj[key];
+                    }
+                    for (const key of Object.keys(regionMealsObj)) {
+                        if (key.toLowerCase().includes(dNormalized) || dNormalized.includes(key.toLowerCase())) return regionMealsObj[key];
+                    }
+
+                    return regionMealsObj['Regular'] || Object.values(regionMealsObj)[0];
+                }
+
+                const dietMeals = findDietMeals(regionMeals, profile.dietType);
+                if (!dietMeals) {
+                    throw new Error(`No meals available for diet type: ${profile.dietType} in region: ${profile.region}`);
+                }
+
+                const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
+
+                currentMealPlan = weeklyPlan;
+                currentUserProfile = profile;
+
+                localStorage.setItem('last_generated_plan_v1', JSON.stringify({
+                    plan: weeklyPlan,
+                    profile: profile,
+                    generated: new Date().toISOString()
+                }));
+
+                displayMealPlan(weeklyPlan, profile);
+                await createCharts(weeklyPlan, profile);
+
+                console.log('✅ Meal plan generated successfully with REAL titles!');
+                return weeklyPlan;
+            } catch (error) {
+                console.error('Error generating meal plan:', error);
+                throw error;
+            }
+        }
+
+        // Display meal plan with stats
+        function displayMealPlan(weeklyPlan, profile) {
+            displayStatsCards(weeklyPlan, profile);
+            displayMealTable(weeklyPlan);
+        }
+
+        // Display stats cards
+        function displayStatsCards(weeklyPlan, profile) {
+            const weeklyStats = calculateWeeklyStats(weeklyPlan);
+            const container = document.getElementById('statsGrid');
+            
+            const targetDifference = Math.round(((weeklyStats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
+            
+            container.innerHTML = `
+                <div class="stat-card fade-in">
+                    <div class="stat-title">Calories</div>
+                    <div class="stat-value">${Math.round(weeklyStats.avgCalories)}<span class="stat-unit"></span></div>
+                    <div class="stat-target">/ ${profile.targetCalories}</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-title">Protein</div>
+                    <div class="stat-value">${Math.round(weeklyStats.avgProtein)}<span class="stat-unit">g</span></div>
+                    <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.15 / 4)}g</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-title">Carbs</div>
+                    <div class="stat-value">${Math.round(weeklyStats.avgCarbs)}<span class="stat-unit">g</span></div>
+                    <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.5 / 4)}g</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-title">Fat</div>
+                    <div class="stat-value">${Math.round(weeklyStats.avgFat)}<span class="stat-unit">g</span></div>
+                    <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.35 / 9)}g</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-title">Fiber</div>
+                    <div class="stat-value">${Math.round(weeklyStats.avgFiber)}<span class="stat-unit">g</span></div>
+                    <div class="stat-target">/ 25g</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-title">Target Diff</div>
+                    <div class="stat-value ${targetDifference >= 0 ? 'text-success' : 'text-warning'}">
+                        ${targetDifference >= 0 ? '+' : ''}${targetDifference}<span class="stat-unit">%</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // FIXED: Helper function to get meal title - prioritizes real titles from JSON
+        function getMealTitle(meal) {
+            if (!meal) return 'No meal';
+            if (typeof meal === 'string') return meal;
+            
+            // Priority order: title, name, display_name, dish_name, label
+            const candidates = [meal.title, meal.name, meal.display_name, meal.dish_name, meal.label];
+            for (const c of candidates) {
+                if (c && String(c).trim()) return String(c).trim();
+            }
+            
+            // If foods array exists, create a descriptive title
+            if (Array.isArray(meal.foods) && meal.foods.length) {
+                const foodNames = meal.foods.map(f => {
+                    if (!f) return '';
+                    if (typeof f === 'string') return f;
+                    return f.name || f.item || f.title || '';
+                }).filter(Boolean).slice(0, 3);
+                
+                if (foodNames.length) {
+                    return foodNames.join(' & ');
+                }
+            }
+            
+            // Fallback to ingredients if available
+            if (meal.ingredients && typeof meal.ingredients === 'string') {
+                const words = meal.ingredients.trim().split(/\s+/).slice(0, 6);
+                if (words.length) return words.join(' ') + (words.length >= 6 ? '...' : '');
+            }
+            
+            // Last resort fallback
+            if (meal.id) return `Meal #${meal.id}`;
+            return 'Custom Meal';
+        }
+
+        // FIXED: Display meal table with REAL titles from JSON
+        function displayMealTable(weeklyPlan) {
+            const container = document.getElementById('mealPlanTable');
+            if (!container) return;
+
+            const days = Object.keys(weeklyPlan || {});
+            const mealTypes = [
+                { key: 'breakfast', name: '🌅 Breakfast' },
+                { key: 'lunch', name: '🍽️ Lunch' },
+                { key: 'dinner', name: '🌙 Dinner' },
+                { key: 'snacks', name: '🍎 Snack' }
+            ];
+
+            function escapeHtml(str) {
+                if (str === null || str === undefined) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function num(v) {
+                return safeNumber(v);
+            }
+
+            let html = '<table class="table">';
+            html += '<thead><tr>';
+            html += '<th>Day</th>';
+            mealTypes.forEach(meal => {
+                html += `<th>${escapeHtml(meal.name)}</th>`;
+            });
+            html += '<th>Daily Total</th>';
+            html += '</tr></thead><tbody>';
+
+            days.forEach(day => {
+                html += '<tr>';
+                html += `<td class="day-header">${escapeHtml(day)}</td>`;
+
+                let totalCalories = 0;
+
+                mealTypes.forEach(mealType => {
+                    const meal = (weeklyPlan[day] || {})[mealType.key];
+
+                    if (meal) {
+                        // FIXED: Use getMealTitle to get the REAL title from JSON
+                        const titleText = getMealTitle(meal);
+                        const calories = num(meal.calories || meal.kcal || meal.calories_kcal || 0);
+                        totalCalories += calories;
+
+                        const serving = meal.serving_size || meal.servingSize || '';
+                        const protein = num(meal.protein || meal.prot || 0);
+                        const carbs = num(meal.carbs || meal.carbohydrates || 0);
+                        const fat = num(meal.fat || meal.fats || 0);
+                        const fiber = num(meal.fiber || 0);
+
+                        html += `<td>
+                            <div class="meal-item">${escapeHtml(titleText)}</div>
+                            <div class="meal-serving text-primary">${escapeHtml(String(calories))} kcal</div>`;
+
+                        if (serving) {
+                            html += `<div class="meal-serving">${escapeHtml(serving)}</div>`;
+                        }
+
+                        if (protein || carbs || fat || fiber) {
+                            html += `<div class="meal-nutrients">
+                                P: ${escapeHtml(String(protein))}g • C: ${escapeHtml(String(carbs))}g • F: ${escapeHtml(String(fat))}g${(typeof fiber !== 'undefined' ? ` • Fib: ${escapeHtml(String(fiber))}g` : '')}
+                            </div>`;
+                        }
+
+                        html += '</td>';
+                    } else {
+                        html += '<td><div class="text-muted">No meal</div></td>';
+                    }
+                });
+
+                html += `<td><strong class="text-success">${Math.round(totalCalories)} kcal</strong></td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Calculate weekly statistics
+        function calculateWeeklyStats(weeklyPlan) {
+            let totalCalories = 0;
+            let totalProtein = 0;
+            let totalCarbs = 0;
+            let totalFat = 0;
+            let totalFiber = 0;
+            let mealCount = 0;
+
+            Object.keys(weeklyPlan).forEach(day => {
+                Object.keys(weeklyPlan[day]).forEach(mealType => {
+                    const meal = weeklyPlan[day][mealType];
+                    if (meal) {
+                        totalCalories += safeNumber(meal.calories);
+                        totalProtein += safeNumber(meal.protein);
+                        totalCarbs += safeNumber(meal.carbs);
+                        totalFat += safeNumber(meal.fat);
+                        totalFiber += safeNumber(meal.fiber);
+                        mealCount++;
+                    }
+                });
+            });
+
+            return {
+                totalCalories,
+                avgCalories: totalCalories / 7,
+                totalProtein,
+                avgProtein: totalProtein / 7,
+                totalCarbs,
+                avgCarbs: totalCarbs / 7,
+                totalFat,
+                avgFat: totalFat / 7,
+                totalFiber,
+                avgFiber: totalFiber / 7,
+                mealCount
+            };
+        }
+
+        // Lazy load Chart.js
+        async function loadChartJS() {
+            if (ChartsLoaded || window.Chart) {
+                return Promise.resolve();
+            }
+
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+                script.onload = () => {
+                    ChartsLoaded = true;
+                    resolve();
+                };
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        // Create charts
+        async function createCharts(weeklyPlan, profile) {
+            try {
+                await loadChartJS();
+                
+                const days = Object.keys(weeklyPlan);
+                const dailyCalories = days.map(day => {
+                    let dayTotal = 0;
+                    Object.keys(weeklyPlan[day]).forEach(mealType => {
+                        const meal = weeklyPlan[day][mealType];
+                        if (meal) dayTotal += safeNumber(meal.calories);
+                    });
+                    return dayTotal;
+                });
+
+                const weeklyStats = calculateWeeklyStats(weeklyPlan);
+
+                const isDark = currentTheme === 'dark';
+                const textColor = isDark ? '#ffffff' : '#212529';
+                const gridColor = isDark ? '#404040' : '#dee2e6';
+
+                const calorieCtx = document.getElementById('calorieChart');
+                if (calorieCtx) {
+                    // destroy existing chart instance if present to avoid "canvas in use" error
+                    if (window.calorieChartInstance && typeof window.calorieChartInstance.destroy === 'function') {
+                        window.calorieChartInstance.destroy();
+                    }
+
+                    window.calorieChartInstance = new Chart(calorieCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: days.map(day => day.substr(0, 3)),
+                            datasets: [{
+                                label: 'Daily Calories',
+                                data: dailyCalories,
+                                backgroundColor: 'rgba(0, 123, 255, 0.8)',
+                                borderColor: 'rgba(0, 123, 255, 1)',
+                                borderWidth: 1,
+                                borderRadius: 2,
+                            }, {
+                                label: 'Target',
+                                data: Array(7).fill(profile.targetCalories),
+                                type: 'line',
+                                borderColor: 'rgba(40, 167, 69, 1)',
+                                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                                borderWidth: 2,
+                                fill: false,
+                                pointBackgroundColor: 'rgba(40, 167, 69, 1)',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 1,
+                                pointRadius: 3,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                    labels: {
+                                        usePointStyle: true,
+                                        padding: 15,
+                                        color: textColor,
+                                        font: { size: 11 }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: { color: gridColor },
+                                    ticks: { color: textColor, font: { size: 10 } }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Calories',
+                                        color: textColor,
+                                        font: { size: 11 }
+                                    },
+                                    grid: { color: gridColor },
+                                    ticks: { color: textColor, font: { size: 10 } }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                const macrosCtx = document.getElementById('macrosChart');
+                if (macrosCtx) {
+                    // destroy existing macros chart if present
+                    if (window.macrosChartInstance && typeof window.macrosChartInstance.destroy === 'function') {
+                        window.macrosChartInstance.destroy();
+                    }
+
+                    const proteinCals = weeklyStats.totalProtein * 4;
+                    const carbsCals = weeklyStats.totalCarbs * 4;
+                    const fatCals = weeklyStats.totalFat * 9;
+
+                    window.macrosChartInstance = new Chart(macrosCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Protein', 'Carbs', 'Fat'],
+                            datasets: [{
+                                data: [proteinCals, carbsCals, fatCals],
+                                backgroundColor: [
+                                    'rgba(0, 123, 255, 0.8)',
+                                    'rgba(40, 167, 69, 0.8)',
+                                    'rgba(255, 193, 7, 0.8)'
+                                ],
+                                borderColor: [
+                                    'rgba(0, 123, 255, 1)',
+                                    'rgba(40, 167, 69, 1)',
+                                    'rgba(255, 193, 7, 1)'
+                                ],
+                                borderWidth: 1,
+                                hoverOffset: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        usePointStyle: true,
+                                        padding: 10,
+                                        color: textColor,
+                                        font: { size: 10 }
+                                    }
+                                },
+                                tooltip: {
+                                    titleFont: { size: 11 },
+                                    bodyFont: { size: 10 },
+                                    callbacks: {
+                                        label: function(context) {
+                                            const label = context.label;
+                                            const value = context.raw;
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = Math.round((value / total) * 100);
+                                            return `${label}: ${percentage}% (${Math.round(value)} cal)`;
+                                        }
+                                    }
+                                }
+                            },
+                            cutout: '60%'
+                        }
+                    });
+                }
+
+            } catch (error) {
+                console.error('Failed to create charts:', error);
+            }
+        }
+
+     // Robust send to tracker and redirect (tries multiple ways, does not hardcode)
+function sendToTrackerAndRedirect() {
+    if (!currentMealPlan || !currentUserProfile) {
+        alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.');
+        return;
+    }
+
+    const overlay = document.getElementById('redirectOverlay');
+    if (overlay) overlay.style.display = 'flex';
+
+    const integrationData = {
+        version: '3.0',
+        timestamp: new Date().toISOString(),
+        source: 'thedietplanner-diet-planner',
+        userProfile: currentUserProfile,
+        mealPlan: currentMealPlan,
+        dailyTargets: {
+            calories: currentUserProfile.targetCalories,
+            protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4),
+            carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4),
+            fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9),
+            fiber: 25,
+            water: 2000
+        }
+    };
+
+    try {
+        // Save integration payload under a few keys (for compatibility)
+        const payloadStr = JSON.stringify(integrationData);
+        localStorage.setItem(INTEGRATION_STORAGE_KEY, payloadStr);
+        localStorage.setItem('planned_meals_v1', payloadStr);
+        localStorage.setItem('diettracker_import', payloadStr);
+        localStorage.setItem('meal_plan_transfer', payloadStr);
+        localStorage.setItem('meal_plan_sent', 'true');
+
+        console.log('✅ Meal plan data stored for Diet Tracker');
+
+        // Get configurable redirect URL
+        const redirectUrl = document.body && document.body.getAttribute('data-diet-tracker-url') ? document.body.getAttribute('data-diet-tracker-url') : (typeof DIET_TRACKER_URL !== 'undefined' ? DIET_TRACKER_URL : '/diet-tracker');
+
+        // Try to open in a new tab first (works even if inside iframe)
+        let opened = false;
+        try {
+            const newWin = window.open(redirectUrl, '_blank');
+            opened = !!(newWin && !newWin.closed);
+        } catch (err) {
+            opened = false;
+            console.warn('window.open failed', err);
+        }
+
+        if (opened) {
+            // Good — opened in a new tab
+            if (overlay) overlay.style.display = 'none';
+            // Optionally give user feedback
+            setTimeout(() => alert('✅ Sent to Diet Tracker. A new tab opened with the Diet Tracker.'), 300);
+            return;
+        }
+
+        // If not opened and we're top-level, navigate
+        try {
+            if (window.top === window.self) {
+                // not inside iframe — safe to navigate
+                setTimeout(() => { window.location.href = redirectUrl; }, 2000);
+                return;
+            }
+
+            // If inside an iframe, attempt to postMessage to parent and let parent handle redirect
+            try {
+                window.parent.postMessage({
+                    type: 'dietplanner_integration',
+                    source: 'thedietplanner-diet-planner',
+                    payload: integrationData
+                }, '*');
+                if (overlay) overlay.style.display = 'none';
+                // Provide user a fallback link
+                const fallback = confirm('Sent data for Diet Tracker. The page could not open in a new tab automatically. Click OK to open the Diet Tracker in a new tab.');
+                if (fallback) window.open(redirectUrl, '_blank');
+                return;
+            } catch (pmErr) {
+                console.warn('postMessage to parent failed', pmErr);
+            }
+
+        } catch (navErr) {
+            console.warn('Navigation attempt failed', navErr);
+        }
+
+        // Last-resort: show fallback link
+        if (overlay) overlay.style.display = 'none';
+        const userOk = confirm('Data stored for Diet Tracker. Click OK to open the Diet Tracker in a new tab.');
+        if (userOk) window.open(redirectUrl, '_blank');
+
+    } catch (error) {
+        console.error('Failed to store meal plan data:', error);
+        if (overlay) overlay.style.display = 'none';
+        alert('❌ Failed to prepare data for Diet Tracker. Please try again.');
+    }
+}
+
+        // FIXED: CSV Export with REAL meal titles
+        function downloadCSV() {
+            if (!currentMealPlan || !currentUserProfile) {
+                alert('❌ No meal plan available to export\nPlease generate a meal plan first.');
+                return;
+            }
+
+            let csvContent = '\uFEFF';
+            csvContent += 'Date,Meal Time,Food Name,Serving Size,Calories,Protein,Carbs,Fat,Fiber\n';
+
+            const days = Object.keys(currentMealPlan);
+            const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks'];
+
+            days.forEach(day => {
+                mealTypes.forEach(mealType => {
+                    const meal = currentMealPlan[day][mealType];
+                    if (meal) {
+                        // FIXED: Use getMealTitle to get REAL title from JSON
+                        const titleSafe = getMealTitle(meal).replace(/"/g, '""');
+
+                        const row = [
+                            day,
+                            mealType.charAt(0).toUpperCase() + mealType.slice(1),
+                            `"${titleSafe}"`,
+                            `"${(meal.serving_size || 'N/A').replace(/"/g, '""')}"`,
+                            safeNumber(meal.calories),
+                            safeNumber(meal.protein),
+                            safeNumber(meal.carbs),
+                            safeNumber(meal.fat),
+                            safeNumber(meal.fiber)
+                        ].join(',');
+                        csvContent += row + '\n';
+                    }
+                });
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `meal-plan-${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            console.log('✅ CSV file downloaded successfully with REAL meal titles!');
+            clearDietTrackerStorage();
+        }
+
+        // Helper to clear diet tracker storage after exports
+        function clearDietTrackerStorage() {
+            try {
+                const keys = [
+                    INTEGRATION_STORAGE_KEY || 'dietplanner_integration_v3',
+                    'planned_meals_v1',
+                    'diettracker_import',
+                    'meal_plan_transfer',
+                    'meal_plan_sent'
+                ];
+                keys.forEach(k => localStorage.removeItem(k));
+                console.log('✅ Cleared diet tracker integration keys from localStorage');
+            } catch (e) {
+                console.warn('Failed clearing diet tracker storage:', e);
+            }
+        }
+
+        // Lazy load html2pdf
+        async function loadHtml2Pdf() {
+            if (Html2PdfLoaded || window.html2pdf) {
+                return Promise.resolve();
+            }
+
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+                script.onload = () => {
+                    Html2PdfLoaded = true;
+                    resolve();
+                };
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        // FIXED: PDF export with REAL meal titles
+        async function downloadPDF() {
+            try {
+                if (!currentMealPlan || !currentUserProfile) {
+                    alert("Please generate a meal plan first!");
+                    return;
+                }
+
+                // ensure html2pdf lib is loaded
+                try {
+                    await loadHtml2Pdf();
+                } catch (err) {
+                    console.error('Failed to load html2pdf library:', err);
+                    alert('Failed to load PDF library. Check your connection and try again.');
+                    return;
+                }
+
+                const html2pdfLib = (typeof html2pdf !== 'undefined') ? html2pdf : (window && window.html2pdf ? window.html2pdf : null);
+                if (!html2pdfLib) {
+                    console.error('html2pdf not available after loading.');
+                    alert('PDF library not available. Try reloading the page.');
+                    return;
+                }
+
+                const days = Object.keys(currentMealPlan);
+                const mealTypes = [
+                    { key: 'breakfast', name: '🌅 Breakfast' },
+                    { key: 'lunch', name: '🍽️ Lunch' },
+                    { key: 'dinner', name: '🌙 Dinner' },
+                    { key: 'snacks', name: '🍎 Snack' }
+                ];
+
+                const weeklyStats = calculateWeeklyStats(currentMealPlan);
+
+                // Build HTML content (simple, reliable styling)
+                let html = `
+                    <div style="font-family: Arial, Helvetica, sans-serif; padding:18px;">
+                        <h1 style="text-align:center; color:#007bff; margin-bottom:6px;">🍽️ The Diet Planner</h1>
+                        <p style="text-align:center; color:#6c757d; margin-top:0;">Personalized Meal Plan — ${new Date().toLocaleDateString()}</p>
+
+                        <h2 style="color:#212529; margin-top:18px;">📈 Weekly Overview</h2>
+                        <p><strong>Average Calories:</strong> ${Math.round(weeklyStats.avgCalories)} kcal</p>
+                        <p><strong>Average Protein:</strong> ${Math.round(weeklyStats.avgProtein)} g</p>
+                        <p><strong>Average Carbs:</strong> ${Math.round(weeklyStats.avgCarbs)} g</p>
+                        <p><strong>Average Fat:</strong> ${Math.round(weeklyStats.avgFat)} g</p>
+                        <p><strong>Average Fiber:</strong> ${Math.round(weeklyStats.avgFiber)} g</p>
+
+                        <h2 style="color:#212529; margin-top:22px;">🗓️ 7-Day Meal Plan</h2>
+                `;
+
+                days.forEach((day, index) => {
+                    html += `
+                        <h3 style="color:#007bff; margin-bottom:6px;">${day} (Day ${index + 1})</h3>
+                        <table style="width:100%; border-collapse:collapse; margin-bottom:14px; font-size:13px;">
+                            <thead>
+                                <tr style="background:#f3f4f6;">
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:left;">Meal</th>
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:left;">Food</th>
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:center;">Cal</th>
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:center;">P (g)</th>
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:center;">C (g)</th>
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:center;">F (g)</th>
+                                    <th style="padding:8px; border:1px solid #e6e7e9; text-align:center;">Fib (g)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    mealTypes.forEach(mealType => {
+                        const meal = (currentMealPlan[day] || {})[mealType.key];
+                        if (!meal) return;
+
+                        // FIXED: Use getMealTitle for REAL titles from JSON
+                        const titleText = getMealTitle(meal);
+                        const calories = safeNumber(meal.calories || meal.kcal || meal.calories_kcal || 0);
+                        const protein = safeNumber(meal.protein || meal.prot || 0);
+                        const carbs = safeNumber(meal.carbs || meal.carbohydrates || 0);
+                        const fat = safeNumber(meal.fat || meal.fats || 0);
+                        const fiber = safeNumber(meal.fiber || 0);
+                        const serving = meal.serving_size || meal.servingSize || '';
+
+                        // Build food list for better PDF display
+                        let foodList = '';
+                        if (Array.isArray(meal.foods) && meal.foods.length) {
+                            foodList = meal.foods.map(f => {
+                                if (typeof f === 'string') return f;
+                                const name = (f.name || f.title || '').trim();
+                                const qty = f.quantity ? ` (${f.quantity})` : '';
+                                return name + qty;
+                            }).filter(Boolean).slice(0, 5).join(', ');
+                        }
+                        
+                        if (!foodList && meal.ingredients) {
+                            foodList = meal.ingredients;
+                        }
+                        
+                        if (!foodList) {
+                            foodList = titleText; // fallback to title if no foods
+                        }
+
+                        function escapeHtmlForPDF(str) {
+                            if (str === null || str === undefined) return '';
+                            return String(str)
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/"/g, '&quot;')
+                                .replace(/'/g, '&#039;');
+                        }
+
+                        html += `
+                            <tr>
+                                <td style="padding:8px; border:1px solid #e6e7e9; vertical-align:top; width:12%;"><strong>${escapeHtmlForPDF(mealType.name)}</strong></td>
+                                <td style="padding:8px; border:1px solid #e6e7e9; vertical-align:top; width:48%;">
+                                    <div style="font-weight:600; margin-bottom:4px; color:#007bff;">${escapeHtmlForPDF(titleText)}</div>
+                                    <div style="color:#666; font-size:11px; margin-bottom:2px;">${escapeHtmlForPDF(foodList)}</div>
+                                    <div style="color:#6c757d; font-size:10px;">Serving: ${escapeHtmlForPDF(serving || 'Standard serving')}</div>
+                                </td>
+                                <td style="padding:8px; border:1px solid #e6e7e9; text-align:center; vertical-align:top; width:8%;">${calories}</td>
+                                <td style="padding:8px; border:1px solid #e6e7e9; text-align:center; vertical-align:top; width:6%;">${protein}</td>
+                                <td style="padding:8px; border:1px solid #e6e7e9; text-align:center; vertical-align:top; width:6%;">${carbs}</td>
+                                <td style="padding:8px; border:1px solid #e6e7e9; text-align:center; vertical-align:top; width:6%;">${fat}</td>
+                                <td style="padding:8px; border:1px solid #e6e7e9; text-align:center; vertical-align:top; width:6%;">${fiber}</td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `</tbody></table>`;
+                });
+
+                html += `
+                        <div style="margin-top:20px; text-align:center; color:#6c757d; font-size:12px;">
+                            <p>Generated by The Diet Planner • ${new Date().toLocaleDateString()}</p>
+                            <p>Personalized nutrition plan for ${escapeHtmlForPDF(currentUserProfile.gender === 'male' ? 'Male' : currentUserProfile.gender === 'female' ? 'Female' : 'Individual')}, Age ${currentUserProfile.age}, ${currentUserProfile.goal.charAt(0).toUpperCase() + currentUserProfile.goal.slice(1)} Goal</p>
+                        </div>
+                    </div>
+                `;
+
+                const tempDiv = document.createElement('div');
+                tempDiv.style.boxSizing = 'border-box';
+                tempDiv.style.width = '800px';
+                tempDiv.style.padding = '8px';
+                tempDiv.innerHTML = html;
+                document.body.appendChild(tempDiv);
+
+                const opt = {
+                    margin:       10,
+                    filename:     `TheDietPlanner-MealPlan-${new Date().toISOString().split('T')[0]}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                console.log("📄 Generating PDF with REAL meal titles...");
+                try {
+                    await html2pdfLib().from(tempDiv).set(opt).save();
+                    console.log("✅ PDF downloaded successfully with REAL meal titles!");
+                    clearDietTrackerStorage();
+                } catch (saveErr) {
+                    console.warn('html2pdf save() failed, falling back to blob output:', saveErr);
+                    try {
+                        const blob = await html2pdfLib().from(tempDiv).set(opt).output('blob');
+                        const url = URL.createObjectURL(blob);
+                        window.open(url, '_blank');
+                        setTimeout(() => URL.revokeObjectURL(url), 2000);
+                        clearDietTrackerStorage();
+                    } catch (blobErr) {
+                        console.error('PDF fallback also failed:', blobErr);
+                        alert('PDF generation failed. See console for details.');
+                    }
+                } finally {
+                    if (tempDiv && tempDiv.parentNode) tempDiv.parentNode.removeChild(tempDiv);
+                }
+
+            } catch (err) {
+                console.error("❌ PDF generation failed:", err);
+                alert("Failed to generate PDF. Check console for errors.");
+            }
+        }
+
+        // Load existing plan on page load
+        function loadExistingPlan() {
+            try {
+                const stored = localStorage.getItem('last_generated_plan_v1');
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    const generated = new Date(data.generated);
+                    const now = new Date();
+                    const daysDiff = (now - generated) / (1000 * 60 * 60 * 24);
+                    
+                    if (daysDiff <= 7 && data.plan && data.profile) {
+                        currentMealPlan = data.plan;
+                        currentUserProfile = data.profile;
+                        
+                        // Auto-populate form with previous data
+                        if (currentUserProfile) {
+                            Object.keys(currentUserProfile).forEach(key => {
+                                const field = document.getElementById(key);
+                                if (field && currentUserProfile[key]) {
+                                    field.value = currentUserProfile[key];
+                                }
+                            });
+                        }
+                        
+                        // Display the plan in form view (don't auto-show results)
+                        if (currentMealPlan) {
+                            displayMealPlan(currentMealPlan, currentUserProfile);
+                            createCharts(currentMealPlan, currentUserProfile);
+                        }
+                        
+                        console.log('✅ Loaded existing meal plan from localStorage');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load existing plan:', error);
+            }
+        }
+
+        console.log('🍽️ Diet Planner with REAL meal titles ready! 🎉');
+           document.addEventListener("DOMContentLoaded", () => {
+    console.log("🚀 DOM Loaded - initializing with REAL meal titles...");
+
+    initializeTheme();
+    initializeNavigation();
+    initializeMobileMenu();
+    loadMealsDatabase();
+    loadExistingPlan();
+    initializeForm();
+    initializeResultsToggle();
+});
+
+    </script>
+</body>
+</html> createEmergencyMeal(mealType, targetForMeal);
+                        return;
+                    }
+
+                    // Try to find meals within calorie range first
+                    let suitableMeals = availableMeals.filter(meal => {
+                        const calories = safeNumber(meal.calories);
+                        const isUnused = !usedMealIds.has(meal.id);
+                        const isInRange = calories >= targetForMeal * 0.7 && calories <= targetForMeal * 1.3;
+                        return isUnused && isInRange;
+                    });
+
+                    // If no suitable unused meals, try any meals in range
+                    if (suitableMeals.length === 0) {
+                        suitableMeals = availableMeals.filter(meal => {
+                            const calories = safeNumber(meal.calories);
+                            return calories >= targetForMeal * 0.7 && calories <= targetForMeal * 1.3;
+                        });
+                    }
+
+                    // If still no suitable meals, use any unused meal
+                    if (suitableMeals.length === 0) {
+                        suitableMeals = availableMeals.filter(meal => !usedMealIds.has(meal.id));
+                    }
+
+                    // Last resort: use any available meal
+                    if (suitableMeals.length === 0) {
+                        suitableMeals = [...availableMeals];
+                    }
+
+                    // Deterministic selection with some variety
+                    const seed = (dayIndex * 4 + mealIndex + parseInt(profile.age) + profile.height) % suitableMeals.length;
+                    const selectedMeal = suitableMeals[seed];
+                    
+                    // Ensure the selected meal has a proper title
+                    if (!selectedMeal.title || selectedMeal.title.trim() === '') {
+                        selectedMeal.title = `${mealType.charAt(0).toUpperCase() + mealType.slice(1)} Special`;
+                    }
+                    
+                    weeklyPlan[day][mealType] =
         :root {
             --bg-color: #ffffff;
             --surface-color: #f8f9fa;

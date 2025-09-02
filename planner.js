@@ -349,26 +349,16 @@ function sendToTrackerAndRedirect() {
 
     try {
         const payloadStr = JSON.stringify(integrationData);
-
-        // multiple keys for compatibility
         localStorage.setItem(INTEGRATION_STORAGE_KEY, payloadStr);
         localStorage.setItem('planned_meals_v1', payloadStr);
         localStorage.setItem('diettracker_import', payloadStr);
         localStorage.setItem('meal_plan_transfer', payloadStr);
         localStorage.setItem('meal_plan_sent', 'true');
-
         console.log('✅ Meal plan data stored for Diet Tracker');
-
-        // ✅ Redirect to tracker page (adjust URL if needed)
-        window.open('https://mhkhakda.github.io/diet-tracker/', '_blank');
     } catch (err) {
         console.error('❌ Failed to store meal plan for tracker:', err);
-        alert('❌ Could not send data to tracker.');
-    } finally {
-        if (overlay) setTimeout(() => (overlay.style.display = 'none'), 800);
     }
 }
-// Expose function to HTML onclick
+
+// ✅ Expose globally so HTML button can call it
 window.sendToTrackerAndRedirect = sendToTrackerAndRedirect;
-
-

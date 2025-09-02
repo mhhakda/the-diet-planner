@@ -1298,11 +1298,11 @@ document.addEventListener("DOMContentLoaded", () => {
         createCharts(currentMealPlan, currentUserProfile);
         console.log("✅ Loaded existing meal plan from localStorage");
     }
-} catch (err) {
-    console.error("Failed to load existing plan:", err);
+  } catch (err) {
+      console.error("Failed to load existing plan:", err);
+  }
 }
-}
-      <script>      
+
 // =========================
 // Initialize the application
 // =========================
@@ -1316,30 +1316,9 @@ document.addEventListener("DOMContentLoaded", () => {
         loadExistingPlan();
         initializeForm();
         initializePdfExport();
-
-        console.log("🍽️ Diet Planner loaded successfully! 🎉");
-
-        // Bind reload meals button
-        const reloadBtn = document.getElementById("reloadMealsBtn");
-        if (reloadBtn) {
-            reloadBtn.addEventListener("click", async (e) => {
-                e.preventDefault();
-                reloadBtn.disabled = true;
-                const origText = reloadBtn.textContent;
-                reloadBtn.textContent = "Reloading meals...";
-                try {
-                    await loadMealsDatabase(true);
-                    alert("✅ Meals reloaded. Any generated plan will now use the new meal data.");
-                } catch (err) {
-                    alert("❌ Failed to reload meals: " + (err.message || err));
-                } finally {
-                    reloadBtn.disabled = false;
-                    reloadBtn.textContent = origText;
-                }
-            });
-        }
-    } catch (e) {
-        console.error("❌ Error during DOMContentLoaded init:", e);
+        console.log("🍽️ Diet Planner initialized successfully");
+    } catch (err) {
+        console.error("❌ Failed during initialization:", err);
     }
 });
 
@@ -1351,3 +1330,4 @@ window.downloadPDF = downloadPDF;
 
 </body>
 </html>
+

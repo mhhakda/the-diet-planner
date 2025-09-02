@@ -1904,40 +1904,19 @@ function displayMealTable(weeklyPlan) {
             .replace(/'/g, '&#039;');
     }
 
-    // Helper: stable readable title for meals
-    function getMealTitle(meal) {
-        if (!meal) return 'No meal';
-        // prefer explicit non-placeholder title
-        if (typeof meal.title === 'string' && meal.title.trim() && !/^option\s*\d+/i.test(meal.title)) {
-            return meal.title.trim();
-        }
-        if (typeof meal.name === 'string' && meal.name.trim() && !/^option\s*\d+/i.test(meal.name)) {
-            return meal.name.trim();
-        }
-        // prefer foods[] names (first 3)
-        if (Array.isArray(meal.foods) && meal.foods.length) {
-            const names = meal.foods.map(f => {
-                if (!f) return '';
-                if (typeof f === 'string') return f;
-                return (f.name || f.title || '').trim();
-            }).filter(Boolean);
-            if (names.length) {
-                const slice = names.slice(0, 3);
-                if (slice.length === 1) return slice[0];
-                if (slice.length === 2) return `${slice[0]} & ${slice[1]}`;
-                return `${slice[0]}, ${slice[1]} & ${slice[2]}`;
-            }
-        }
-        // fallback to short ingredients snippet (max 6 words)
-        if (meal.ingredients && typeof meal.ingredients === 'string') {
-            const words = meal.ingredients.trim().split(/\s+/).slice(0, 6);
-            if (words.length) return words.join(' ') + (words.length >= 6 ? '...' : '');
-        }
-        // stable fallback
-        const region = meal.region || 'UnknownRegion';
-        const id = (typeof meal.id !== 'undefined' ? String(meal.id) : String(Math.floor(Math.random()*900000)+100000));
-        return `Meal ${region}-${id}`;
+
+    // 3) As a last short fallback use ingredients first 6 words (but trimmed)
+    if (meal.ingredients && typeof meal.ingredients === 'string') {
+        const words = meal.ingredients.trim().split(/\s+/).slice(0, 6);
+        if (words.length) return words.join(' ') + (words.length >= 6 ? '...' : '');
     }
+
+    // 4) stable fallback (safe and short)
+    const region = meal.region || 'UnknownRegion';
+    const id = (typeof meal.id !== 'undefined' ? String(meal.id) : Math.floor(Math.random()*100000));
+    return `Meal ${region}-${id}`;
+}
+
 
     // helper to get numeric nutrient
     function num(v) {

@@ -1,28 +1,32 @@
 #!/usr/bin/env node
 /**
  * Node.js script to validate and fix meals.json
+ * - Writes cleaned structure compatible with the front-end:
+ *   cleanedData[region][diet] = { breakfast: [], lunch: [], dinner: [], snacks: [] }
+ *
  * Uses only Node.js core modules
  */
+
 const fs = require('fs');
 const path = require('path');
 
 // Canonical constraints
-const CANONICAL_REGIONS = new Set([
-    'India', 'USA', 'Europe', 'Middle_Eastern', 'Latin_American', 
+const CANONICAL_REGIONS = [
+    'India', 'USA', 'Europe', 'Middle_Eastern', 'Latin_American',
     'Nordic', 'East_Asian', 'African', 'Australian'
-]);
+];
 
-const CANONICAL_DIETS = new Set([
-    'Regular', 'Keto', 'Low_Carb', 'Vegetarian', 'Vegan', 
+const CANONICAL_DIETS = [
+    'Regular', 'Keto', 'Low_Carb', 'Vegetarian', 'Vegan',
     'Mediterranean', 'High_Protein'
-]);
+];
 
-const CANONICAL_MEAL_TYPES = new Set(['breakfast', 'lunch', 'dinner', 'snacks']);
+const CANONICAL_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
 // Mapping tables
 const REGION_MAPPING = {
     'Asian': 'East_Asian',
-    'Australia': 'Australian', 
+    'Australia': 'Australian',
     'Oceania': 'Australian',
     'Oceana': 'Australian',
     'Middle East': 'Middle_Eastern',
@@ -32,7 +36,7 @@ const REGION_MAPPING = {
 
 const DIET_MAPPING = {
     'Ketogenic': 'Keto',
-    'Low Carb': 'Low_Carb', 
+    'Low Carb': 'Low_Carb',
     'High Protein': 'High_Protein',
     'Paleo': 'Regular',
     'Diabetic_Friendly': 'Regular',
@@ -42,14 +46,14 @@ const DIET_MAPPING = {
 
 // Animal products for diet validation
 const VEGAN_VIOLATIONS = new Set([
-    'meat', 'chicken', 'fish', 'beef', 'pork', 'lamb', 'egg', 'eggs', 'milk', 
-    'cheese', 'yogurt', 'butter', 'whey', 'honey', 'seafood', 'shrimp', 'crab', 
+    'meat', 'chicken', 'fish', 'beef', 'pork', 'lamb', 'egg', 'eggs', 'milk',
+    'cheese', 'yogurt', 'butter', 'whey', 'honey', 'seafood', 'shrimp', 'crab',
     'salmon', 'tuna', 'turkey', 'bacon', 'ham', 'sausage', 'dairy', 'cream',
     'gelatin', 'casein', 'ghee', 'paneer'
 ]);
 
 const VEGETARIAN_VIOLATIONS = new Set([
-    'meat', 'chicken', 'fish', 'beef', 'pork', 'lamb', 'seafood', 'shrimp', 
+    'meat', 'chicken', 'fish', 'beef', 'pork', 'lamb', 'seafood', 'shrimp',
     'crab', 'salmon', 'tuna', 'turkey', 'bacon', 'ham', 'sausage'
 ]);
 
@@ -66,374 +70,283 @@ class MealNormalizer {
             unparseable_nutrients: [],
             title_generation_rules: []
         };
-        this.nextId = 1;
+        this.nextId = 100000; // start large to avoid collisions with small numeric ids
         this.usedIds = new Set();
     }
 
+    // Meal type normalization (infers if missing)
     normalizeMealType(mealType, title = '', tags = []) {
         if (!mealType) {
-            // Infer from title or tags
-            const text = `${title} ${tags.join(' ')}`.toLowerCase();
-            
-            if (/breakfast|pancake|oats|chai|cereal|toast/.test(text)) {
-                return 'breakfast';
-            } else if (/dinner|curry|roast|stew|soup/.test(text)) {
-                return 'dinner';
-            } else if (/snack|bar|chips|nuts|fruit/.test(text)) {
-                return 'snacks';
-            } else {
-                return 'lunch'; // default
-            }
+            const text = `${title} ${(tags && tags.join ? tags.join(' ') : '')}`.toLowerCase();
+            if (/breakfast|pancake|oats|cereal|toast|porridge/.test(text)) return 'breakfast';
+            if (/dinner|curry|roast|stew|soup|supper/.test(text)) return 'dinner';
+            if (/snack|bar|chips|nuts|fruit|cookie/.test(text)) return 'snacks';
+            return 'lunch';
         }
-        
         const normalized = String(mealType).toLowerCase().trim();
-        
-        if (CANONICAL_MEAL_TYPES.has(normalized)) {
-            return normalized;
-        } else if (normalized === 'snack') {
-            return 'snacks';
-        } else if (normalized === 'supper') {
-            return 'dinner';
-        } else {
-            return 'lunch'; // default
+        if (CANONICAL_MEAL_TYPES.includes(normalized)) return normalized;
+        if (normalized === 'snack') return 'snacks';
+        if (normalized === 'supper') return 'dinner';
+        // try to match substrings
+        for (const t of CANONICAL_MEAL_TYPES) {
+            if (normalized.includes(t)) return t;
         }
+        return 'lunch';
     }
 
     parseNumeric(value, fieldName, mealId) {
-        if (value === null || value === undefined || value === '') {
-            return 0;
-        }
-        
-        if (typeof value === 'number') {
-            return value;
-        }
-        
+        if (value === null || value === undefined || value === '') return 0;
+        if (typeof value === 'number') return isNaN(value) ? 0 : value;
         if (typeof value === 'string') {
-            const cleanValue = value.replace(/,/g, '').trim();
-            const parsed = parseFloat(cleanValue);
+            const clean = value.replace(/,/g, '').trim();
+            const parsed = parseFloat(clean);
             if (isNaN(parsed)) {
-                this.report.unparseable_nutrients.push({
-                    id: mealId,
-                    field: fieldName,
-                    value: value
-                });
+                this.report.unparseable_nutrients.push({ id: mealId, field: fieldName, value });
                 return 0;
             }
             return parsed;
         }
-        
         return 0;
     }
 
     generateTitle(meal, region, diet, originalId) {
-        // Check existing title
-        const title = (meal.title || '').trim();
-        if (title && !/option [12]/i.test(title)) {
-            return title;
-        }
+        const given = (meal.title || '').toString().trim();
+        if (given && !/option\s*\d+/i.test(given)) return given;
 
-        // Try to build from foods
         const foods = meal.foods || [];
-        if (Array.isArray(foods) && foods.length > 0) {
-            const foodNames = foods.slice(0, 3).map(food => {
-                if (typeof food === 'object' && food.name) {
-                    return food.name;
-                } else if (typeof food === 'string') {
-                    return food;
-                }
-                return null;
-            }).filter(Boolean);
-
-            if (foodNames.length > 0) {
-                let generatedTitle;
-                if (foodNames.length === 1) {
-                    generatedTitle = foodNames[0];
-                } else if (foodNames.length === 2) {
-                    generatedTitle = `${foodNames[0]} & ${foodNames[1]}`;
-                } else {
-                    generatedTitle = `${foodNames.slice(0, -1).join(', ')} & ${foodNames[foodNames.length - 1]}`;
-                }
-
-                this.report.title_generation_rules.push({
-                    id: originalId,
-                    rule: 'generated_from_foods',
-                    title: generatedTitle
-                });
-                return generatedTitle;
+        if (Array.isArray(foods) && foods.length) {
+            const names = foods.slice(0, 3).map(f => (typeof f === 'string' ? f : (f && f.name ? f.name : ''))).filter(Boolean);
+            if (names.length) {
+                const generated = names.length === 1 ? names[0] : (names.length === 2 ? `${names[0]} & ${names[1]}` : `${names[0]}, ${names[1]} & ${names[2]}`);
+                this.report.title_generation_rules.push({ id: originalId, rule: 'generated_from_foods', title: generated });
+                return generated;
             }
         }
 
-        // Try ingredients (first 6 words)
-        const ingredients = meal.ingredients || '';
-        if (ingredients) {
-            const words = ingredients.split(' ').slice(0, 6);
-            if (words.length > 0) {
-                const generatedTitle = words.join(' ');
-                this.report.title_generation_rules.push({
-                    id: originalId,
-                    rule: 'generated_from_ingredients',
-                    title: generatedTitle
-                });
-                return generatedTitle;
-            }
+        if (meal.ingredients && typeof meal.ingredients === 'string' && meal.ingredients.trim()) {
+            const parts = meal.ingredients.split(/\s+/).slice(0, 6).join(' ');
+            this.report.title_generation_rules.push({ id: originalId, rule: 'generated_from_ingredients', title: parts });
+            return parts;
         }
 
-        // Fallback
-        const fallbackTitle = `Meal ${region}-${diet}-${originalId}`;
-        this.report.title_generation_rules.push({
-            id: originalId,
-            rule: 'fallback_generated',
-            title: fallbackTitle
-        });
-        return fallbackTitle;
+        const fallback = `Meal ${region}-${diet}-${originalId}`;
+        this.report.title_generation_rules.push({ id: originalId, rule: 'fallback_generated', title: fallback });
+        return fallback;
     }
 
     checkDietViolations(meal, dietKey) {
         const textToCheck = `${meal.title || ''} ${meal.ingredients || ''}`.toLowerCase();
-        
-        // Check foods array
         const foods = meal.foods || [];
-        let foodText = '';
-        for (const food of foods) {
-            if (typeof food === 'object' && food.name) {
-                foodText += ` ${food.name}`.toLowerCase();
-            } else if (typeof food === 'string') {
-                foodText += ` ${food}`.toLowerCase();
-            }
-        }
-
-        // Check tags
-        const tags = meal.tags || [];
-        const tagText = tags.join(' ').toLowerCase();
-
-        const fullText = `${textToCheck} ${foodText} ${tagText}`;
+        const foodText = Array.isArray(foods) ? foods.map(f => (typeof f === 'string' ? f : (f && f.name ? f.name : ''))).join(' ') : '';
+        const tags = Array.isArray(meal.tags) ? meal.tags.join(' ') : (meal.tags || '');
+        const full = `${textToCheck} ${foodText} ${tags}`.toLowerCase();
         const violations = [];
 
         if (dietKey === 'Vegan') {
-            for (const violation of VEGAN_VIOLATIONS) {
-                if (fullText.includes(violation)) {
-                    violations.push(violation);
-                }
-            }
+            for (const v of VEGAN_VIOLATIONS) if (full.includes(v)) violations.push(v);
         } else if (dietKey === 'Vegetarian') {
-            for (const violation of VEGETARIAN_VIOLATIONS) {
-                if (fullText.includes(violation)) {
-                    violations.push(violation);
-                }
-            }
+            for (const v of VEGETARIAN_VIOLATIONS) if (full.includes(v)) violations.push(v);
         }
-
         return violations;
     }
 
     getUniqueId(originalId) {
-        if (originalId && !this.usedIds.has(originalId)) {
-            this.usedIds.add(originalId);
+        // preserve non-colliding original string IDs
+        if (originalId && !this.usedIds.has(String(originalId))) {
+            this.usedIds.add(String(originalId));
             return originalId;
         }
-
-        // Need to reassign
-        while (this.usedIds.has(this.nextId)) {
-            this.nextId++;
-        }
-
-        const newId = this.nextId;
-        this.usedIds.add(newId);
-
-        if (originalId) {
-            this.report.id_reassignments[String(originalId)] = newId;
-        }
-
+        // generate numeric unique id
+        while (this.usedIds.has(String(this.nextId))) this.nextId++;
+        const id = String(this.nextId);
+        this.usedIds.add(id);
+        if (originalId) this.report.id_reassignments[String(originalId)] = id;
         this.nextId++;
-        return newId;
+        return id;
     }
 
-    normalizeMeal(meal, regionKey, dietKey, mealTypeHint = null) {
-        if (typeof meal !== 'object' || meal === null) {
-            return null;
-        }
+    // Normalize a single meal into canonical object
+    normalizeMealObject(meal, regionKey, dietKey, mealTypeHint = null) {
+        if (!meal || typeof meal !== 'object') return null;
+        const original = JSON.parse(JSON.stringify(meal));
+        const originalId = meal.id || null;
+        const id = this.getUniqueId(originalId || (`tmp_${Math.floor(Math.random()*1000000)}`));
 
-        const originalMeal = JSON.parse(JSON.stringify(meal));
-        const originalId = meal.id;
+        const mealType = this.normalizeMealType(meal.mealType || mealTypeHint, meal.title || '', meal.tags || []);
+        const title = this.generateTitle(meal, regionKey, dietKey, originalId || id);
 
-        // Get unique ID
-        const uniqueId = this.getUniqueId(originalId);
-
-        // Build canonical meal object
         const normalized = {
-            id: uniqueId,
-            title: this.generateTitle(meal, regionKey, dietKey, originalId || uniqueId),
-            mealType: this.normalizeMealType(
-                meal.mealType || mealTypeHint, 
-                meal.title || '', 
-                meal.tags
-            )
+            id,
+            title,
+            mealType,
+            calories: this.parseNumeric(meal.calories ?? meal.kcal ?? meal.calories_kcal ?? 0, 'calories', id),
+            protein: this.parseNumeric(meal.protein ?? meal.prot ?? 0, 'protein', id),
+            carbs: this.parseNumeric(meal.carbs ?? meal.carbohydrates ?? meal.carb ?? 0, 'carbs', id),
+            fat: this.parseNumeric(meal.fat ?? meal.fats ?? 0, 'fat', id),
+            fiber: this.parseNumeric(meal.fiber ?? meal.fib ?? 0, 'fiber', id),
+            region: regionKey,
+            diets: Array.isArray(meal.diets) ? (meal.diets.includes(dietKey) ? meal.diets : [dietKey, ...meal.diets]) : [dietKey]
         };
 
-        // Optional serving_size
-        if (meal.serving_size) {
-            normalized.serving_size = String(meal.serving_size);
-        }
+        if (meal.serving_size) normalized.serving_size = String(meal.serving_size);
+        if (meal.foods) normalized.foods = meal.foods;
+        if (meal.ingredients) normalized.ingredients = String(meal.ingredients);
+        if (meal.tags) normalized.tags = Array.isArray(meal.tags) ? meal.tags : [String(meal.tags)];
 
-        // Required numeric fields
-        normalized.calories = this.parseNumeric(meal.calories, 'calories', uniqueId);
-        normalized.protein = this.parseNumeric(meal.protein, 'protein', uniqueId);
-        normalized.carbs = this.parseNumeric(meal.carbs, 'carbs', uniqueId);
-        normalized.fat = this.parseNumeric(meal.fat, 'fat', uniqueId);
-        normalized.fiber = this.parseNumeric(meal.fiber, 'fiber', uniqueId);
-
-        // Optional foods array
-        if (meal.foods) {
-            normalized.foods = meal.foods;
-        }
-
-        // Optional ingredients
-        if (meal.ingredients) {
-            normalized.ingredients = String(meal.ingredients);
-        }
-
-        // Diets array - must include parent diet
-        let diets = meal.diets || [];
-        if (!Array.isArray(diets)) {
-            diets = [dietKey];
-        } else if (!diets.includes(dietKey)) {
-            diets.push(dietKey);
-        }
-        normalized.diets = diets;
-
-        // Optional tags
-        if (meal.tags) {
-            normalized.tags = Array.isArray(meal.tags) ? meal.tags : [String(meal.tags)];
-        }
-
-        // Required region
-        normalized.region = regionKey;
-
-        // Store before/after sample for report
         if (this.report.before_after_samples.length < 10) {
-            this.report.before_after_samples.push({
-                before: originalMeal,
-                after: normalized
-            });
+            this.report.before_after_samples.push({ before: original, after: normalized });
         }
 
         return normalized;
     }
 
+    // Flatten options (if meal.options exists) -> returns array of normalized meals
+    flattenOptions(meal, regionKey, dietKey, mealTypeHint = null) {
+        if (!meal || typeof meal !== 'object') return [];
+        if (!meal.options) {
+            const normalized = this.normalizeMealObject(meal, regionKey, dietKey, mealTypeHint);
+            return normalized ? [normalized] : [];
+        }
+        const base = { ...meal };
+        delete base.options;
+        const options = Array.isArray(meal.options) ? meal.options : [meal.options];
+        const out = [];
+        for (let i = 0; i < options.length; i++) {
+            const opt = options[i];
+            const optionMeal = { ...base };
+            if (typeof opt === 'string') optionMeal.title = opt;
+            else if (typeof opt === 'object') Object.assign(optionMeal, opt);
+            if (optionMeal.id) optionMeal.id = `${optionMeal.id}_${i}`;
+            const normalized = this.normalizeMealObject(optionMeal, regionKey, dietKey, mealTypeHint);
+            if (normalized) out.push(normalized);
+        }
+        return out;
+    }
+
+    // Process meals entry which may be array OR object keyed by mealType
+    processMealsEntry(mealsData, regionKey, dietKey, mealTypeHint = null) {
+        const out = [];
+        if (!mealsData) return out;
+        if (Array.isArray(mealsData)) {
+            for (const m of mealsData) {
+                if (typeof m === 'object' && m !== null) out.push(...this.flattenOptions(m, regionKey, dietKey, mealTypeHint));
+            }
+        } else if (typeof mealsData === 'object') {
+            for (const [k, list] of Object.entries(mealsData)) {
+                const hint = CANONICAL_MEAL_TYPES.includes(k) ? k : mealTypeHint;
+                if (Array.isArray(list)) {
+                    for (const m of list) {
+                        if (typeof m === 'object' && m !== null) out.push(...this.flattenOptions(m, regionKey, dietKey, hint));
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
     processData(data) {
         console.log('Starting comprehensive normalization...');
 
-        // Track original stats
+        // compute original total
         let originalTotal = 0;
-        for (const [region, regionData] of Object.entries(data)) {
-            if (region === '__meta__') continue;
-            for (const [diet, dietData] of Object.entries(regionData)) {
-                if (Array.isArray(dietData)) {
-                    originalTotal += dietData.length;
-                } else if (typeof dietData === 'object') {
-                    for (const [mealType, meals] of Object.entries(dietData)) {
-                        if (Array.isArray(meals)) {
-                            originalTotal += meals.length;
-                        }
+        for (const regionKey of Object.keys(data || {})) {
+            if (regionKey === '__meta__') continue;
+            const regionObj = data[regionKey];
+            if (!regionObj || typeof regionObj !== 'object') continue;
+            for (const dietKey of Object.keys(regionObj)) {
+                const dietVal = regionObj[dietKey];
+                if (Array.isArray(dietVal)) originalTotal += dietVal.length;
+                else if (typeof dietVal === 'object') {
+                    for (const mt of Object.keys(dietVal)) {
+                        if (Array.isArray(dietVal[mt])) originalTotal += dietVal[mt].length;
                     }
                 }
             }
         }
 
-        // Initialize clean structure
+        // Initialize cleaned structure with canonical regions/diets and meal-type buckets
         const cleanedData = {};
         for (const region of CANONICAL_REGIONS) {
             cleanedData[region] = {};
             for (const diet of CANONICAL_DIETS) {
-                cleanedData[region][diet] = [];
+                cleanedData[region][diet] = {};
+                for (const mt of CANONICAL_MEAL_TYPES) cleanedData[region][diet][mt] = [];
             }
         }
 
         let totalProcessed = 0;
         const movedMeals = [];
 
-        // Process each region
         for (const [originalRegion, regionData] of Object.entries(data)) {
             if (originalRegion === '__meta__') continue;
-
-            // Map region key
-            const regionKey = REGION_MAPPING[originalRegion] || originalRegion;
-            if (!CANONICAL_REGIONS.has(regionKey)) {
-                console.log(`Warning: Unknown region ${originalRegion}, skipping`);
+            // map region
+            const mappedRegion = REGION_MAPPING[originalRegion] || originalRegion;
+            if (!CANONICAL_REGIONS.includes(mappedRegion)) {
+                console.warn(`Unknown region "${originalRegion}" -> skipping`);
                 continue;
             }
+            if (originalRegion !== mappedRegion) this.report.region_mapping[originalRegion] = mappedRegion;
 
-            if (originalRegion !== regionKey) {
-                this.report.region_mapping[originalRegion] = regionKey;
-            }
-
-            console.log(`Processing region: ${originalRegion} -> ${regionKey}`);
-
-            // Process each diet
             for (const [originalDiet, dietData] of Object.entries(regionData)) {
-                // Map diet key
-                let dietKey = DIET_MAPPING[originalDiet] || originalDiet;
-                if (!CANONICAL_DIETS.has(dietKey)) {
-                    console.log(`  Moving unknown diet ${originalDiet} to Regular`);
-                    dietKey = 'Regular';
-                    this.report.diet_mapping[originalDiet] = dietKey;
+                let mappedDiet = DIET_MAPPING[originalDiet] || originalDiet;
+                if (!CANONICAL_DIETS.includes(mappedDiet)) {
+                    mappedDiet = 'Regular';
+                    this.report.diet_mapping[originalDiet] = mappedDiet;
                 }
+                if (originalDiet !== mappedDiet) this.report.diet_mapping[originalDiet] = mappedDiet;
 
-                if (originalDiet !== dietKey) {
-                    this.report.diet_mapping[originalDiet] = dietKey;
-                }
+                // extract normalized meals from dietData (array or object)
+                const processed = this.processMealsEntry(dietData, mappedRegion, mappedDiet, null);
+                totalProcessed += processed.length;
 
-                console.log(`  Processing diet: ${originalDiet} -> ${dietKey}`);
-
-                // Process meals
-                const processedMeals = this.processMeals(dietData, regionKey, dietKey);
-
-                // Check diet violations
-                for (const meal of processedMeals) {
-                    const violations = this.checkDietViolations(meal, dietKey);
-
-                    if (violations.length > 0) {
-                        if (dietKey === 'Vegan') {
-                            const targetDiet = violations.some(v => VEGETARIAN_VIOLATIONS.has(v)) ? 'Regular' : 'Vegetarian';
-                            movedMeals.push([meal, regionKey, targetDiet]);
-                            
-                            this.report.vegan_violations.push({
-                                id: meal.id,
-                                title: meal.title,
-                                region: regionKey,
-                                offending: violations
-                            });
-                        } else if (dietKey === 'Vegetarian') {
-                            movedMeals.push([meal, regionKey, 'Regular']);
-                            
-                            this.report.vegetarian_violations.push({
-                                id: meal.id,
-                                title: meal.title,
-                                region: regionKey,
-                                offending: violations
-                            });
+                // Check for diet violations and either place or move
+                for (const meal of processed) {
+                    const violations = this.checkDietViolations(meal, mappedDiet);
+                    if (violations.length) {
+                        if (mappedDiet === 'Vegan') {
+                            // if violation present, move to Vegetarian or Regular depending on items
+                            const target = violations.some(v => VEGETARIAN_VIOLATIONS.has(v)) ? 'Regular' : 'Vegetarian';
+                            movedMeals.push([meal, mappedRegion, target]);
+                            this.report.vegan_violations.push({ id: meal.id, title: meal.title, region: mappedRegion, offending: violations });
+                        } else if (mappedDiet === 'Vegetarian') {
+                            movedMeals.push([meal, mappedRegion, 'Regular']);
+                            this.report.vegetarian_violations.push({ id: meal.id, title: meal.title, region: mappedRegion, offending: violations });
+                        } else {
+                            // non-veg diet -> place as-is
+                            cleanedData[mappedRegion][mappedDiet][meal.mealType || 'lunch'].push(meal);
                         }
                     } else {
-                        cleanedData[regionKey][dietKey].push(meal);
+                        cleanedData[mappedRegion][mappedDiet][meal.mealType || 'lunch'].push(meal);
                     }
                 }
-
-                totalProcessed += processedMeals.length;
             }
         }
 
-        // Add moved meals to target diets
+        // place moved meals in target diets
         for (const [meal, regionKey, targetDiet] of movedMeals) {
-            meal.diets = [targetDiet, ...meal.diets.filter(d => d !== targetDiet)];
-            cleanedData[regionKey][targetDiet].push(meal);
+            meal.diets = [targetDiet, ...(Array.isArray(meal.diets) ? meal.diets.filter(d => d !== targetDiet) : [])];
+            const mt = meal.mealType || 'lunch';
+            if (!cleanedData[regionKey]) {
+                // ensure region exists (should not happen)
+                cleanedData[regionKey] = {};
+                for (const diet of CANONICAL_DIETS) {
+                    cleanedData[regionKey][diet] = {};
+                    for (const t of CANONICAL_MEAL_TYPES) cleanedData[regionKey][diet][t] = [];
+                }
+            }
+            if (!cleanedData[regionKey][targetDiet]) {
+                cleanedData[regionKey][targetDiet] = {};
+                for (const t of CANONICAL_MEAL_TYPES) cleanedData[regionKey][targetDiet][t] = [];
+            }
+            cleanedData[regionKey][targetDiet][mt].push(meal);
         }
 
-        // Add metadata
+        // summary and metadata
         this.report.summary = {
             totalBefore: originalTotal,
             totalAfter: totalProcessed + movedMeals.length,
             totalRegionsBefore: Object.keys(data).filter(k => k !== '__meta__').length,
-            totalRegionsAfter: CANONICAL_REGIONS.size,
+            totalRegionsAfter: CANONICAL_REGIONS.length,
             totalDuplicatesRemoved: 0
         };
 
@@ -448,232 +361,68 @@ class MealNormalizer {
                 `Moved ${this.report.vegetarian_violations.length} meals from Vegetarian`,
                 `Generated ${this.report.title_generation_rules.length} titles`,
                 'Normalized all nutrient values to numbers',
-                'Ensured canonical meal object format',
-                'Removed preparation fields'
+                'Ensured canonical meal object format (mealType buckets)',
             ],
             id_reassignments: this.report.id_reassignments,
             region_mapping: this.report.region_mapping,
             diet_mapping: this.report.diet_mapping,
-            vegan_violations: this.report.vegan_violations.slice(0, 10),
+            vegan_violations: this.report.vegan_violations.slice(0, 20),
             summary: this.report.summary
         };
 
         return cleanedData;
     }
-
-    processMeals(mealsData, regionKey, dietKey, mealTypeHint = null) {
-        if (!mealsData) return [];
-
-        const processedMeals = [];
-
-        if (Array.isArray(mealsData)) {
-            for (const meal of mealsData) {
-                if (typeof meal === 'object' && meal !== null) {
-                    const flattened = this.flattenOptions(meal, regionKey, dietKey, mealTypeHint);
-                    processedMeals.push(...flattened);
-                }
-            }
-        } else if (typeof mealsData === 'object') {
-            for (const [mealType, mealList] of Object.entries(mealsData)) {
-                if (Array.isArray(mealList)) {
-                    for (const meal of mealList) {
-                        if (typeof meal === 'object' && meal !== null) {
-                            const flattened = this.flattenOptions(meal, regionKey, dietKey, mealType);
-                            processedMeals.push(...flattened);
-                        }
-                    }
-                }
-            }
-        }
-
-        return processedMeals;
-    }
-
-    flattenOptions(meal, regionKey, dietKey, mealTypeHint = null) {
-        if (!meal.options) {
-            return [this.normalizeMeal(meal, regionKey, dietKey, mealTypeHint)];
-        }
-
-        const options = meal.options;
-        if (!Array.isArray(options)) {
-            return [this.normalizeMeal(meal, regionKey, dietKey, mealTypeHint)];
-        }
-
-        const flattenedMeals = [];
-        const baseMeal = { ...meal };
-        delete baseMeal.options;
-
-        for (let i = 0; i < options.length; i++) {
-            const optionMeal = { ...baseMeal };
-            const option = options[i];
-
-            if (typeof option === 'string') {
-                optionMeal.title = option;
-            } else if (typeof option === 'object') {
-                Object.assign(optionMeal, option);
-            }
-
-            // Assign unique ID for each option
-            if (optionMeal.id) {
-                optionMeal.id = `${optionMeal.id}_${i}`;
-            }
-
-            const normalized = this.normalizeMeal(optionMeal, regionKey, dietKey, mealTypeHint);
-            if (normalized) {
-                flattenedMeals.push(normalized);
-            }
-        }
-
-        return flattenedMeals;
-    }
-
-    normalizeMeal(meal, regionKey, dietKey, mealTypeHint = null) {
-        if (typeof meal !== 'object' || meal === null) {
-            return null;
-        }
-
-        const originalMeal = JSON.parse(JSON.stringify(meal));
-        const originalId = meal.id;
-
-        // Get unique ID
-        const uniqueId = this.getUniqueId(originalId);
-
-        // Build canonical meal object
-        const normalized = {
-            id: uniqueId,
-            title: this.generateTitle(meal, regionKey, dietKey, originalId || uniqueId),
-            mealType: this.normalizeMealType(
-                meal.mealType || mealTypeHint, 
-                meal.title || '', 
-                meal.tags
-            )
-        };
-
-        // Optional serving_size
-        if (meal.serving_size) {
-            normalized.serving_size = String(meal.serving_size);
-        }
-
-        // Required numeric fields
-        normalized.calories = this.parseNumeric(meal.calories, 'calories', uniqueId);
-        normalized.protein = this.parseNumeric(meal.protein, 'protein', uniqueId);
-        normalized.carbs = this.parseNumeric(meal.carbs, 'carbs', uniqueId);
-        normalized.fat = this.parseNumeric(meal.fat, 'fat', uniqueId);
-        normalized.fiber = this.parseNumeric(meal.fiber, 'fiber', uniqueId);
-
-        // Optional foods array
-        if (meal.foods) {
-            normalized.foods = meal.foods;
-        }
-
-        // Optional ingredients
-        if (meal.ingredients) {
-            normalized.ingredients = String(meal.ingredients);
-        }
-
-        // Diets array - must include parent diet
-        let diets = meal.diets || [];
-        if (!Array.isArray(diets)) {
-            diets = [dietKey];
-        } else if (!diets.includes(dietKey)) {
-            diets.push(dietKey);
-        }
-        normalized.diets = diets;
-
-        // Optional tags
-        if (meal.tags) {
-            normalized.tags = Array.isArray(meal.tags) ? meal.tags : [String(meal.tags)];
-        }
-
-        // Required region
-        normalized.region = regionKey;
-
-        return normalized;
-    }
-
-    getUniqueId(originalId) {
-        if (originalId && !this.usedIds.has(originalId)) {
-            this.usedIds.add(originalId);
-            return originalId;
-        }
-
-        while (this.usedIds.has(this.nextId)) {
-            this.nextId++;
-        }
-
-        const newId = this.nextId;
-        this.usedIds.add(newId);
-
-        if (originalId) {
-            this.report.id_reassignments[String(originalId)] = newId;
-        }
-
-        this.nextId++;
-        return newId;
-    }
 }
 
+// CLI entry
 function main() {
     console.log('=== MEALS.JSON VALIDATION & NORMALIZATION ===');
+    const filePath = path.resolve(process.cwd(), 'meals.json');
+    let originalRaw;
+    try {
+        originalRaw = fs.readFileSync(filePath, 'utf8');
+    } catch (err) {
+        console.error('❌ Could not read meals.json in current folder:', err.message);
+        process.exit(1);
+    }
 
-    // Load original data
     let originalData;
     try {
-        const rawData = fs.readFileSync('meals.json', 'utf8');
-        originalData = JSON.parse(rawData);
-        console.log(`✅ Loaded meals.json (${rawData.length} characters)`);
-    } catch (error) {
-        console.error(`❌ Error loading meals.json: ${error.message}`);
-        return;
+        originalData = JSON.parse(originalRaw);
+    } catch (err) {
+        console.error('❌ meals.json is not valid JSON:', err.message);
+        process.exit(1);
     }
 
-    // Initialize normalizer
     const normalizer = new MealNormalizer();
+    const cleaned = normalizer.processData(originalData);
 
-    // Normalize data
-    const cleanedData = normalizer.processData(originalData);
-
-    // Save files
     try {
-        fs.writeFileSync('meals.json', JSON.stringify(cleanedData, null, 2));
-        console.log('✅ Saved cleaned meals.json');
+        fs.writeFileSync(filePath, JSON.stringify(cleaned, null, 2), 'utf8');
+        fs.writeFileSync(path.resolve(process.cwd(), 'meals.fixed.json'), JSON.stringify(cleaned, null, 2), 'utf8');
+        fs.writeFileSync(path.resolve(process.cwd(), 'normalization_report.json'), JSON.stringify({
+            timestamp: new Date().toISOString(),
+            summary: normalizer.report.summary,
+            changes_applied: cleaned.__meta__.changes,
+            id_reassignments_count: Object.keys(normalizer.report.id_reassignments).length,
+            region_mappings: normalizer.report.region_mapping,
+            diet_mappings: normalizer.report.diet_mapping,
+            vegan_violations_moved: normalizer.report.vegan_violations.length,
+            vegetarian_violations_moved: normalizer.report.vegetarian_violations.length,
+            unparseable_nutrients: normalizer.report.unparseable_nutrients.slice(0, 50),
+            before_after_samples: normalizer.report.before_after_samples,
+            validation_passed: true
+        }, null, 2), 'utf8');
 
-        fs.writeFileSync('meals.fixed.json', JSON.stringify(cleanedData, null, 2));
-        console.log('✅ Saved backup meals.fixed.json');
-    } catch (error) {
-        console.error(`❌ Error saving files: ${error.message}`);
-        return;
+        console.log('✅ Saved cleaned meals.json and meals.fixed.json');
+        console.log('✅ Saved normalization_report.json');
+        console.log(`Processed: ${normalizer.report.summary.totalAfter} meals (before: ${normalizer.report.summary.totalBefore})`);
+    } catch (err) {
+        console.error('❌ Error saving normalized files:', err.message);
+        process.exit(1);
     }
-
-    // Generate report
-    const reportData = {
-        timestamp: new Date().toISOString(),
-        summary: normalizer.report.summary,
-        changes_applied: cleanedData.__meta__.changes,
-        id_reassignments_count: Object.keys(normalizer.report.id_reassignments).length,
-        region_mappings: normalizer.report.region_mapping,
-        diet_mappings: normalizer.report.diet_mapping,
-        vegan_violations_moved: normalizer.report.vegan_violations.length,
-        vegetarian_violations_moved: normalizer.report.vegetarian_violations.length,
-        unparseable_nutrients: normalizer.report.unparseable_nutrients.slice(0, 10),
-        before_after_samples: normalizer.report.before_after_samples,
-        validation_passed: true
-    };
-
-    fs.writeFileSync('normalization_report.json', JSON.stringify(reportData, null, 2));
-
-    console.log('\n=== NORMALIZATION COMPLETE ===');
-    console.log(`✅ Total meals processed: ${normalizer.report.summary.totalAfter}`);
-    console.log(`✅ Regions normalized: ${Object.keys(normalizer.report.region_mapping).length}`);
-    console.log(`✅ Diets remapped: ${Object.keys(normalizer.report.diet_mapping).length}`);
-    console.log(`✅ IDs reassigned: ${Object.keys(normalizer.report.id_reassignments).length}`);
-    console.log(`✅ Vegan violations moved: ${normalizer.report.vegan_violations.length}`);
-    console.log(`✅ Vegetarian violations moved: ${normalizer.report.vegetarian_violations.length}`);
-    console.log('✅ Report saved to: normalization_report.json');
 }
 
-if (require.main === module) {
-    main();
-}
+if (require.main === module) main();
 
 module.exports = { MealNormalizer };

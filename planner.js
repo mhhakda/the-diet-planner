@@ -323,42 +323,38 @@ async function generateAndDownloadPdf() {
 // Send to Tracker (GLOBAL)
 // =========================
 function sendToTrackerAndRedirect() {
-    if (!currentMealPlan || !currentUserProfile) {
-        alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.');
-        return;
-    }
-
-    const overlay = document.getElementById('redirectOverlay');
-    if (overlay) overlay.style.display = 'flex';
-
-    const integrationData = {
-        version: '3.0',
-        timestamp: new Date().toISOString(),
-        source: 'thedietplanner-diet-planner',
-        userProfile: currentUserProfile,
-        mealPlan: currentMealPlan,
-        dailyTargets: {
-            calories: currentUserProfile.targetCalories,
-            protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4),
-            carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4),
-            fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9),
-            fiber: 25,
-            water: 2000
-        }
-    };
-
     try {
+        // Build integration payload (meal plan + profile)
+        const integrationData = {
+            profile: currentUserProfile,
+            plan: currentMealPlan,
+            timestamp: Date.now()
+        };
+
+        // Store it in localStorage so Diet Tracker can read it
         const payloadStr = JSON.stringify(integrationData);
-        localStorage.setItem(INTEGRATION_STORAGE_KEY, payloadStr);
+        localStorage.setItem('INTEGRATION_STORAGE_KEY', payloadStr);
         localStorage.setItem('planned_meals_v1', payloadStr);
         localStorage.setItem('diettracker_import', payloadStr);
         localStorage.setItem('meal_plan_transfer', payloadStr);
         localStorage.setItem('meal_plan_sent', 'true');
+
         console.log('✅ Meal plan data stored for Diet Tracker');
+
+        // Show redirect overlay
+        const overlay = document.getElementById('redirectOverlay');
+        if (overlay) overlay.classList.add('active');
+
+        // Redirect after short delay (adjust URL if needed)
+        const trackerUrl = document.body.getAttribute('data-diet-tracker-url') || "https://mhhakda.github.io/diet-tracker/";
+        setTimeout(() => {
+            window.location.href = trackerUrl;
+        }, 2500);
     } catch (err) {
         console.error('❌ Failed to store meal plan for tracker:', err);
     }
 }
 
-// ✅ Expose globally so HTML button can call it
+// ✅ Expose globally so button works
 window.sendToTrackerAndRedirect = sendToTrackerAndRedirect;
+

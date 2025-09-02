@@ -1081,23 +1081,49 @@ if (calorieCtx) {
                 }
             }
         }
-    }); // ✅ this closes new Chart(...)
+     }); // ✅ this closes new Chart(...)
 }
 
-       Send to Tracker / Export
-       --------------------------- */
-    function sendToTrackerAndRedirect() {
-        if (!currentMealPlan || !currentUserProfile) { alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.'); return; }
-        const overlay = document.getElementById('redirectOverlay'); if (overlay) overlay.style.display = 'flex';
-        const integrationData = { version:'3.0', timestamp:new Date().toISOString(), source:'thedietplanner-diet-planner', userProfile:currentUserProfile, mealPlan:currentMealPlan, dailyTargets:{ calories: currentUserProfile.targetCalories, protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4), carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4), fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9), fiber: 25, water: 2000 } };
-        try {
-            const payloadStr = JSON.stringify(integrationData);
-            localStorage.setItem(INTEGRATION_STORAGE_KEY, payloadStr);
-            localStorage.setItem('planned_meals_v1', payloadStr);
-            localStorage.setItem('diettracker_import', payloadStr);
-            localStorage.setItem('meal_plan_transfer', payloadStr);
-            localStorage.setItem('meal_plan_sent', 'true');
-            console.log('✅ Meal plan data stored for Diet Tracker');
+/* ---------------------------
+   Send to Tracker / Export
+--------------------------- */
+function sendToTrackerAndRedirect() {
+    if (!currentMealPlan || !currentUserProfile) { 
+        alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.'); 
+        return; 
+    }
+    const overlay = document.getElementById('redirectOverlay'); 
+    if (overlay) overlay.style.display = 'flex';
+
+    const integrationData = { 
+        version:'3.0', 
+        timestamp:new Date().toISOString(), 
+        source:'thedietplanner-diet-planner', 
+        userProfile:currentUserProfile, 
+        mealPlan:currentMealPlan, 
+        dailyTargets:{ 
+            calories: currentUserProfile.targetCalories, 
+            protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4), 
+            carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4), 
+            fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9), 
+            fiber: 25, 
+            water: 2000 
+        } 
+    };
+
+    try {
+        const payloadStr = JSON.stringify(integrationData);
+        localStorage.setItem(INTEGRATION_STORAGE_KEY, payloadStr);
+        localStorage.setItem('planned_meals_v1', payloadStr);
+        localStorage.setItem('diettracker_import', payloadStr);
+        localStorage.setItem('meal_plan_transfer', payloadStr);
+        localStorage.setItem('meal_plan_sent', 'true');
+        console.log('✅ Meal plan data stored for Diet Tracker');
+    } catch (err) {
+        console.error('❌ Failed to store meal plan for tracker:', err);
+    }
+}
+
 
             const redirectUrl = document.body && document.body.getAttribute('data-diet-tracker-url') ? document.body.getAttribute('data-diet-tracker-url') : DIET_TRACKER_URL;
             let opened = false;

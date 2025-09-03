@@ -852,20 +852,23 @@ function normalizeKey(value) {
     return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
 }
 
+/* ---------------------------
+   Generate & display plan (final clean version)
+--------------------------- */
 async function generateMealPlan() {
     try {
         await loadMealsDatabase();
 
         const profile = {
-            age: safeNumber(document.getElementById("age").value),
-            gender: document.getElementById("gender").value,
-            height: safeNumber(document.getElementById("height").value),
-            weight: safeNumber(document.getElementById("weight").value),
-            goal: document.getElementById("goal").value,
-            dietType: document.getElementById("dietType").value,
-            region: document.getElementById("region").value,
-            activityLevel: document.getElementById("activityLevel").value,
-            targetCalories: safeNumber(document.getElementById("targetCalories").value)
+            age: safeNumber(document.getElementById("age")?.value),
+            gender: document.getElementById("gender")?.value,
+            height: safeNumber(document.getElementById("height")?.value),
+            weight: safeNumber(document.getElementById("weight")?.value),
+            goal: document.getElementById("goal")?.value,
+            dietType: document.getElementById("dietType")?.value,
+            region: document.getElementById("region")?.value,
+            activityLevel: document.getElementById("activityLevel")?.value,
+            targetCalories: safeNumber(document.getElementById("targetCalories")?.value)
         };
 
         if (!profile.targetCalories || profile.targetCalories === 0) {
@@ -876,14 +879,9 @@ async function generateMealPlan() {
         const normRegion = normalizeKey(profile.region);
         let regionKey = Object.keys(mealDatabase).find(
             k => normalizeKey(k) === normRegion
+        ) || Object.keys(mealDatabase).find(
+            k => normalizeKey(k).includes(normRegion) || normRegion.includes(normalizeKey(k))
         );
-
-        if (!regionKey) {
-            // fallback: try partial matches
-            regionKey = Object.keys(mealDatabase).find(
-                k => normalizeKey(k).includes(normRegion) || normRegion.includes(normalizeKey(k))
-            );
-        }
 
         if (!regionKey) {
             console.error("❌ Region not found:", profile.region, "Available regions:", Object.keys(mealDatabase));
@@ -896,13 +894,9 @@ async function generateMealPlan() {
         const normDiet = normalizeKey(profile.dietType);
         let dietKey = Object.keys(regionMeals).find(
             k => normalizeKey(k) === normDiet
+        ) || Object.keys(regionMeals).find(
+            k => normalizeKey(k).includes(normDiet) || normDiet.includes(normalizeKey(k))
         );
-
-        if (!dietKey) {
-            dietKey = Object.keys(regionMeals).find(
-                k => normalizeKey(k).includes(normDiet) || normDiet.includes(normalizeKey(k))
-            );
-        }
 
         const dietMeals = regionMeals[dietKey] || regionMeals["Regular"] || Object.values(regionMeals)[0];
 
@@ -913,55 +907,30 @@ async function generateMealPlan() {
 
         console.log("✅ Using region:", regionKey, "| diet:", dietKey || "Regular");
 
-        // ✅ Build the weekly plan
+        // ✅ Build weekly plan
         const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
 
-        currentMealPlan = weeklyPlan;
-        currentUserProfile = profile;
-
-        localStorage.setItem(
-            "last_generated_plan_v1",
-            JSON.stringify({ plan: weeklyPlan, profile: profile, generated: new Date().toISOString() })
-        );
-
-        displayMealPlan(weeklyPlan, profile);
-        await createCharts(weeklyPlan, profile);
-        return weeklyPlan;
-
-    } catch (error) {
-        console.error("❌ Error generating meal plan:", error);
-        alert("Failed to generate meal plan. Please check console for details.");
-        throw error;
-    }
-}
-
-
-        // debug info
-        console.log('[DietPlanner] profile', profile);
-        console.log('[DietPlanner] resolved region:', regionKey, 'diet keys:', Object.keys(regionMeals || {}));
-
-        // build weekly plan
-        const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
-
-        // small pass: if a slot has a placeholder-like title, try swap with first real titled item in that mealType
-        const mealTypes = ['breakfast','lunch','dinner','snacks'];
+        // ✅ Improve placeholders
+        const mealTypes = ["breakfast", "lunch", "dinner", "snacks"];
         for (const day of Object.keys(weeklyPlan)) {
             for (const mt of mealTypes) {
                 const meal = weeklyPlan[day][mt];
                 if (meal && (!meal.title || /^Option|Mixed|Balanced|Nutritious|Healthy/i.test(String(meal.title)))) {
                     const pool = getMealsArrayForType(dietMeals, mt) || [];
                     const candidate = pool.find(m => m && m.title && !/^Option|Mixed|Balanced|Nutritious|Healthy/i.test(String(m.title)));
-                    if (candidate) weeklyPlan[day][mt] = {
-                        id: candidate.id ?? candidate.title ?? (`meal_${Math.random()}`),
-                        title: candidate.title || candidate.name || candidate.label || 'Meal',
-                        serving_size: candidate.serving_size || candidate.serving || candidate.servingSize || '',
-                        calories: safeNumber(candidate.calories ?? candidate.kcal ?? 0),
-                        protein: safeNumber(candidate.protein ?? candidate.prot ?? 0),
-                        carbs: safeNumber(candidate.carbs ?? candidate.carbohydrates ?? 0),
-                        fat: safeNumber(candidate.fat ?? candidate.fats ?? 0),
-                        fiber: safeNumber(candidate.fiber ?? 0),
-                        foods: Array.isArray(candidate.foods) ? candidate.foods : []
-                    };
+                    if (candidate) {
+                        weeklyPlan[day][mt] = {
+                            id: candidate.id ?? candidate.title ?? (`meal_${Math.random()}`),
+                            title: candidate.title || candidate.name || candidate.label || "Meal",
+                            serving_size: candidate.serving_size || candidate.serving || candidate.servingSize || "",
+                            calories: safeNumber(candidate.calories ?? candidate.kcal ?? 0),
+                            protein: safeNumber(candidate.protein ?? candidate.prot ?? 0),
+                            carbs: safeNumber(candidate.carbs ?? candidate.carbohydrates ?? 0),
+                            fat: safeNumber(candidate.fat ?? candidate.fats ?? 0),
+                            fiber: safeNumber(candidate.fiber ?? 0),
+                            foods: Array.isArray(candidate.foods) ? candidate.foods : []
+                        };
+                    }
                 }
             }
         }
@@ -970,23 +939,26 @@ async function generateMealPlan() {
         currentUserProfile = profile;
 
         try {
-            localStorage.setItem('last_generated_plan_v1', JSON.stringify({ plan: weeklyPlan, profile: profile, generated: new Date().toISOString() }));
+            localStorage.setItem("last_generated_plan_v1", JSON.stringify({
+                plan: weeklyPlan,
+                profile: profile,
+                generated: new Date().toISOString()
+            }));
         } catch (e) { /* ignore storage errors */ }
 
-        // render & charts (caller may await)
         displayMealPlan(weeklyPlan, profile);
         await createCharts(weeklyPlan, profile);
 
-        console.log('[DietPlanner] Weekly plan generated for', regionKey, profile.dietType);
+        console.log("✅ Weekly plan generated for", regionKey, profile.dietType);
         return weeklyPlan;
+
     } catch (error) {
-        console.error('[DietPlanner] generateMealPlan error:', error);
+        console.error("❌ Error generating meal plan:", error);
+        alert("Failed to generate meal plan. Please check console for details.");
         throw error;
     }
 }
-
-
-    function displayMealPlan(weeklyPlan, profile) {
+   function displayMealPlan(weeklyPlan, profile) {
         displayStatsCards(weeklyPlan, profile);
         displayMealTable(weeklyPlan);
     }

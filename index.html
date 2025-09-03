@@ -845,78 +845,96 @@ function selectMealsForWeek(meals, targetCalories, profile) {
 }
 
 /* ---------------------------
-   Generate & display plan (robust)
+   Generate & display plan (universal fix)
 --------------------------- */
+function normalizeKey(value) {
+    if (!value) return "";
+    return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
 async function generateMealPlan() {
     try {
         await loadMealsDatabase();
 
         const profile = {
-            age: safeNumber(document.getElementById('age')?.value),
-            gender: (document.getElementById('gender')?.value || '').toString(),
-            height: safeNumber(document.getElementById('height')?.value),
-            weight: safeNumber(document.getElementById('weight')?.value),
-            goal: (document.getElementById('goal')?.value || 'maintain').toString(),
-            dietType: (document.getElementById('dietType')?.value || 'Regular').toString(),
-            region: (document.getElementById('region')?.value || '').toString(),
-            activityLevel: (document.getElementById('activityLevel')?.value || 'low').toString(),
-            targetCalories: safeNumber(document.getElementById('targetCalories')?.value)
+            age: safeNumber(document.getElementById("age").value),
+            gender: document.getElementById("gender").value,
+            height: safeNumber(document.getElementById("height").value),
+            weight: safeNumber(document.getElementById("weight").value),
+            goal: document.getElementById("goal").value,
+            dietType: document.getElementById("dietType").value,
+            region: document.getElementById("region").value,
+            activityLevel: document.getElementById("activityLevel").value,
+            targetCalories: safeNumber(document.getElementById("targetCalories").value)
         };
 
-        if (!profile.targetCalories || profile.targetCalories <= 0) {
+        if (!profile.targetCalories || profile.targetCalories === 0) {
             profile.targetCalories = calculateTargetCalories(profile);
-            console.log('[DietPlanner] Auto-calculated targetCalories =', profile.targetCalories);
         }
 
-        // tolerant region resolution
-        function findRegionKey(selectedRegion) {
-            if (!selectedRegion || !mealDatabase) return null;
-            const keys = Object.keys(mealDatabase || {});
-            if (keys.includes(selectedRegion)) return selectedRegion;
-            const norm = selectedRegion.toString().trim().toLowerCase().replace(/[_\s\-]+/g, ' ');
-            // mapping shortcuts
-            const map = {
-                'east_asian':'East_Asian','east asia':'East_Asian','east_asia':'East_Asian',
-                'australia':'Australian','australian':'Australian','usa':'USA','us':'USA',
-                'latin america':'Latin_American','latin_american':'Latin_American','middle east':'Middle_Eastern','middle_eastern':'Middle_Eastern'
-            };
-            if (map[norm] && keys.includes(map[norm])) return map[norm];
-            // case-insensitive match
-            const exact = keys.find(k => k.toLowerCase() === norm);
-            if (exact) return exact;
-            const contains = keys.find(k => k.toLowerCase().includes(norm) || norm.includes(k.toLowerCase()));
-            if (contains) return contains;
-            // fallback first key
-            return keys.length ? keys[0] : null;
-        }
+        // ✅ Region resolution
+        const normRegion = normalizeKey(profile.region);
+        let regionKey = Object.keys(mealDatabase).find(
+            k => normalizeKey(k) === normRegion
+        );
 
-        const regionKey = findRegionKey(profile.region);
         if (!regionKey) {
-            console.error('[DietPlanner] No region match for:', profile.region, Object.keys(mealDatabase || {}));
+            // fallback: try partial matches
+            regionKey = Object.keys(mealDatabase).find(
+                k => normalizeKey(k).includes(normRegion) || normRegion.includes(normalizeKey(k))
+            );
+        }
+
+        if (!regionKey) {
+            console.error("❌ Region not found:", profile.region, "Available regions:", Object.keys(mealDatabase));
             throw new Error(`No meals available for region: ${profile.region}`);
         }
+
         const regionMeals = mealDatabase[regionKey];
-        if (!regionMeals) throw new Error(`Region data missing for ${regionKey}`);
 
-        // tolerant diet selection
-        function findDietMeals(regionMealsObj, dietRequested) {
-            if (!regionMealsObj) return null;
-            if (!dietRequested) return regionMealsObj['Regular'] || Object.values(regionMealsObj)[0];
-            if (regionMealsObj[dietRequested]) return regionMealsObj[dietRequested];
-            const norm = dietRequested.toString().trim().toLowerCase().replace(/[_\s\-]+/g,' ');
-            const keys = Object.keys(regionMealsObj || {});
-            const exact = keys.find(k => k.toLowerCase().replace(/[_\s]+/g,' ') === norm);
-            if (exact) return regionMealsObj[exact];
-            const partial = keys.find(k => k.toLowerCase().includes(norm) || norm.includes(k.toLowerCase()));
-            if (partial) return regionMealsObj[partial];
-            return regionMealsObj['Regular'] || Object.values(regionMealsObj)[0];
+        // ✅ Diet resolution
+        const normDiet = normalizeKey(profile.dietType);
+        let dietKey = Object.keys(regionMeals).find(
+            k => normalizeKey(k) === normDiet
+        );
+
+        if (!dietKey) {
+            dietKey = Object.keys(regionMeals).find(
+                k => normalizeKey(k).includes(normDiet) || normDiet.includes(normalizeKey(k))
+            );
         }
 
-        const dietMeals = findDietMeals(regionMeals, profile.dietType);
+        const dietMeals = regionMeals[dietKey] || regionMeals["Regular"] || Object.values(regionMeals)[0];
+
         if (!dietMeals) {
-            console.error('[DietPlanner] Diet meals not found', profile.dietType, Object.keys(regionMeals || {}));
-            throw new Error(`No meals for diet "${profile.dietType}" in "${regionKey}"`);
+            console.error("❌ Diet not found:", profile.dietType, "Available diets:", Object.keys(regionMeals));
+            throw new Error(`No meals available for diet: ${profile.dietType} in region: ${profile.region}`);
         }
+
+        console.log("✅ Using region:", regionKey, "| diet:", dietKey || "Regular");
+
+        // ✅ Build the weekly plan
+        const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
+
+        currentMealPlan = weeklyPlan;
+        currentUserProfile = profile;
+
+        localStorage.setItem(
+            "last_generated_plan_v1",
+            JSON.stringify({ plan: weeklyPlan, profile: profile, generated: new Date().toISOString() })
+        );
+
+        displayMealPlan(weeklyPlan, profile);
+        await createCharts(weeklyPlan, profile);
+        return weeklyPlan;
+
+    } catch (error) {
+        console.error("❌ Error generating meal plan:", error);
+        alert("Failed to generate meal plan. Please check console for details.");
+        throw error;
+    }
+}
+
 
         // debug info
         console.log('[DietPlanner] profile', profile);

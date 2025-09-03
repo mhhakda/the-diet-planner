@@ -669,47 +669,138 @@
         return Math.round(tdee);
     }
 
-    /* ---------------------------
-       Meal selection algorithm
-    --------------------------- */
-    function selectMealsForWeek(meals, targetCalories, profile) {
-        const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-        const mealTypes = ['breakfast','lunch','dinner','snacks'];
-        const weeklyPlan = {};
-        const usedMealIds = new Set();
-        const calorieDistribution = { breakfast:0.25, lunch:0.35, dinner:0.35, snacks:0.05 };
+ /* ---------------------------
+   Robust meal selection + fallback logging
+   --------------------------- */
 
-        days.forEach(day => {
-            weeklyPlan[day] = {};
-            mealTypes.forEach(mealType => {
-                const targetForMeal = Math.round(targetCalories * calorieDistribution[mealType]);
-                const availableMeals = (meals && meals[mealType]) ? meals[mealType] : [];
-                if (availableMeals.length === 0) { weeklyPlan[day][mealType] = createDefaultMeal(mealType, targetForMeal); return; }
+function createDefaultMeal(mealType, targetCalories) {
+    const defaults = {
+        breakfast: { title:"Mixed Breakfast", serving_size:"1 serving", calories: Math.round(targetCalories) },
+        lunch:     { title:"Balanced Lunch", serving_size:"1 serving", calories: Math.round(targetCalories) },
+        dinner:    { title:"Nutritious Dinner", serving_size:"1 serving", calories: Math.round(targetCalories) },
+        snacks:    { title:"Healthy Snack", serving_size:"1 serving", calories: Math.round(targetCalories) }
+    };
+    const base = defaults[mealType] || defaults['lunch'];
+    return {
+        id: `fallback_${mealType}_${Date.now()}_${Math.round(Math.random()*1000)}`,
+        ...base,
+        protein: Math.round(targetCalories * 0.15 / 4),
+        carbs:   Math.round(targetCalories * 0.50 / 4),
+        fat:     Math.round(targetCalories * 0.35 / 9),
+        fiber:   5,
+        _isFallback: true
+    };
+}
 
-                let suitable = availableMeals.filter(m => {
-                    const c = safeNumber(m.calories);
-                    const unused = !usedMealIds.has(m.id);
-                    const inRange = c >= targetForMeal*0.7 && c <= targetForMeal*1.3;
-                    return unused && inRange;
-                });
+function getMealsArrayForType(dietMeals, mealType) {
+    if (!dietMeals) return [];
+    // try many variants
+    const variants = [
+        mealType,
+        mealType.toLowerCase(),
+        mealType.charAt(0).toUpperCase() + mealType.slice(1),
+        mealType + 's',
+        mealType.replace('_',' '),
+        mealType.replace('_',' ').toLowerCase()
+    ];
 
-                if (suitable.length === 0) suitable = availableMeals.filter(m => {
-                    const c = safeNumber(m.calories);
-                    return c >= targetForMeal*0.7 && c <= targetForMeal*1.3;
-                });
-
-                if (suitable.length === 0) suitable = availableMeals.filter(m => !usedMealIds.has(m.id));
-                if (suitable.length === 0) suitable = availableMeals;
-
-                const seed = (days.indexOf(day) * 4 + mealTypes.indexOf(mealType)) % suitable.length;
-                const selected = suitable[seed];
-                weeklyPlan[day][mealType] = selected;
-                usedMealIds.add(selected.id);
-            });
-        });
-
-        return weeklyPlan;
+    for (const k of variants) {
+        if (Array.isArray(dietMeals[k]) && dietMeals[k].length) return dietMeals[k];
     }
+
+    // if dietMeals itself is an array (legacy shape) return it
+    if (Array.isArray(dietMeals) && dietMeals.length) return dietMeals;
+
+    // find first non-empty array inside object
+    for (const k of Object.keys(dietMeals)) {
+        if (Array.isArray(dietMeals[k]) && dietMeals[k].length) return dietMeals[k];
+    }
+
+    return [];
+}
+
+function selectMealsForWeek(meals, targetCalories, profile) {
+    const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const mealTypes = ['breakfast','lunch','dinner','snacks'];
+    const weeklyPlan = {};
+    const usedMealIds = new Set();
+    const calorieDistribution = { breakfast:0.25, lunch:0.35, dinner:0.35, snacks:0.05 };
+
+    // flatten everything as last resort
+    function flattenAllMeals(obj) {
+        const out = [];
+        if (!obj) return out;
+        if (Array.isArray(obj)) return obj.slice();
+        for (const k of Object.keys(obj)) {
+            if (Array.isArray(obj[k])) out.push(...obj[k]);
+        }
+        return out;
+    }
+    const allAvailable = flattenAllMeals(meals);
+
+    days.forEach((day, dayIndex) => {
+        weeklyPlan[day] = {};
+        mealTypes.forEach(mealType => {
+            const targetForMeal = Math.round(targetCalories * (calorieDistribution[mealType] || 0.25));
+
+            // robust lookup
+            let availableMeals = getMealsArrayForType(meals, mealType);
+            if (!availableMeals || availableMeals.length === 0) availableMeals = allAvailable.slice();
+
+            if (!availableMeals || availableMeals.length === 0) {
+                const fallback = createDefaultMeal(mealType, targetForMeal);
+                console.warn(`[DietPlanner] No meals found for "${mealType}" — using fallback. Check meals.json keys or region/diet lookup.`);
+                weeklyPlan[day][mealType] = fallback;
+                return;
+            }
+
+            // normalize candidate list
+            const candidates = availableMeals.filter(Boolean);
+
+            // prefer unused & in-range (±40%)
+            let suitable = candidates.filter(m => {
+                const c = safeNumber(m.calories);
+                const unused = !(usedMealIds.has(m.id) || usedMealIds.has(String(m.title || m.id)));
+                const inRange = (c === 0) || (c >= targetForMeal * 0.6 && c <= targetForMeal * 1.4);
+                return unused && inRange;
+            });
+
+            if (suitable.length === 0) {
+                suitable = candidates.filter(m => {
+                    const c = safeNumber(m.calories);
+                    return (c === 0) || (c >= targetForMeal * 0.6 && c <= targetForMeal * 1.4);
+                });
+            }
+            if (suitable.length === 0) suitable = candidates.filter(m => !(usedMealIds.has(m.id) || usedMealIds.has(String(m.title || m.id))));
+            if (suitable.length === 0) suitable = candidates.slice();
+
+            const seedIndex = (dayIndex * 7 + mealTypes.indexOf(mealType)) % suitable.length;
+            const chosenRaw = suitable[seedIndex] || suitable[0];
+
+            // normalize chosen
+            const chosen = (function normalize(m){
+                if (!m) return createDefaultMeal(mealType, targetForMeal);
+                if (typeof m !== 'object') return { id: String(m), title: String(m), serving_size:'', calories:0, protein:0, carbs:0, fat:0, fiber:0 };
+                return {
+                    id: m.id ?? (m.title ? String(m.title) : `meal_${Math.random()}`),
+                    title: (m.title || m.name || m.label || '').toString() || `Meal`,
+                    serving_size: m.serving_size || m.serving || m.servingSize || '',
+                    calories: safeNumber(m.calories ?? m.kcal ?? 0),
+                    protein: safeNumber(m.protein ?? m.prot ?? 0),
+                    carbs: safeNumber(m.carbs ?? m.carbohydrates ?? 0),
+                    fat: safeNumber(m.fat ?? m.fats ?? 0),
+                    fiber: safeNumber(m.fiber ?? 0),
+                    foods: Array.isArray(m.foods) ? m.foods : (m.ingredients ? String(m.ingredients).split(',').map(s=>({name:s.trim()})) : [])
+                };
+            })(chosenRaw);
+
+            weeklyPlan[day][mealType] = chosen;
+            usedMealIds.add(chosen.id);
+        });
+    });
+
+    return weeklyPlan;
+}
 
     function createDefaultMeal(mealType, targetCalories) {
         const defaults = {

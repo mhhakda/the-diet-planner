@@ -542,59 +542,116 @@
         return ok;
     }
 
-    /* ---------------------------
-       Meals database loading & normalization
-    --------------------------- */
-    async function loadMealsDatabase(force = false) {
-        if (mealDatabase && !force) return mealDatabase;
-        if (mealDbLoadPromise && !force) return mealDbLoadPromise;
-        mealDbLoadPromise = (async () => {
-            const candidates = ['meals.json','/meals.json','data/meals.json'];
-            let raw = null;
-            for (const url of candidates) {
-                try {
-                    const res = await fetch(url, { cache: 'no-store' });
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    raw = await res.json();
-                    console.log('✅ Loaded meals.json from', url);
-                    break;
-                } catch (err) {
-                    console.warn('Could not load meals from', url, err);
+// ---------------------------
+// Robust meals.json loader + normalizer
+// ---------------------------
+async function loadMealsDatabase(force = false) {
+    if (mealDatabase && !force) return mealDatabase;
+    if (mealDbLoadPromise && !force) return mealDbLoadPromise;
+
+    mealDbLoadPromise = (async () => {
+        const candidates = ['meals.json', '/meals.json', 'data/meals.json', location.origin + '/meals.json'];
+        let raw = null;
+        for (const url of candidates) {
+            try {
+                const res = await fetch(url, { cache: 'no-store' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                raw = await res.json();
+                console.log('✅ Loaded meals.json from', url);
+                break;
+            } catch (err) {
+                console.warn('Could not load meals from', url, err);
+            }
+        }
+
+        if (!raw) {
+            console.warn('⚠️ meals.json not found — using built-in fallback.');
+            mealDatabase = createFallbackMeals();
+            return mealDatabase;
+        }
+
+        // If raw is an object with a "meals" array or "data.meals", use it:
+        if (raw.meals && Array.isArray(raw.meals)) raw = raw.meals;
+        else if (raw.data && Array.isArray(raw.data.meals)) raw = raw.data.meals;
+
+        // If raw is a flat array of meal objects -> convert to normalized shape
+        if (Array.isArray(raw)) {
+            const normalized = {};
+            for (let i = 0; i < raw.length; i++) {
+                const m = raw[i];
+                if (!m || typeof m !== 'object') continue;
+                const regionKey = (m.region || 'Global').toString();
+                const diets = Array.isArray(m.diets) && m.diets.length ? m.diets : ['Regular'];
+                const mealType = (m.mealType || m.type || 'lunch').toString().toLowerCase();
+
+                if (!normalized[regionKey]) normalized[regionKey] = {};
+                for (const diet of diets) {
+                    const dietKey = diet || 'Regular';
+                    if (!normalized[regionKey][dietKey]) normalized[regionKey][dietKey] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
+                    const bucket = normalized[regionKey][dietKey];
+
+                    // map meal object into normalized meal shape (reuse normalizeMealObject if present)
+                    const norm = (typeof normalizeMealObject === 'function')
+                        ? normalizeMealObject(m, i, regionKey, dietKey, mealType)
+                        : {
+                            id: m.id ?? `${regionKey}_${dietKey}_${mealType}_${i}`,
+                            title: m.title || m.name || `Meal ${i+1}`,
+                            serving_size: m.serving_size || m.serving || '',
+                            calories: safeNumber(m.calories ?? m.kcal ?? 0),
+                            protein: safeNumber(m.protein ?? 0),
+                            carbs: safeNumber(m.carbs ?? 0),
+                            fat: safeNumber(m.fat ?? 0),
+                            fiber: safeNumber(m.fiber ?? 0),
+                            foods: Array.isArray(m.foods) ? m.foods : (m.ingredients ? String(m.ingredients).split(',').map(s=>({name:s.trim()})) : [])
+                        };
+
+                    // place into appropriate mealType bucket (normalize names)
+                    const key = (['breakfast','lunch','dinner','snacks'].includes(mealType) ? mealType : (mealType.endsWith('s') ? mealType : mealType + (mealType==='snack' ? 's' : '')) );
+                    const targetKey = ['breakfast','lunch','dinner','snacks'].includes(key) ? key : 'lunch';
+                    bucket[targetKey].push(norm);
                 }
             }
-            if (!raw) {
-                console.warn('⚠️ meals.json not found — using fallback data.');
-                mealDatabase = createFallbackMeals();
-                return mealDatabase;
-            }
 
-            // Normalize into expected shape: region -> diet -> { breakfast:[], lunch:[], dinner:[], snacks:[] }
+            mealDatabase = normalized;
+            console.log('✅ meals.json was a flat array — converted to normalized structure.');
+            return mealDatabase;
+        }
+
+        // If raw appears already as nested region -> diet -> { breakfast:lunch:... }
+        try {
             const normalized = {};
+            const regionKeys = Object.keys(raw);
             const types = ['breakfast','lunch','dinner','snacks'];
-            Object.keys(raw).forEach(regionKey => {
-                const region = raw[regionKey];
-                if (!region || typeof region !== 'object') return;
+            regionKeys.forEach(regionKey => {
+                const regionObj = raw[regionKey];
+                if (!regionObj || typeof regionObj !== 'object') return;
                 normalized[regionKey] = {};
-                Object.keys(region).forEach(dietKey => {
-                    const dietObj = region[dietKey];
+                Object.keys(regionObj).forEach(dietKey => {
+                    const dietObj = regionObj[dietKey];
                     if (!dietObj || typeof dietObj !== 'object') return;
                     const out = {};
                     types.forEach(t => {
                         let arr = dietObj[t] || dietObj[t.charAt(0).toUpperCase()+t.slice(1)] || dietObj[t.replace('_',' ')] || [];
                         if (!Array.isArray(arr)) arr = [];
-                        out[t] = arr.map((m, i) => normalizeMealObject(m, i, regionKey, dietKey, t));
+                        out[t] = arr.map((m, i) => (typeof normalizeMealObject === 'function') ? normalizeMealObject(m, i, regionKey, dietKey, t) : m);
                     });
                     normalized[regionKey][dietKey] = out;
                 });
             });
-
+            // if normalized has any keys use it, otherwise fallback
             mealDatabase = Object.keys(normalized).length ? normalized : createFallbackMeals();
             console.log('✅ meals.json normalized and loaded.');
             return mealDatabase;
-        })();
+        } catch (err) {
+            console.warn('⚠️ Unexpected meals.json structure — using fallback.', err);
+            mealDatabase = createFallbackMeals();
+            return mealDatabase;
+        }
+    })();
 
-        return mealDbLoadPromise;
-    }
+    return mealDbLoadPromise;
+}
+
 
  function normalizeMealObject(meal, idx, region, diet, mealType) {
     // if meal is missing/invalid -> keep a synthetic placeholder

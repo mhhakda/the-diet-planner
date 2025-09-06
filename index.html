@@ -542,200 +542,213 @@
         return ok;
     }
 
-// ---------------------------
-// Robust meals.json loader + normalizer
-// ---------------------------
+/* ---------------------------
+   Robust meals.json loader + normalizer
+   Replace your existing loadMealsDatabase, normalizeMealObject and createFallbackMeals
+   with this block (paste exactly as-is).
+--------------------------- */
 async function loadMealsDatabase(force = false) {
-    if (mealDatabase && !force) return mealDatabase;
-    if (mealDbLoadPromise && !force) return mealDbLoadPromise;
+  if (mealDatabase && !force) return mealDatabase;
+  if (mealDbLoadPromise && !force) return mealDbLoadPromise;
 
-    mealDbLoadPromise = (async () => {
-        const candidates = ['meals.json', '/meals.json', 'data/meals.json', location.origin + '/meals.json'];
-        let raw = null;
-        for (const url of candidates) {
-            try {
-                const res = await fetch(url, { cache: 'no-store' });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                raw = await res.json();
-                console.log('✅ Loaded meals.json from', url);
-                break;
-            } catch (err) {
-                console.warn('Could not load meals from', url, err);
-            }
+  mealDbLoadPromise = (async () => {
+    const candidates = ['meals.json', '/meals.json', 'data/meals.json', location.origin + '/meals.json'];
+    let raw = null;
+
+    for (const url of candidates) {
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        raw = await res.json();
+        console.log('✅ Loaded meals.json from', url);
+        break;
+      } catch (err) {
+        console.warn('Could not load meals from', url, err && err.message ? err.message : err);
+      }
+    }
+
+    if (!raw) {
+      console.warn('⚠️ meals.json not found — using built-in fallback.');
+      mealDatabase = createFallbackMeals();
+      return mealDatabase;
+    }
+
+    // support wrapper shapes like { meals: [...] } or { data: { meals: [...] } }
+    if (raw && raw.meals && Array.isArray(raw.meals)) raw = raw.meals;
+    else if (raw && raw.data && raw.data.meals && Array.isArray(raw.data.meals)) raw = raw.data.meals;
+
+    // If raw is an array of meals (flat array) convert to normalized structure
+    if (Array.isArray(raw)) {
+      const normalized = {};
+      for (let i = 0; i < raw.length; i++) {
+        const m = raw[i];
+        if (!m || typeof m !== 'object') continue;
+
+        const regionKey = (m.region || 'Global').toString();
+        const diets = Array.isArray(m.diets) && m.diets.length ? m.diets : [m.diet || 'Regular'];
+        const mealType = (m.mealType || m.type || m.category || 'lunch').toString().toLowerCase();
+
+        if (!normalized[regionKey]) normalized[regionKey] = {};
+        for (const diet of diets) {
+          const dietKey = diet || 'Regular';
+          if (!normalized[regionKey][dietKey]) normalized[regionKey][dietKey] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
+          const bucket = normalized[regionKey][dietKey];
+
+          const norm = (typeof normalizeMealObject === 'function')
+            ? normalizeMealObject(m, i, regionKey, dietKey, mealType)
+            : {
+                id: m.id ?? `${regionKey}_${dietKey}_${mealType}_${i}`,
+                title: m.title || m.name || `Meal ${i+1}`,
+                serving_size: m.serving_size || m.serving || '',
+                calories: safeNumber(m.calories ?? m.kcal ?? 0),
+                protein: safeNumber(m.protein ?? 0),
+                carbs: safeNumber(m.carbs ?? 0),
+                fat: safeNumber(m.fat ?? 0),
+                fiber: safeNumber(m.fiber ?? 0),
+                foods: Array.isArray(m.foods) ? m.foods : (m.ingredients ? String(m.ingredients).split(',').map(s => ({ name: s.trim() })) : [])
+              };
+
+          // normalize mealType to one of breakfast|lunch|dinner|snacks
+          let key = mealType;
+          if (!['breakfast','lunch','dinner','snacks'].includes(key)) {
+            if (key.endsWith('s')) key = key;
+            else if (key === 'snack') key = 'snacks';
+            else key = 'lunch';
+          }
+          const targetKey = ['breakfast','lunch','dinner','snacks'].includes(key) ? key : 'lunch';
+          bucket[targetKey].push(norm);
         }
+      }
 
-        if (!raw) {
-            console.warn('⚠️ meals.json not found — using built-in fallback.');
-            mealDatabase = createFallbackMeals();
-            return mealDatabase;
-        }
+      mealDatabase = normalized;
+      console.log('✅ meals.json was a flat array — converted to normalized structure.');
+      return mealDatabase;
+    }
 
-        // If raw is an object with a "meals" array or "data.meals", use it:
-        if (raw.meals && Array.isArray(raw.meals)) raw = raw.meals;
-        else if (raw.data && Array.isArray(raw.data.meals)) raw = raw.data.meals;
+    // If raw looks like nested region -> diet -> { breakfast:[], lunch:[] ... }
+    try {
+      const normalized = {};
+      const regionKeys = Object.keys(raw || {});
+      const types = ['breakfast','lunch','dinner','snacks'];
 
-        // If raw is a flat array of meal objects -> convert to normalized shape
-        if (Array.isArray(raw)) {
-            const normalized = {};
-            for (let i = 0; i < raw.length; i++) {
-                const m = raw[i];
-                if (!m || typeof m !== 'object') continue;
-                const regionKey = (m.region || 'Global').toString();
-                const diets = Array.isArray(m.diets) && m.diets.length ? m.diets : ['Regular'];
-                const mealType = (m.mealType || m.type || 'lunch').toString().toLowerCase();
+      regionKeys.forEach(regionKey => {
+        const regionObj = raw[regionKey];
+        if (!regionObj || typeof regionObj !== 'object') return;
+        normalized[regionKey] = {};
 
-                if (!normalized[regionKey]) normalized[regionKey] = {};
-                for (const diet of diets) {
-                    const dietKey = diet || 'Regular';
-                    if (!normalized[regionKey][dietKey]) normalized[regionKey][dietKey] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
-                    const bucket = normalized[regionKey][dietKey];
+        Object.keys(regionObj).forEach(dietKey => {
+          const dietObj = regionObj[dietKey];
+          if (!dietObj || typeof dietObj !== 'object') return;
 
-                    // map meal object into normalized meal shape (reuse normalizeMealObject if present)
-                    const norm = (typeof normalizeMealObject === 'function')
-                        ? normalizeMealObject(m, i, regionKey, dietKey, mealType)
-                        : {
-                            id: m.id ?? `${regionKey}_${dietKey}_${mealType}_${i}`,
-                            title: m.title || m.name || `Meal ${i+1}`,
-                            serving_size: m.serving_size || m.serving || '',
-                            calories: safeNumber(m.calories ?? m.kcal ?? 0),
-                            protein: safeNumber(m.protein ?? 0),
-                            carbs: safeNumber(m.carbs ?? 0),
-                            fat: safeNumber(m.fat ?? 0),
-                            fiber: safeNumber(m.fiber ?? 0),
-                            foods: Array.isArray(m.foods) ? m.foods : (m.ingredients ? String(m.ingredients).split(',').map(s=>({name:s.trim()})) : [])
-                        };
+          const out = {};
+          types.forEach(t => {
+            let arr = dietObj[t] || dietObj[t.charAt(0).toUpperCase() + t.slice(1)] || dietObj[t.replace('_',' ')] || [];
+            if (!Array.isArray(arr)) arr = [];
+            out[t] = arr.map((m, i) => (typeof normalizeMealObject === 'function') ? normalizeMealObject(m, i, regionKey, dietKey, t) : m);
+          });
 
-                    // place into appropriate mealType bucket (normalize names)
-                    const key = (['breakfast','lunch','dinner','snacks'].includes(mealType) ? mealType : (mealType.endsWith('s') ? mealType : mealType + (mealType==='snack' ? 's' : '')) );
-                    const targetKey = ['breakfast','lunch','dinner','snacks'].includes(key) ? key : 'lunch';
-                    bucket[targetKey].push(norm);
-                }
-            }
+          normalized[regionKey][dietKey] = out;
+        });
+      });
 
-            mealDatabase = normalized;
-            console.log('✅ meals.json was a flat array — converted to normalized structure.');
-            return mealDatabase;
-        }
+      mealDatabase = Object.keys(normalized).length ? normalized : createFallbackMeals();
+      console.log('✅ meals.json normalized and loaded.');
+      // small diagnostics
+      Object.keys(mealDatabase).forEach(r => {
+        Object.keys(mealDatabase[r] || {}).forEach(d => {
+          const obj = mealDatabase[r][d] || {};
+          console.log(`[DietPlanner] ${r}/${d} -> breakfast:${(obj.breakfast||[]).length} lunch:${(obj.lunch||[]).length} dinner:${(obj.dinner||[]).length} snacks:${(obj.snacks||[]).length}`);
+        });
+      });
+      return mealDatabase;
+    } catch (err) {
+      console.warn('⚠️ Unexpected meals.json structure — using fallback.', err && err.message ? err.message : err);
+      mealDatabase = createFallbackMeals();
+      return mealDatabase;
+    }
+  })();
 
-        // If raw appears already as nested region -> diet -> { breakfast:lunch:... }
-        try {
-            const normalized = {};
-            const regionKeys = Object.keys(raw);
-            const types = ['breakfast','lunch','dinner','snacks'];
-            regionKeys.forEach(regionKey => {
-                const regionObj = raw[regionKey];
-                if (!regionObj || typeof regionObj !== 'object') return;
-                normalized[regionKey] = {};
-                Object.keys(regionObj).forEach(dietKey => {
-                    const dietObj = regionObj[dietKey];
-                    if (!dietObj || typeof dietObj !== 'object') return;
-                    const out = {};
-                    types.forEach(t => {
-                        let arr = dietObj[t] || dietObj[t.charAt(0).toUpperCase()+t.slice(1)] || dietObj[t.replace('_',' ')] || [];
-                        if (!Array.isArray(arr)) arr = [];
-                        out[t] = arr.map((m, i) => (typeof normalizeMealObject === 'function') ? normalizeMealObject(m, i, regionKey, dietKey, t) : m);
-                    });
-                    normalized[regionKey][dietKey] = out;
-                });
-            });
-            // if normalized has any keys use it, otherwise fallback
-            mealDatabase = Object.keys(normalized).length ? normalized : createFallbackMeals();
-            console.log('✅ meals.json normalized and loaded.');
-            return mealDatabase;
-        } catch (err) {
-            console.warn('⚠️ Unexpected meals.json structure — using fallback.', err);
-            mealDatabase = createFallbackMeals();
-            return mealDatabase;
-        }
-    })();
-
-    return mealDbLoadPromise;
+  return mealDbLoadPromise;
 }
 
-
- function normalizeMealObject(meal, idx, region, diet, mealType) {
-    // if meal is missing/invalid -> keep a synthetic placeholder
-    if (!meal || typeof meal !== 'object') {
-        return {
-            id: `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
-            title: `Option ${idx+1}`,
-            serving_size: '1 serving',
-            calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0,
-            foods: []
-        };
-    }
-
-    // extract raw fields (support many shapes)
-    const rawTitle = (meal.title || meal.name || meal.label || meal.dish_name || meal.display_name || '').toString().trim();
-    const serving_size = meal.serving_size || meal.servingSize || meal.serving || '';
-    const calories = safeNumber(meal.calories ?? meal.kcal ?? meal.cal ?? 0);
-    const protein = safeNumber(meal.protein ?? meal.prot ?? 0);
-    const carbs = safeNumber(meal.carbs ?? meal.carbohydrates ?? 0);
-    const fat = safeNumber(meal.fat ?? meal.fats ?? 0);
-    const fiber = safeNumber(meal.fiber ?? meal.fib ?? 0);
-
-    // build foods array consistently
-    let foods = [];
-    if (Array.isArray(meal.foods) && meal.foods.length) {
-        foods = meal.foods.map(f => (typeof f === 'string') ? { name: f } : (typeof f === 'object' ? f : { name: String(f) }));
-    } else if (meal.ingredients && typeof meal.ingredients === 'string') {
-        foods = meal.ingredients.split(',').map(s => ({ name: s.trim() })).filter(Boolean);
-    } else if (meal.components && Array.isArray(meal.components)) {
-        foods = meal.components.map(c => (typeof c === 'string') ? { name: c } : (c || {}));
-    }
-
-    // if no explicit title, derive one from foods (first few names)
-    let title = rawTitle;
-    if (!title) {
-        const foodNames = foods.map(f => (typeof f === 'string' ? f : (f.name || f.title || '')).trim()).filter(Boolean);
-        if (foodNames.length) {
-            title = foodNames.slice(0, 3).join(', ');
-        }
-    }
-
-    // final fallbacks
-    if (!title) title = `Meal ${idx + 1}`;
-
+function normalizeMealObject(meal, idx, region, diet, mealType) {
+  // If invalid meal object, return a safe placeholder
+  if (!meal || typeof meal !== 'object') {
     return {
-        id: meal.id ?? `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
-        title,
-        serving_size,
-        calories, protein, carbs, fat, fiber,
-        foods
+      id: `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
+      title: `Option ${idx+1}`,
+      serving_size: '1 serving',
+      calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, foods: []
     };
+  }
+
+  // Support many possible field names
+  const rawTitle = (meal.title || meal.name || meal.label || meal.dish_name || meal.display_name || '').toString().trim();
+  const serving_size = meal.serving_size || meal.servingSize || meal.serving || '';
+  const calories = safeNumber(meal.calories ?? meal.kcal ?? meal.cal ?? 0);
+  const protein = safeNumber(meal.protein ?? meal.prot ?? 0);
+  const carbs = safeNumber(meal.carbs ?? meal.carbohydrates ?? meal.carb ?? 0);
+  const fat = safeNumber(meal.fat ?? meal.fats ?? 0);
+  const fiber = safeNumber(meal.fiber ?? meal.fib ?? 0);
+
+  // Build foods array consistently
+  let foods = [];
+  if (Array.isArray(meal.foods) && meal.foods.length) {
+    foods = meal.foods.map(f => (typeof f === 'string') ? { name: f } : (typeof f === 'object' ? f : { name: String(f) }));
+  } else if (meal.ingredients && typeof meal.ingredients === 'string') {
+    foods = meal.ingredients.split(',').map(s => ({ name: s.trim() })).filter(Boolean);
+  } else if (meal.components && Array.isArray(meal.components)) {
+    foods = meal.components.map(c => (typeof c === 'string') ? { name: c } : (c || {}));
+  }
+
+  // If no explicit title, derive from foods (first up to 3 names)
+  let title = rawTitle;
+  if (!title) {
+    const foodNames = foods.map(f => (typeof f === 'string') ? f : (f.name || f.title || '')).filter(Boolean);
+    if (foodNames.length) title = foodNames.slice(0, 3).join(', ');
+  }
+  if (!title) title = `Meal ${idx + 1}`;
+
+  return {
+    id: meal.id ?? `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
+    title,
+    serving_size,
+    calories, protein, carbs, fat, fiber,
+    foods
+  };
 }
 
-    function createFallbackMeals() {
-        return {
-            "India": {
-                "Regular": {
-                    breakfast: [
-                        { id: 'fb1', title: "Oatmeal with Fruits", serving_size: "1 serving", calories: 250, protein: 8, carbs: 45, fat: 4, fiber: 5 },
-                        { id: 'fb2', title: "Boiled Eggs", serving_size: "2 eggs", calories: 150, protein: 12, carbs: 1, fat: 10, fiber: 0 }
-                    ],
-                    lunch: [
-                        { id: 'fl1', title: "Grilled Chicken Salad", serving_size: "1 bowl", calories: 350, protein: 30, carbs: 15, fat: 12, fiber: 6 },
-                        { id: 'fl2', title: "Veggie Wrap", serving_size: "1 wrap", calories: 300, protein: 10, carbs: 40, fat: 8, fiber: 5 }
-                    ],
-                    dinner: [
-                        { id: 'fd1', title: "Paneer Curry with Rice", serving_size: "1 plate", calories: 400, protein: 20, carbs: 50, fat: 15, fiber: 5 },
-                        { id: 'fd2', title: "Fish with Quinoa", serving_size: "1 plate", calories: 450, protein: 35, carbs: 40, fat: 14, fiber: 4 }
-                    ],
-                    snacks: [
-                        { id: 'fs1', title: "Fruit and Nuts", serving_size: "1 small bowl", calories: 150, protein: 4, carbs: 20, fat: 6, fiber: 3 }
-                    ]
-                }
-            },
-            "USA": {
-                "Regular": {
-                    breakfast: [{ id: 'us_b1', title: "Scrambled Eggs with Toast", serving_size: "1 serving", calories: 320, protein: 18, carbs: 28, fat: 14, fiber: 3 }],
-                    lunch: [{ id: 'us_l1', title: "Turkey Sandwich", serving_size: "1", calories: 420, protein: 30, carbs: 45, fat: 12, fiber: 4 }],
-                    dinner: [{ id: 'us_d1', title: "Grilled Salmon", serving_size: "1", calories: 500, protein: 35, carbs: 30, fat: 22, fiber: 3 }],
-                    snacks: [{ id: 'us_s1', title: "Greek Yogurt & Berries", serving_size: "1 cup", calories: 160, protein: 12, carbs: 18, fat: 4, fiber: 2 }]
-                }
-            }
-        };
+function createFallbackMeals() {
+  return {
+    "India": {
+      "Regular": {
+        breakfast: [
+          { id: 'fb1', title: "Oatmeal with Fruits", serving_size: "1 serving", calories: 250, protein: 8, carbs: 45, fat: 4, fiber: 5 },
+          { id: 'fb2', title: "Boiled Eggs", serving_size: "2 eggs", calories: 150, protein: 12, carbs: 1, fat: 10, fiber: 0 }
+        ],
+        lunch: [
+          { id: 'fl1', title: "Grilled Chicken Salad", serving_size: "1 bowl", calories: 350, protein: 30, carbs: 15, fat: 12, fiber: 6 },
+          { id: 'fl2', title: "Veggie Wrap", serving_size: "1 wrap", calories: 300, protein: 10, carbs: 40, fat: 8, fiber: 5 }
+        ],
+        dinner: [
+          { id: 'fd1', title: "Paneer Curry with Rice", serving_size: "1 plate", calories: 400, protein: 20, carbs: 50, fat: 15, fiber: 5 },
+          { id: 'fd2', title: "Fish with Quinoa", serving_size: "1 plate", calories: 450, protein: 35, carbs: 40, fat: 14, fiber: 4 }
+        ],
+        snacks: [
+          { id: 'fs1', title: "Fruit and Nuts", serving_size: "1 small bowl", calories: 150, protein: 4, carbs: 20, fat: 6, fiber: 3 }
+        ]
+      }
+    },
+    "USA": {
+      "Regular": {
+        breakfast: [{ id: 'us_b1', title: "Scrambled Eggs with Toast", serving_size: "1 serving", calories: 320, protein: 18, carbs: 28, fat: 14, fiber: 3 }],
+        lunch: [{ id: 'us_l1', title: "Turkey Sandwich", serving_size: "1", calories: 420, protein: 30, carbs: 45, fat: 12, fiber: 4 }],
+        dinner: [{ id: 'us_d1', title: "Grilled Salmon", serving_size: "1", calories: 500, protein: 35, carbs: 30, fat: 22, fiber: 3 }],
+        snacks: [{ id: 'us_s1', title: "Greek Yogurt & Berries", serving_size: "1 cup", calories: 160, protein: 12, carbs: 18, fat: 4, fiber: 2 }]
+      }
     }
+  };
+}
 
 /* ---------------------------
    Calculation: BMR & calories (robust)

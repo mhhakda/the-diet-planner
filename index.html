@@ -1267,173 +1267,91 @@ async function generateMealPlan() {
         } catch (e) { console.warn('Failed clearing diet tracker storage:', e); }
     }
 
-    /* ---------------------------
-       PDF Export (lazy load html2pdf)
-    --------------------------- */
-    async function loadHtml2Pdf() {
-        if (Html2PdfLoaded || window.html2pdf) return Promise.resolve();
-        return new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-            s.onload = () => { Html2PdfLoaded = true; resolve(); };
-            s.onerror = () => reject(new Error('Failed to load html2pdf'));
-            document.head.appendChild(s);
-        });
-    }
-// Robust PDF export (replace your existing downloadPDF with this)
+ // Replace downloadPDF() with this improved version
+async function loadHtml2Pdf() {
+    if (Html2PdfLoaded || window.html2pdf) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        s.onload = () => { Html2PdfLoaded = true; resolve(); };
+        s.onerror = () => reject(new Error('Failed to load html2pdf'));
+        document.head.appendChild(s);
+    });
+}
+
 async function downloadPDF() {
+    if (!currentMealPlan || !currentUserProfile) { alert('Please generate a meal plan first!'); return; }
+    try { await loadHtml2Pdf(); } catch (err) { console.error('PDF lib load failed', err); alert('Failed to load PDF library.'); return; }
+    const html2pdfLib = window.html2pdf;
+    if (!html2pdfLib) { alert('PDF library unavailable'); return; }
+
+    const days = Object.keys(currentMealPlan || {});
+    const weeklyStats = calculateWeeklyStats(currentMealPlan);
+
+    const esc = s => (s===null||s===undefined) ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    // build html
+    let html = `<div class="dp-pdf-root" style="font-family:Arial,Helvetica,sans-serif; padding:10px; font-size:11px; color:#222;">`;
+    html += `<h1 style="text-align:center; color:#007bff; margin-bottom:2px;">🍽️ The Diet Planner</h1>`;
+    html += `<p style="text-align:center; color:#6c757d; margin-top:0; margin-bottom:8px;">Personalized Meal Plan — ${new Date().toLocaleDateString()}</p>`;
+    html += `<h2 style="margin-bottom:6px;">Weekly Overview</h2>`;
+    html += `<p><strong>Average Calories:</strong> ${Math.round(weeklyStats.avgCalories)} kcal</p>`;
+    html += `<h2 style="margin-top:14px;">7-Day Meal Plan</h2>`;
+
+    days.forEach((day, idx) => {
+        html += `<h3 style="margin:12px 0 6px 0;">${esc(day)} (Day ${idx+1})</h3>`;
+        html += `<table style="width:100%; border-collapse:collapse; margin-bottom:10px; font-size:11px;">`;
+        html += `<thead><tr style="background:#f3f4f6;"><th style="padding:6px; border:1px solid #e6e7e9; text-align:left; width:40%;">Meal</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:left; width:45%;">Food</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:center; width:15%;">Cal</th></tr></thead><tbody>`;
+        ['breakfast','lunch','dinner','snacks'].forEach(mt => {
+            const meal = (currentMealPlan[day]||{})[mt];
+            if (!meal) return;
+            const foods = Array.isArray(meal.foods) ? meal.foods.map(f => (typeof f === 'string' ? f : (f.name||f.title||'')).trim()).filter(Boolean).slice(0,6).join(', ') : '';
+            const title = getMealTitle(meal);
+            const calories = safeNumber(meal.calories);
+            html += `<tr style="page-break-inside:avoid; -webkit-column-break-inside:avoid;"><td style="padding:6px;border:1px solid #e6e7e9;"><strong>${esc(title)}</strong></td><td style="padding:6px;border:1px solid #e6e7e9;">${esc(foods)}</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center;">${calories}</td></tr>`;
+        });
+        html += `</tbody></table>`;
+    });
+
+    html += `</div>`;
+
+    // create a temporary container and inject print-friendly CSS
+    const temp = document.createElement('div');
+    temp.style.boxSizing = 'border-box';
+    temp.style.width = '800px'; // a reasonable width for html2canvas -> A4 scaling
+    temp.style.padding = '6px';
+    temp.innerHTML = html;
+
+    // inject extra styles to help html2pdf keep headers and rows intact
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .dp-pdf-root { color: #222; }
+        table { border-collapse: collapse; }
+        thead { display: table-header-group; }
+        tr { page-break-inside: avoid; -webkit-column-break-inside: avoid; }
+        td, th { word-break: break-word; }
+    `;
+    temp.insertBefore(style, temp.firstChild);
+    document.body.appendChild(temp);
+
+    // html2pdf options - use pagebreak css mode and smaller margin
+    const opt = {
+        margin: [8, 8, 8, 8], // top/right/bottom/left (mm)
+        filename: `TheDietPlanner-MealPlan-${new Date().toISOString().slice(0,10)}.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 1.5, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+    };
+
     try {
-        if (!currentMealPlan || !currentUserProfile) {
-            alert("Please generate a meal plan first!");
-            return;
-        }
-
-        // Ensure library is loaded
-        try {
-            await loadHtml2Pdf();
-        } catch (err) {
-            console.error("Failed to load html2pdf library:", err);
-            alert("Failed to load PDF library. Check your connection and try again.");
-            return;
-        }
-
-        const html2pdfLib = (typeof html2pdf !== "undefined") ? html2pdf : (window && window.html2pdf ? window.html2pdf : null);
-        if (!html2pdfLib) {
-            console.error("html2pdf not available after loading.");
-            alert("PDF library unavailable. Try reloading the page.");
-            return;
-        }
-
-        // Build printable HTML with compact styles so table fits
-        const days = Object.keys(currentMealPlan);
-        const mealTypes = [
-            { key: "breakfast", name: "Breakfast" },
-            { key: "lunch",     name: "Lunch" },
-            { key: "dinner",    name: "Dinner" },
-            { key: "snacks",    name: "Snack" }
-        ];
-        const weeklyStats = calculateWeeklyStats(currentMealPlan);
-
-        function esc(s) { return (s===null||s===undefined) ? "" : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-        const css = `
-            body{ font-family: Arial, Helvetica, sans-serif; color:#222; margin:0; padding:10px; }
-            .dp-container{ width:100%; box-sizing:border-box; padding:8px; }
-            .dp-header{ text-align:center; margin-bottom:8px; }
-            h1{ font-size:16px; margin:0 0 4px; }
-            p.meta{ font-size:10px; color:#555; margin:2px 0 8px; }
-            .overview{ font-size:11px; margin-bottom:8px; }
-            table.dp-table{ width:100%; border-collapse:collapse; font-size:10px; }
-            .dp-table th, .dp-table td{ border:1px solid #ddd; padding:6px 8px; vertical-align:top; }
-            .dp-table th{ background:#f5f7fa; font-weight:700; font-size:10px; }
-            .meal-title{ font-weight:600; font-size:11px; }
-            .serving{ color:#666; font-size:9px; margin-top:4px; display:block; }
-            .nutrients{ font-size:9px; color:#444; margin-top:6px; }
-            @media print {
-                table.dp-table { page-break-inside:auto; }
-                tr { page-break-inside:avoid; page-break-after:auto; }
-            }
-        `;
-
-        let html = `<div class="dp-container"><style>${css}</style>`;
-        html += `<div class="dp-header"><h1>🍽️ The Diet Planner — 7-Day Meal Plan</h1><p class="meta">Generated: ${new Date().toLocaleString()}</p></div>`;
-        html += `<div class="overview">
-                    <strong>Avg calories:</strong> ${Math.round(weeklyStats.avgCalories)} kcal &nbsp; • &nbsp;
-                    <strong>Protein:</strong> ${Math.round(weeklyStats.avgProtein)} g/day &nbsp; • &nbsp;
-                    <strong>Carbs:</strong> ${Math.round(weeklyStats.avgCarbs)} g/day &nbsp; • &nbsp;
-                    <strong>Fat:</strong> ${Math.round(weeklyStats.avgFat)} g/day
-                 </div>`;
-
-        // Build single large table where columns are meal types and rows are days
-        html += `<table class="dp-table"><thead><tr><th style="width:12%">Day</th>`;
-        mealTypes.forEach(mt => html += `<th>${esc(mt.name)}</th>`);
-        html += `<th style="width:12%">Daily Total</th></tr></thead><tbody>`;
-
-        for (const day of days) {
-            html += `<tr>`;
-            html += `<td class="day-header">${esc(day)}</td>`;
-            let dayTotal = 0;
-            mealTypes.forEach(mt => {
-                const meal = (currentMealPlan[day] || {})[mt.key];
-                if (meal) {
-                    const title = esc(getMealTitle(meal));
-                    const calories = safeNumber(meal.calories || meal.kcal || meal.calories_kcal || 0);
-                    dayTotal += calories;
-                    const serving = esc(meal.serving_size || meal.servingSize || meal.serving || "");
-                    const protein = safeNumber(meal.protein || meal.prot || 0);
-                    const carbs = safeNumber(meal.carbs || meal.carbohydrates || 0);
-                    const fat = safeNumber(meal.fat || meal.fats || 0);
-                    const fiber = safeNumber(meal.fiber || 0);
-
-                    let cell = `<div class="meal-title">${title}</div>`;
-                    if (serving) cell += `<div class="serving">Serving: ${serving}</div>`;
-                    cell += `<div class="nutrients">Cal: ${Math.round(calories)} kcal • P: ${Math.round(protein)}g • C: ${Math.round(carbs)}g • F: ${Math.round(fat)}g${fiber ? ` • Fib: ${Math.round(fiber)}g` : ''}</div>`;
-                    html += `<td>${cell}</td>`;
-                } else {
-                    html += `<td><span style="color:#888;font-size:10px;">No meal</span></td>`;
-                }
-            });
-            html += `<td><strong>${Math.round(dayTotal)} kcal</strong></td>`;
-            html += `</tr>`;
-        }
-
-        html += `</tbody></table></div>`;
-
-        // Create a temporary container appended to document.body (visible) so html2canvas can snapshot it
-        const tempDiv = document.createElement("div");
-        tempDiv.style.position = "fixed";
-        tempDiv.style.left = "-9999px"; // keep off-screen to avoid flicker, but still renderable
-        tempDiv.style.top = "0";
-        tempDiv.style.width = "1200px"; // wide enough for table layout, then scaled by html2canvas
-        tempDiv.style.padding = "0";
-        tempDiv.style.zIndex = "99999";
-        tempDiv.innerHTML = html;
-        document.body.appendChild(tempDiv);
-
-        // Wait a short time to allow fonts/images to load (helps avoid blank pages)
-        await new Promise(r => setTimeout(r, 250));
-
-        // html2pdf options tuned for readable, compact output
-        const opt = {
-            margin: [8, 8, 8, 8], // top/right/bottom/left in mm when using jsPDF mm unit
-            filename: `TheDietPlanner-MealPlan-${new Date().toISOString().split("T")[0]}.pdf`,
-            image: { type: "jpeg", quality: 0.95 },
-            html2canvas: {
-                scale: 2,                 // increase for crisper text (bigger => higher memory)
-                useCORS: true,
-                allowTaint: false,
-                logging: false
-            },
-            jsPDF: {
-                unit: "mm",
-                format: "a4",
-                orientation: "portrait"
-            }
-        };
-
-        try {
-            // Use html2pdf to save
-            await html2pdfLib().set(opt).from(tempDiv).save();
-        } catch (saveErr) {
-            // fallback: produce blob and open in new tab
-            console.warn("html2pdf save() failed, attempting blob fallback:", saveErr);
-            try {
-                const blob = await html2pdfLib().from(tempDiv).set(opt).output("blob");
-                const url = URL.createObjectURL(blob);
-                window.open(url, "_blank");
-                setTimeout(() => URL.revokeObjectURL(url), 3000);
-            } catch (blobErr) {
-                console.error("PDF fallback also failed:", blobErr);
-                alert("PDF generation failed. Check the console for details.");
-            }
-        } finally {
-            // cleanup
-            if (tempDiv && tempDiv.parentNode) tempDiv.parentNode.removeChild(tempDiv);
-        }
-
+        await html2pdfLib().set(opt).from(temp).save();
+        clearDietTrackerStorage();
     } catch (err) {
-        console.error("❌ PDF generation failed:", err);
-        alert("Failed to generate PDF. See console for details.");
+        console.error('[DietPlanner] PDF generation failed:', err);
+        alert('PDF generation failed. See console.');
+    } finally {
+        if (temp && temp.parentNode) temp.parentNode.removeChild(temp);
     }
 }
 

@@ -596,26 +596,57 @@
         return mealDbLoadPromise;
     }
 
-    function normalizeMealObject(meal, idx, region, diet, mealType) {
-        if (!meal || typeof meal !== 'object') {
-            return { id:`${region}_${diet}_${mealType}_${idx}_${Date.now()}`, title:`Option ${idx+1}`, serving_size:'1 serving', calories:0, protein:0, carbs:0, fat:0, fiber:0, foods:[] };
-        }
-        const title = (meal.title || meal.name || meal.label || '').toString().trim();
-        const serving_size = meal.serving_size || meal.servingSize || meal.serving || '';
-        const calories = safeNumber(meal.calories ?? meal.kcal ?? meal.cal ?? 0);
-        const protein = safeNumber(meal.protein ?? meal.prot ?? 0);
-        const carbs = safeNumber(meal.carbs ?? meal.carbohydrates ?? 0);
-        const fat = safeNumber(meal.fat ?? meal.fats ?? 0);
-        const fiber = safeNumber(meal.fiber ?? meal.fib ?? 0);
-        let foods = [];
-        if (Array.isArray(meal.foods) && meal.foods.length) {
-            foods = meal.foods.map(f => typeof f === 'string' ? { name: f } : (typeof f === 'object' ? f : { name: String(f) }));
-        } else if (meal.ingredients && typeof meal.ingredients === 'string') {
-            const parts = meal.ingredients.split(',').map(s => s.trim()).filter(Boolean);
-            foods = parts.map(p => ({ name: p }));
-        }
-        return { id: meal.id ?? `${region}_${diet}_${mealType}_${idx}_${Date.now()}`, title: title || `Option ${idx+1}`, serving_size, calories, protein, carbs, fat, fiber, foods };
+ function normalizeMealObject(meal, idx, region, diet, mealType) {
+    // if meal is missing/invalid -> keep a synthetic placeholder
+    if (!meal || typeof meal !== 'object') {
+        return {
+            id: `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
+            title: `Option ${idx+1}`,
+            serving_size: '1 serving',
+            calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0,
+            foods: []
+        };
     }
+
+    // extract raw fields (support many shapes)
+    const rawTitle = (meal.title || meal.name || meal.label || meal.dish_name || meal.display_name || '').toString().trim();
+    const serving_size = meal.serving_size || meal.servingSize || meal.serving || '';
+    const calories = safeNumber(meal.calories ?? meal.kcal ?? meal.cal ?? 0);
+    const protein = safeNumber(meal.protein ?? meal.prot ?? 0);
+    const carbs = safeNumber(meal.carbs ?? meal.carbohydrates ?? 0);
+    const fat = safeNumber(meal.fat ?? meal.fats ?? 0);
+    const fiber = safeNumber(meal.fiber ?? meal.fib ?? 0);
+
+    // build foods array consistently
+    let foods = [];
+    if (Array.isArray(meal.foods) && meal.foods.length) {
+        foods = meal.foods.map(f => (typeof f === 'string') ? { name: f } : (typeof f === 'object' ? f : { name: String(f) }));
+    } else if (meal.ingredients && typeof meal.ingredients === 'string') {
+        foods = meal.ingredients.split(',').map(s => ({ name: s.trim() })).filter(Boolean);
+    } else if (meal.components && Array.isArray(meal.components)) {
+        foods = meal.components.map(c => (typeof c === 'string') ? { name: c } : (c || {}));
+    }
+
+    // if no explicit title, derive one from foods (first few names)
+    let title = rawTitle;
+    if (!title) {
+        const foodNames = foods.map(f => (typeof f === 'string' ? f : (f.name || f.title || '')).trim()).filter(Boolean);
+        if (foodNames.length) {
+            title = foodNames.slice(0, 3).join(', ');
+        }
+    }
+
+    // final fallbacks
+    if (!title) title = `Meal ${idx + 1}`;
+
+    return {
+        id: meal.id ?? `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
+        title,
+        serving_size,
+        calories, protein, carbs, fat, fiber,
+        foods
+    };
+}
 
     function createFallbackMeals() {
         return {
@@ -909,31 +940,66 @@ async function generateMealPlan() {
 
         // ✅ Build weekly plan
         const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
+// ------------------ Improve placeholders (replace generic fallbacks) ------------------
+(function replacePlaceholders() {
+    const mealTypes = ['breakfast','lunch','dinner','snacks'];
 
-        // ✅ Improve placeholders
-        const mealTypes = ["breakfast", "lunch", "dinner", "snacks"];
-        for (const day of Object.keys(weeklyPlan)) {
-            for (const mt of mealTypes) {
-                const meal = weeklyPlan[day][mt];
-                if (meal && (!meal.title || /^Option|Mixed|Balanced|Nutritious|Healthy/i.test(String(meal.title)))) {
-                    const pool = getMealsArrayForType(dietMeals, mt) || [];
-                    const candidate = pool.find(m => m && m.title && !/^Option|Mixed|Balanced|Nutritious|Healthy/i.test(String(m.title)));
-                    if (candidate) {
-                        weeklyPlan[day][mt] = {
-                            id: candidate.id ?? candidate.title ?? (`meal_${Math.random()}`),
-                            title: candidate.title || candidate.name || candidate.label || "Meal",
-                            serving_size: candidate.serving_size || candidate.serving || candidate.servingSize || "",
-                            calories: safeNumber(candidate.calories ?? candidate.kcal ?? 0),
-                            protein: safeNumber(candidate.protein ?? candidate.prot ?? 0),
-                            carbs: safeNumber(candidate.carbs ?? candidate.carbohydrates ?? 0),
-                            fat: safeNumber(candidate.fat ?? candidate.fats ?? 0),
-                            fiber: safeNumber(candidate.fiber ?? 0),
-                            foods: Array.isArray(candidate.foods) ? candidate.foods : []
-                        };
-                    }
-                }
+    // helper: search a dietMeals object first by same mealType, then across all types, then across region/allAvailable
+    function findRealCandidate(dietMeals, mealType) {
+        // 1) same type pool
+        const pool1 = getMealsArrayForType(dietMeals, mealType) || [];
+        let cand = pool1.find(m => m && getMealTitle(m) && !/^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(getMealTitle(m)));
+        if (cand) return cand;
+
+        // 2) any type inside dietMeals
+        const poolAll = [];
+        Object.keys(dietMeals || {}).forEach(k => {
+            if (Array.isArray(dietMeals[k])) poolAll.push(...dietMeals[k]);
+        });
+        cand = poolAll.find(m => m && getMealTitle(m) && !/^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(getMealTitle(m)));
+        if (cand) return cand;
+
+        // 3) flatten everything in the region (if available globally)
+        const flatten = (obj => {
+            const out = [];
+            if (!obj) return out;
+            if (Array.isArray(obj)) return obj.slice();
+            Object.keys(obj).forEach(k => { if (Array.isArray(obj[k])) out.push(...obj[k]); });
+            return out;
+        })(dietMeals);
+        cand = flatten.find(m => m && getMealTitle(m) && !/^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(getMealTitle(m)));
+        return cand || null;
+    }
+
+    for (const day of Object.keys(weeklyPlan || {})) {
+        for (const mt of mealTypes) {
+            const meal = weeklyPlan[day][mt];
+            if (!meal) continue;
+            const title = (meal.title || '').toString();
+            const looksLikeFallback = !title || /^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(title);
+            if (!looksLikeFallback) continue;
+
+            // try to find a proper candidate
+            const candidate = findRealCandidate(dietMeals, mt);
+            if (candidate) {
+                // normalize candidate into same shape
+                weeklyPlan[day][mt] = {
+                    id: candidate.id ?? (candidate.title || Math.random().toString(36).slice(2)),
+                    title: candidate.title || candidate.name || getMealTitle(candidate),
+                    serving_size: candidate.serving_size || candidate.serving || candidate.servingSize || '',
+                    calories: safeNumber(candidate.calories ?? candidate.kcal ?? 0),
+                    protein: safeNumber(candidate.protein ?? candidate.prot ?? 0),
+                    carbs: safeNumber(candidate.carbs ?? candidate.carbohydrates ?? 0),
+                    fat: safeNumber(candidate.fat ?? candidate.fats ?? 0),
+                    fiber: safeNumber(candidate.fiber ?? 0),
+                    foods: Array.isArray(candidate.foods) ? candidate.foods : (candidate.ingredients ? String(candidate.ingredients).split(',').map(s=>({name:s.trim()})) : [])
+                };
             }
+            // else keep fallback
         }
+    }
+})();
+
 
         currentMealPlan = weeklyPlan;
         currentUserProfile = profile;
@@ -1001,25 +1067,33 @@ async function generateMealPlan() {
         `;
     }
 
-    function getMealTitle(meal) {
-        if (!meal) return 'No meal';
-        if (typeof meal === 'string') return meal;
-        const candidates = [meal.title, meal.name, meal.display_name, meal.dish_name, meal.label];
-        for (const c of candidates) if (c && String(c).trim()) return String(c).trim();
-        if (Array.isArray(meal.foods) && meal.foods.length) {
-            const parts = meal.foods.map(f => {
-                if (!f) return '';
-                if (typeof f === 'string') return f;
-                const name = f.name || f.item || f.title || '';
-                const qty = f.quantity || f.qty || f.amount || '';
-                return (qty ? `${name} (${qty})` : name).trim();
-            }).filter(Boolean);
-            if (parts.length) return parts.join(', ');
-        }
-        if (Array.isArray(meal.options) && meal.options.length) return meal.options.join(', ');
-        if (meal.id) return `Meal #${meal.id}`;
-        return 'Custom Meal';
+function getMealTitle(meal) {
+    if (!meal) return 'No meal';
+    if (typeof meal === 'string') return meal;
+
+    // prefer explicitly provided fields
+    const fields = [meal.title, meal.name, meal.display_name, meal.dish_name, meal.label];
+    for (const f of fields) {
+        if (f && String(f).trim()) return String(f).trim();
     }
+
+    // if foods array exists, use it
+    if (Array.isArray(meal.foods) && meal.foods.length) {
+        const names = meal.foods.map(f => (typeof f === 'string' ? f : (f.name || f.title || '')).trim()).filter(Boolean);
+        if (names.length) return names.slice(0,4).join(', ');
+    }
+
+    // if ingredients string exists
+    if (meal.ingredients && typeof meal.ingredients === 'string') {
+        const parts = meal.ingredients.split(',').map(s => s.trim()).filter(Boolean);
+        if (parts.length) return parts.slice(0,4).join(', ');
+    }
+
+    // fallback to id or a generic label
+    if (meal.id) return `Meal #${meal.id}`;
+    return 'Custom Meal';
+}
+
 
     function displayMealTable(weeklyPlan) {
         const container = document.getElementById('mealPlanTable');

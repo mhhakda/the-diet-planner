@@ -1,1551 +1,868 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="description" content="Diet Planner — generate personalised daily & weekly meal plans, export PDFs, and track meals." />
-    <title>🍽️ Diet Planner - The Diet Planner</title>
-
-    <style>
-        /* === CSS (kept as provided) === */
-        :root{
-            --bg-color:#ffffff; --surface-color:#f8f9fa; --card-bg:#ffffff; --text-primary:#212529;
-            --text-secondary:#6c757d; --text-muted:#adb5bd; --border-color:#dee2e6; --primary-color:#007bff;
-            --success-color:#28a745; --warning-color:#ffc107; --danger-color:#dc3545; --shadow:0 0.125rem 0.25rem rgba(0,0,0,0.075);
-            --shadow-lg:0 0.5rem 1rem rgba(0,0,0,0.15); --border-radius:0.375rem; --border-radius-lg:0.5rem;
-            --font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --progress-bg:#e9ecef; --progress-height:8px;
-        }
-        [data-theme="dark"]{
-            --bg-color:#1a1a1a; --surface-color:#2d2d2d; --card-bg:#2d2d2d; --text-primary:#fff; --text-secondary:#b3b3b3;
-            --text-muted:#6c6c6c; --border-color:#404040; --shadow:0 0.125rem 0.25rem rgba(0,0,0,0.3); --shadow-lg:0 0.5rem 1rem rgba(0,0,0,0.4);
-            --progress-bg:#404040;
-        }
-        *{ margin:0; padding:0; box-sizing:border-box; }
-        html{ scroll-behavior:smooth; }
-        body{ font-family:var(--font-family); line-height:1.5; color:var(--text-primary); background-color:var(--bg-color); transition:background-color .3s ease, color .3s ease; }
-        .app-container{ display:flex; min-height:100vh; }
-        .sidebar{ width:280px; background:var(--card-bg); border-right:1px solid var(--border-color); position:fixed; height:100vh; left:0; top:0; z-index:1000; overflow-y:auto; transition:transform .3s ease; }
-        .sidebar-header{ padding:1.5rem; border-bottom:1px solid var(--border-color); text-align:center; }
-        .logo{ font-size:1.5rem; font-weight:bold; color:var(--text-primary); margin-bottom:.25rem; }
-        .tagline{ font-size:.875rem; color:var(--text-secondary); }
-        .nav-menu{ padding:1rem; }
-        .nav-item{ display:flex; align-items:center; padding:.75rem 1rem; margin-bottom:.25rem; border-radius:var(--border-radius); color:var(--text-secondary); text-decoration:none; transition:all .2s ease; cursor:pointer; border:none; background:none; width:100%; text-align:left; font-size:.95rem; font-family:inherit; }
-        .nav-item:hover{ background:var(--surface-color); color:var(--text-primary); }
-        .nav-item.active{ background:var(--surface-color); color:var(--primary-color); font-weight:500; }
-        .nav-icon{ margin-right:.75rem; font-size:1.1rem; }
-        .mobile-header{ display:none; background:var(--card-bg); border-bottom:1px solid var(--border-color); padding:1rem; position:fixed; top:0; left:0; right:0; z-index:1001; justify-content:space-between; align-items:center; }
-        .mobile-menu-button{ background:none; border:none; font-size:1.5rem; color:var(--text-primary); cursor:pointer; padding:.25rem; }
-        .mobile-logo{ font-size:1.25rem; font-weight:bold; color:var(--text-primary); }
-        .theme-toggle{ background:none; border:none; font-size:1.25rem; cursor:pointer; padding:.25rem; color:var(--text-primary); }
-        .main-content{ flex:1; margin-left:280px; background:var(--surface-color); min-height:100vh; position:relative; overflow:hidden; }
-        .content-wrapper{ padding:2rem; height:100vh; display:flex; flex-direction:column; }
-        .section-header{ margin-bottom:2rem; text-align:center; flex-shrink:0; }
-        .section-title{ font-size:2rem; font-weight:600; color:var(--text-primary); margin-bottom:.5rem; }
-        .section-subtitle{ color:var(--text-secondary); font-size:1rem; }
-        .form-section{ opacity:1; transition:opacity .4s ease, transform .4s ease; flex:1; overflow-y:auto; }
-        .form-section.hidden{ opacity:0; transform:translateY(-20px); pointer-events:none; position:absolute; width:100%; }
-        .results-container{ opacity:0; transform:translateY(30px); transition:opacity .5s ease, transform .5s ease; pointer-events:none; position:absolute; top:2rem; left:2rem; right:2rem; bottom:2rem; display:flex; flex-direction:column; }
-        .results-container.visible{ opacity:1; transform:translateY(0); pointer-events:all; }
-        .results-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-shrink:0; }
-        .results-title{ font-size:1.75rem; font-weight:600; color:var(--text-primary); margin:0; }
-        .edit-profile-btn{ display:flex; align-items:center; gap:.5rem; padding:.625rem 1.25rem; background:var(--surface-color); border:1px solid var(--border-color); border-radius:var(--border-radius); color:var(--text-secondary); text-decoration:none; font-size:.9rem; font-weight:500; cursor:pointer; transition:all .2s ease; }
-        .edit-profile-btn:hover{ background:var(--border-color); color:var(--text-primary); }
-        .results-content{ background:var(--card-bg); border:1px solid var(--border-color); border-radius:var(--border-radius-lg); box-shadow:var(--shadow-lg); flex:1; overflow:hidden; display:flex; flex-direction:column; }
-        .results-scroll{ flex:1; overflow-y:auto; scroll-behavior:smooth; padding:1rem; }
-        .card{ background:var(--card-bg); border:1px solid var(--border-color); border-radius:var(--border-radius-lg); box-shadow:var(--shadow); margin-bottom:1rem; overflow:hidden; }
-        .card-header{ padding:1rem 1.25rem; border-bottom:1px solid var(--border-color); background:var(--surface-color); }
-        .card-title{ font-size:1rem; font-weight:600; color:var(--text-primary); margin:0; }
-        .card-body{ padding:1.25rem; }
-        .form-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.25rem; margin-bottom:1.5rem; }
-        .form-group{ margin-bottom:1rem; }
-        .form-label{ display:block; margin-bottom:.5rem; font-weight:500; color:var(--text-primary); font-size:.9rem; }
-        .form-control{ width:100%; padding:.75rem; font-size:.9rem; border:1px solid var(--border-color); border-radius:var(--border-radius); background:var(--card-bg); color:var(--text-primary); font-family:inherit; transition:border-color .2s ease, box-shadow .2s ease; }
-        .form-control:focus{ outline:none; border-color:var(--primary-color); box-shadow:0 0 0 2px rgba(0,123,255,0.25); }
-        .form-control.is-invalid{ border-color:var(--danger-color); }
-        .invalid-feedback{ display:block; margin-top:.25rem; font-size:.8rem; color:var(--danger-color); }
-        .btn{ display:inline-block; padding:.75rem 1.5rem; margin:.25rem; font-size:.9rem; font-weight:500; text-align:center; text-decoration:none; border:1px solid transparent; border-radius:var(--border-radius); cursor:pointer; transition:all .2s ease; font-family:inherit; }
-        .btn-primary{ color:#fff; background-color:var(--primary-color); border-color:var(--primary-color); }
-        .btn-primary:hover{ background-color:#0056b3; border-color:#004085; transform:translateY(-1px); }
-        .btn-success{ color:#fff; background-color:var(--success-color); border-color:var(--success-color); }
-        .btn-success:hover{ background-color:#1e7e34; border-color:#1c7430; }
-        .btn:disabled{ opacity:.65; cursor:not-allowed; transform:none !important; }
-        .btn-group{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin:1rem 0; }
-        .stats-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:.75rem; margin-bottom:1.5rem; }
-        .stat-card{ background:var(--card-bg); border:1px solid var(--border-color); border-radius:var(--border-radius); padding:1rem .75rem; text-align:center; box-shadow:var(--shadow); }
-        .stat-title{ font-size:.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:.5rem; text-transform:uppercase; letter-spacing:.5px; }
-        .stat-value{ font-size:1.5rem; font-weight:bold; color:var(--text-primary); line-height:1.2; }
-        .stat-unit{ font-size:.75rem; color:var(--text-muted); }
-        .stat-target{ font-size:.75rem; color:var(--text-secondary); margin-top:.25rem; }
-        .table-responsive{ overflow-x:auto; border-radius:var(--border-radius-lg); border:1px solid var(--border-color); box-shadow:var(--shadow); margin-bottom:1.5rem; }
-        .table{ width:100%; border-collapse:collapse; background:var(--card-bg); margin:0; font-size:.85rem; }
-        .table th{ background:var(--surface-color); padding:.75rem .5rem; text-align:left; font-weight:600; color:var(--text-primary); border-bottom:2px solid var(--border-color); font-size:.75rem; text-transform:uppercase; letter-spacing:.5px; }
-        .table td{ padding:.75rem .5rem; border-bottom:1px solid var(--border-color); vertical-align:top; }
-        .table tbody tr:hover{ background:var(--surface-color); }
-        .meal-item{ font-weight:500; color:var(--text-primary); margin-bottom:.25rem; font-size:.85rem; }
-        .meal-serving{ font-size:.75rem; color:var(--text-muted); margin-bottom:.25rem; }
-        .meal-nutrients{ font-size:.7rem; color:var(--text-secondary); }
-        .day-header{ font-weight:600; color:var(--primary-color); }
-        .charts-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1rem; margin-bottom:1.5rem; }
-        .chart-container{ background:var(--card-bg); border:1px solid var(--border-color); border-radius:var(--border-radius-lg); padding:1rem; box-shadow:var(--shadow); }
-        .chart-title{ font-size:.95rem; font-weight:600; color:var(--text-primary); margin-bottom:.75rem; text-align:center; }
-        .chart-container canvas{ max-height:200px; }
-        .export-section{ background:var(--card-bg); border:1px solid var(--border-color); border-radius:var(--border-radius-lg); padding:1rem; margin-bottom:1rem; }
-        .export-title{ font-size:1rem; font-weight:600; color:var(--text-primary); margin-bottom:1rem; text-align:center; }
-        .loading{ display:none; text-align:center; padding:2rem; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--card-bg); border-radius:var(--border-radius-lg); box-shadow:var(--shadow-lg); z-index:1002; }
-        .spinner{ border:4px solid var(--progress-bg); border-top:4px solid var(--primary-color); border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; margin:0 auto 1rem; }
-        @keyframes spin{ 0%{ transform:rotate(0deg);} 100%{ transform:rotate(360deg);} }
-        .loading-text{ color:var(--text-secondary); font-size:.9rem; }
-        .redirect-overlay{ position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:none; justify-content:center; align-items:center; z-index:9999; color:white; text-align:center; }
-        .redirect-content{ background:var(--card-bg); padding:2rem; border-radius:var(--border-radius-lg); box-shadow:var(--shadow-lg); max-width:400px; color:var(--text-primary); }
-        .redirect-spinner{ border:4px solid var(--progress-bg); border-top:4px solid var(--primary-color); border-radius:50%; width:50px; height:50px; animation:spin 1s linear infinite; margin:0 auto 1rem; }
-        @media (max-width:768px){ .sidebar{ transform:translateX(-100%);} .sidebar.mobile-open{ transform:translateX(0);} .mobile-header{ display:flex;} .main-content{ margin-left:0;} .content-wrapper{ padding:1rem; padding-top:5rem;} .results-container{ left:1rem; right:1rem; top:5rem; bottom:1rem;} .results-content{ max-height:85vh;} .form-grid{ grid-template-columns:1fr; gap:1rem;} .stats-grid{ grid-template-columns:repeat(2,1fr); gap:.5rem;} .charts-grid{ grid-template-columns:1fr; gap:.75rem;} .btn-group{ flex-direction:column; align-items:center;} .btn{ width:100%; max-width:300px;} .section-title{ font-size:1.5rem;} .results-header{ flex-direction:column; gap:1rem; align-items:stretch;} .edit-profile-btn{ justify-content:center;} }
-        @media (max-width:480px){ .stats-grid{ grid-template-columns:1fr; } .stat-card{ padding:.75rem .5rem; } .table th, .table td{ padding:.5rem .25rem; font-size:.75rem; } .chart-container canvas{ max-height:150px; } }
-        .text-center{ text-align:center; } .text-muted{ color:var(--text-muted); } .text-primary{ color:var(--primary-color); } .text-success{ color:var(--success-color); } .text-warning{ color:var(--warning-color); } .text-danger{ color:var(--danger-color); } .d-none{ display:none; } .d-block{ display:block; } .mobile-overlay{ display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:999; } .mobile-overlay.active{ display:block; } .fade-in{ animation:fadeIn .6s ease-out; } @keyframes fadeIn{ from{ opacity:0; transform:translateY(20px);} to{ opacity:1; transform:translateY(0);} } .results-scroll::-webkit-scrollbar{ width:8px;} .results-scroll::-webkit-scrollbar-track{ background:var(--surface-color); border-radius:4px; } .results-scroll::-webkit-scrollbar-thumb{ background:var(--border-color); border-radius:4px; } .results-scroll::-webkit-scrollbar-thumb:hover{ background:var(--text-muted); }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>The Diet Planner - Local Dev</title>
+  <style>
+    body{font-family:Inter,Arial,Helvetica,sans-serif;margin:0;background:#f8fafc;color:#222}
+    .container{max-width:1100px;margin:24px auto;padding:18px;background:#fff;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+    .card{background:#fff;padding:12px;border-radius:8px;border:1px solid #eef2f6}
+    label{display:block;margin:8px 0 6px;font-weight:600}
+    input,select{width:100%;padding:10px;border-radius:6px;border:1px solid #d7e1ea}
+    button{background:#007bff;color:#fff;padding:10px 14px;border-radius:8px;border:0;cursor:pointer}
+    .stats{display:flex;gap:8px;flex-wrap:wrap}
+    .stat-card{flex:1 1 150px;padding:12px;border-radius:8px;border:1px solid #eef2f6;background:#fff}
+    table.table{width:100%;border-collapse:collapse}
+    table.table th, table.table td{padding:8px;border:1px solid #e9eef2}
+    .day-header{font-weight:700;color:#0b5cff}
+    .meal-serving{font-size:12px;color:#6c757d}
+    .text-success{color:#28a745}
+    #calorieChart, #macrosChart{height:160px;display:block}
+    pre.console-dump{max-height:200px;overflow:auto;background:#0f1724;color:#d1fae5;padding:8px;border-radius:6px}
+  </style>
 </head>
-
-<body data-theme="light" data-diet-tracker-url="https://thedietplanner.com/diet-tracker">
-    <!-- Accessibility skip link -->
-    <a class="sr-only" href="#mainContent" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">Skip to content</a>
-
-    <!-- Mobile Header -->
-    <div class="mobile-header" role="banner">
-        <button class="mobile-menu-button" id="mobileMenuButton" aria-expanded="false" aria-controls="sidebar">☰</button>
-        <div class="mobile-logo" aria-hidden="true">🍽️ Diet Planner</div>
-        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
-    </div>
-
-    <div class="mobile-overlay" id="mobileOverlay" aria-hidden="true"></div>
-
-    <!-- Redirect Loading Overlay -->
-    <div class="redirect-overlay" id="redirectOverlay" role="status" aria-hidden="true">
-        <div class="redirect-content">
-            <div class="redirect-spinner" aria-hidden="true"></div>
-            <h3 style="margin-bottom: 1rem;">🔄 Sending to Diet Tracker</h3>
-            <p>Preparing your personalized meal plan...</p>
-            <p style="font-size: 0.9em; color: var(--text-secondary); margin-top: 1rem;">
-                You'll be redirected automatically in a few seconds (after confirmation).
-            </p>
+<body data-diet-tracker-url="https://thedietplanner.com/diet-tracker">
+  <div class="container">
+    <h1>The Diet Planner — Demo</h1>
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h3>Profile</h3>
+          <label for="age">Age</label><input id="age" type="number" value="30" />
+          <label for="gender">Gender</label>
+          <select id="gender"><option value="male">Male</option><option value="female">Female</option></select>
+          <label for="height">Height (cm)</label><input id="height" type="number" value="175" />
+          <label for="weight">Weight (kg)</label><input id="weight" type="number" value="75" />
+          <label for="goal">Goal</label>
+          <select id="goal"><option value="maintain">Maintain</option><option value="loss">Weight Loss</option><option value="gain">Gain</option></select>
+          <label for="dietType">Dietary Preference</label>
+          <select id="dietType"><option value="Regular">Regular</option><option value="Vegetarian">Vegetarian</option><option value="Vegan">Vegan</option></select>
+          <label for="region">Region</label>
+          <select id="region"><option value="USA">USA</option><option value="India">India</option><option value="Latin_American">Latin America</option><option value="African">African</option></select>
+          <label for="activityLevel">Activity Level</label>
+          <select id="activityLevel"><option value="low">Low</option><option value="moderate">Moderate</option><option value="high">High</option><option value="very-high">Very High</option></select>
+          <label for="targetCalories">Target Daily Calories (optional)</label><input id="targetCalories" type="number" />
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <button id="generateBtn">Generate My Meal Plan</button>
+            <button id="downloadPdfBtn" type="button">Download PDF</button>
+            <button id="downloadCsvBtn" type="button">Download CSV</button>
+            <button id="sendToTrackerBtn" type="button">Send to Tracker</button>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:#6c757d">Put <code>meals.json</code> at project root or <code>data/meals.json</code> or same dir.</div>
         </div>
+
+        <div class="card" style="margin-top:12px">
+          <h3>Charts</h3>
+          <canvas id="calorieChart"></canvas>
+          <canvas id="macrosChart" style="margin-top:12px"></canvas>
+        </div>
+      </div>
+
+      <div>
+        <div class="card stats" id="statsGrid">
+          <div class="stat-card"><div class="stat-title">Calories</div><div class="stat-value">—</div></div>
+          <div class="stat-card"><div class="stat-title">Protein</div><div class="stat-value">—</div></div>
+          <div class="stat-card"><div class="stat-title">Carbs</div><div class="stat-value">—</div></div>
+          <div class="stat-card"><div class="stat-title">Fat</div><div class="stat-value">—</div></div>
+          <div class="stat-card"><div class="stat-title">Fiber</div><div class="stat-value">—</div></div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="card" id="mealPlanTable" style="min-height:300px;overflow:auto">
+          <h3>Your Meal Plan</h3>
+          <div class="text-muted">Generate a plan to view table here.</div>
+        </div>
+      </div>
     </div>
 
-    <div class="app-container">
-        <nav class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
-            <div class="sidebar-header">
-                <div class="logo">🍽️ Diet Planner</div>
-                <div class="tagline">The Diet Planner</div>
-            </div>
-            <div class="nav-menu" role="menu">
-                <button class="nav-item active" data-section="profile" role="menuitem" aria-current="page">
-                    <span class="nav-icon" aria-hidden="true">👤</span> Profile Setup
-                </button>
-                <button class="nav-item" data-section="plan" role="menuitem">
-                    <span class="nav-icon" aria-hidden="true">📋</span> Weekly Plan
-                </button>
-                <button class="nav-item" data-section="analytics" role="menuitem">
-                    <span class="nav-icon" aria-hidden="true">📊</span> Analytics
-                </button>
-                <button class="nav-item" data-section="exports" role="menuitem">
-                    <span class="nav-icon" aria-hidden="true">📤</span> Export & Share
-                </button>
-            </div>
-        </nav>
-
-        <main id="mainContent" class="main-content" role="main" aria-live="polite">
-            <div class="content-wrapper">
-                <div class="loading" id="loading">
-                    <div class="spinner" aria-hidden="true"></div>
-                    <p class="loading-text">Creating your personalized meal plan...</p>
-                </div>
-
-                <!-- Form Section -->
-                <div class="form-section" id="formSection">
-                    <div class="section-header">
-                        <h1 class="section-title">👤 Complete Your Profile</h1>
-                        <p class="section-subtitle">Tell us about yourself to create your personalized meal plan</p>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header"><h3 class="card-title">Health Profile</h3></div>
-                        <div class="card-body">
-                            <form id="profile-form" aria-describedby="profile-help">
-                                <div class="form-grid">
-                                    <div class="form-group">
-                                        <label for="age" class="form-label">Age *</label>
-                                        <input type="number" id="age" class="form-control" min="13" max="120" required placeholder="Enter your age">
-                                        <div class="invalid-feedback" id="age-error"></div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label for="gender" class="form-label">Gender *</label>
-                                        <select id="gender" class="form-control" required>
-                                            <option value="">Select Gender</option>
-                                            <option value="male">Male</option>
-                                            <option value="female">Female</option>
-                                            <option value="other">Other</option>
-                                        </select>
-                                        <div class="invalid-feedback" id="gender-error"></div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label for="height" class="form-label">Height (cm) *</label>
-                                        <input type="number" id="height" class="form-control" min="100" max="250" required placeholder="e.g., 175">
-                                        <div class="invalid-feedback" id="height-error"></div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label for="weight" class="form-label">Weight (kg) *</label>
-                                        <input type="number" id="weight" class="form-control" min="30" max="300" step="0.1" required placeholder="e.g., 70.5">
-                                        <div class="invalid-feedback" id="weight-error"></div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label for="goal" class="form-label">Health Goal *</label>
-                                        <select id="goal" class="form-control" required>
-                                            <option value="">Select Goal</option>
-                                            <option value="loss">Weight Loss</option>
-                                            <option value="gain">Weight Gain</option>
-                                            <option value="maintain">Maintain Weight</option>
-                                            <option value="muscle">Muscle Gain</option>
-                                        </select>
-                                        <div class="invalid-feedback" id="goal-error"></div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label for="dietType" class="form-label">Dietary Preference *</label>
-                                        <select id="dietType" class="form-control" required>
-                                            <option value="Regular">Regular</option>
-                                            <option value="Keto">Ketogenic</option>
-                                            <option value="Low_Carb">Low Carb</option>
-                                            <option value="Vegetarian">Vegetarian</option>
-                                            <option value="Vegan">Vegan</option>
-                                            <option value="Mediterranean">Mediterranean</option>
-                                            <option value="High_Protein">High Protein</option>
-                                        </select>
-                                        <div class="invalid-feedback" id="dietType-error"></div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label for="region" class="form-label">Region *</label>
-                                        <select id="region" class="form-control" required>
-                                            <option value="India">India</option>
-                                            <option value="USA">USA</option>
-                                            <option value="Europe">Europe</option>
-                                            <option value="Middle_Eastern">Middle East</option>
-                                            <option value="Latin_American">Latin America</option>
-                                            <option value="Nordic">Nordic</option>
-                                            <option value="East_Asian">East Asia</option>
-                                            <option value="African">Africa</option>
-                                            <option value="Australian">Australia</option>
-                                        </select>
-                                        <div class="invalid-feedback" id="region-error"></div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label for="activityLevel" class="form-label">Activity Level *</label>
-                                        <select id="activityLevel" class="form-control" required>
-                                            <option value="">Select Activity Level</option>
-                                            <option value="low">Low (Sedentary)</option>
-                                            <option value="moderate">Moderate (Light exercise)</option>
-                                            <option value="high">High (Regular exercise)</option>
-                                            <option value="very-high">Very High (Intense exercise)</option>
-                                        </select>
-                                        <div class="invalid-feedback" id="activityLevel-error"></div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label for="targetCalories" class="form-label">Target Daily Calories (optional)</label>
-                                        <input type="number" id="targetCalories" class="form-control" min="800" max="5000" placeholder="Auto-calculated if empty">
-                                        <div class="invalid-feedback" id="targetCalories-error"></div>
-                                    </div>
-                                </div>
-
-                                <div class="text-center">
-                                    <button type="button" class="btn btn-primary btn-lg" id="generateBtn" aria-label="Generate Meal Plan">
-                                        <span id="generateBtnText">Generate My Meal Plan</span>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Results Container -->
-                <div class="results-container" id="resultsContainer" aria-hidden="true">
-                    <div class="results-header">
-                        <h1 class="results-title">🍽️ Your Meal Plan</h1>
-                        <button class="edit-profile-btn" id="editProfileBtn" aria-label="Edit profile">
-                            <span>←</span>
-                            <span>Edit My Profile</span>
-                        </button>
-                    </div>
-
-                    <div class="results-content">
-                        <div class="results-scroll" id="resultsScroll">
-                            <div class="stats-grid" id="statsGrid"></div>
-
-                            <div class="table-responsive">
-                                <div id="mealPlanTable"></div>
-                            </div>
-
-                            <div class="charts-grid">
-                                <div class="chart-container">
-                                    <h3 class="chart-title">Daily Calorie Distribution</h3>
-                                    <canvas id="calorieChart" width="400" height="200"></canvas>
-                                </div>
-                                <div class="chart-container">
-                                    <h3 class="chart-title">Weekly Macros Breakdown</h3>
-                                    <canvas id="macrosChart" width="400" height="200"></canvas>
-                                </div>
-                            </div>
-
-                            <div class="export-section">
-                                <h3 class="export-title">📤 Export & Share</h3>
-                                <div class="btn-group">
-                                    <button class="btn btn-primary btn-lg" id="sendToTrackerBtn" aria-label="Send to diet tracker">🔄 Send to Diet Tracker</button>
-                                    <button class="btn btn-success" id="downloadCsvBtn" aria-label="Download CSV">📊 Download CSV</button>
-                                    <button class="btn btn-success" id="downloadPdfBtn" aria-label="Download PDF">📄 Download PDF</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </main>
+    <div style="margin-top:14px">
+      <h4>Console diagnostics</h4>
+      <pre class="console-dump" id="diagConsole">Open browser devtools for full logs.</pre>
     </div>
+  </div>
 
-    <!-- Single consolidated script block: place here -->
-    <script>
-    /*************************************************************************
-     * Consolidated Diet Planner JS (single script block)
-     *************************************************************************/
+  <script>
+  /*
+    Consolidated script
+    - robust meals.json loader and normalizer
+    - meal selection
+    - PDF & CSV export
+    - charts (lazy)
+    - safe initialization stubs so file can replace your previous HTML
+  */
 
-    // Globals
-    let currentMealPlan = null;
-    let currentUserProfile = null;
-    let mealDatabase = null;
-    let mealDbLoadPromise = null;
-    let ChartsLoaded = false;
-    let Html2PdfLoaded = false;
-    let currentActiveSection = 'profile';
-    let sectionObserver;
-    let currentTheme = localStorage.getItem('theme') || 'light';
+  // --- global state
+  let mealDatabase = null;
+  let mealDbLoadPromise = null;
+  let currentMealPlan = null;
+  let currentUserProfile = null;
+  let ChartsLoaded = false;
+  let Html2PdfLoaded = false;
+  let calorieChartInstance = null;
+  let macrosChartInstance = null;
 
-    const INTEGRATION_STORAGE_KEY = 'dietplanner_integration_v3';
+  const INTEGRATION_STORAGE_KEY = 'dietplanner_integration_v3';
 
-    // safe number parser
-    function safeNumber(v) {
-        if (v === null || v === undefined || v === '') return 0;
-        if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
-        const n = parseFloat(String(v).replace(/[^\d.-]/g, ''));
-        return Number.isFinite(n) ? n : 0;
-    }
-
-    /* ---------------------------
-       Initialization helpers
-    --------------------------- */
-    function initializeTheme() {
-        document.body.setAttribute('data-theme', currentTheme);
-        updateThemeToggle();
-        const themeToggle = document.getElementById('themeToggle');
-        if (themeToggle) themeToggle.addEventListener('click', () => {
-            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-            document.body.setAttribute('data-theme', currentTheme);
-            localStorage.setItem('theme', currentTheme);
-            updateThemeToggle();
-        });
-    }
-    function updateThemeToggle() {
-        const themeToggle = document.getElementById('themeToggle');
-        if (!themeToggle) return;
-        themeToggle.textContent = currentTheme === 'light' ? '🌙' : '☀️';
-    }
-
-    function initializeNavigation() {
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(item => {
-            item.addEventListener('click', function() {
-                const section = this.getAttribute('data-section');
-                if (!section) return;
-                updateActiveNavItem(section);
-                if (section === 'profile') showForm();
-                else { showResults(); scrollToResultsSection(section); }
-                closeMobileMenu();
-            });
-        });
-    }
-
-    function updateActiveNavItem(activeSection) {
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(item => {
-            const section = item.getAttribute('data-section');
-            if (section === activeSection) item.classList.add('active');
-            else item.classList.remove('active');
-        });
-    }
-
-    function initializeMobileMenu() {
-        const btn = document.getElementById('mobileMenuButton');
-        const overlay = document.getElementById('mobileOverlay');
-        if (btn) btn.addEventListener('click', toggleMobileMenu);
-        if (overlay) overlay.addEventListener('click', closeMobileMenu);
-        window.addEventListener('resize', () => { if (window.innerWidth > 768) closeMobileMenu(); });
-    }
-    function toggleMobileMenu() {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('mobileOverlay');
-        if (!sidebar) return;
-        sidebar.classList.toggle('mobile-open');
-        if (overlay) overlay.classList.toggle('active');
-        const btn = document.getElementById('mobileMenuButton');
-        if (btn) btn.setAttribute('aria-expanded', sidebar.classList.contains('mobile-open') ? 'true' : 'false');
-    }
-    function closeMobileMenu() {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('mobileOverlay');
-        if (!sidebar) return;
-        sidebar.classList.remove('mobile-open');
-        if (overlay) overlay.classList.remove('active');
-        const btn = document.getElementById('mobileMenuButton');
-        if (btn) btn.setAttribute('aria-expanded','false');
-    }
-
-    function initializeIntersectionObserver() {
-        if ('IntersectionObserver' in window) {
-            sectionObserver = new IntersectionObserver(entries => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        updateActiveNavItem(entry.target.id);
-                    }
-                });
-            }, { threshold: 0.5 });
-            const sections = document.querySelectorAll('section, .form-section, .results-container');
-            sections.forEach(s => sectionObserver.observe(s));
-        }
-    }
-
-    function initializeResultsToggle() {
-        const editBtn = document.getElementById('editProfileBtn');
-        if (editBtn) editBtn.addEventListener('click', showForm);
-    }
-
-    function showForm() {
-        const formSection = document.getElementById('formSection');
-        const resultsContainer = document.getElementById('resultsContainer');
-        if (resultsContainer) {
-            resultsContainer.classList.remove('visible');
-            resultsContainer.setAttribute('aria-hidden','true');
-        }
-        if (formSection) formSection.classList.remove('hidden');
-        updateActiveNavItem('profile');
-        currentActiveSection = 'profile';
-    }
-
-    function showResults() {
-        if (!currentMealPlan) { console.warn('No meal plan available to show results'); return; }
-        const formSection = document.getElementById('formSection');
-        const resultsContainer = document.getElementById('resultsContainer');
-        if (formSection) formSection.classList.add('hidden');
-        if (resultsContainer) {
-            setTimeout(() => {
-                resultsContainer.classList.add('visible');
-                resultsContainer.setAttribute('aria-hidden','false');
-                const resultsScroll = document.getElementById('resultsScroll');
-                if (resultsScroll) resultsScroll.scrollTop = 0;
-            }, 200);
-        }
-    }
-
-    function scrollToResultsSection(sectionId) {
-        const resultsScroll = document.getElementById('resultsScroll');
-        if (!resultsScroll) return;
-        let top = 0;
-        if (sectionId === 'analytics') {
-            const el = resultsScroll.querySelector('.charts-grid');
-            if (el) top = el.offsetTop - 20;
-        } else if (sectionId === 'exports') {
-            const el = resultsScroll.querySelector('.export-section');
-            if (el) top = el.offsetTop - 20;
-        }
-        resultsScroll.scrollTo({ top, behavior: 'smooth' });
-    }
-
-    /* ---------------------------
-       Form handling
-    --------------------------- */
-    function initializeForm() {
-        const gen = document.getElementById('generateBtn');
-        if (gen) gen.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await handleFormSubmit();
-        });
-    }
-
-    async function handleFormSubmit() {
-        if (!validateForm()) return;
-        const generateBtn = document.getElementById('generateBtn');
-        const genText = document.getElementById('generateBtnText');
-        if (generateBtn) { generateBtn.disabled = true; if (genText) genText.textContent = 'Generating...'; }
-        const loading = document.getElementById('loading');
-        if (loading) loading.style.display = 'block';
-        try {
-            await generateMealPlan();
-            setTimeout(() => {
-                if (loading) loading.style.display = 'none';
-                showResults();
-                updateActiveNavItem('plan');
-            }, 300);
-        } catch (err) {
-            console.error('Error generating meal plan:', err);
-            alert('Failed to generate meal plan. See console.');
-            if (loading) loading.style.display = 'none';
-        } finally {
-            if (generateBtn) { generateBtn.disabled = false; if (genText) genText.textContent = 'Generate My Meal Plan'; }
-        }
-    }
-
-    function validateForm() {
-        const fields = ['age','gender','height','weight','goal','dietType','region','activityLevel'];
-        let ok = true;
-        fields.forEach(id => {
-            const el = document.getElementById(id);
-            const err = document.getElementById(id + '-error');
-            if (!el) return;
-            el.classList.remove('is-invalid');
-            if (err) err.textContent = '';
-            if (!String(el.value || '').trim()) {
-                el.classList.add('is-invalid');
-                if (err) err.textContent = 'This field is required';
-                ok = false;
-            } else {
-                if (id === 'age') {
-                    const a = safeNumber(el.value);
-                    if (a < 13 || a > 120) { el.classList.add('is-invalid'); if (err) err.textContent = 'Age must be 13-120'; ok = false; }
-                }
-                if (id === 'height') {
-                    const h = safeNumber(el.value);
-                    if (h < 100 || h > 250) { el.classList.add('is-invalid'); if (err) err.textContent = 'Height must be 100-250 cm'; ok=false; }
-                }
-                if (id === 'weight') {
-                    const w = safeNumber(el.value);
-                    if (w < 30 || w > 300) { el.classList.add('is-invalid'); if (err) err.textContent = 'Weight must be 30-300 kg'; ok=false; }
-                }
-            }
-        });
-        const tc = document.getElementById('targetCalories');
-        if (tc && String(tc.value || '').trim()) {
-            const cal = safeNumber(tc.value);
-            if (cal < 800 || cal > 5000) { tc.classList.add('is-invalid'); const e = document.getElementById('targetCalories-error'); if (e) e.textContent = 'Target calories must be 800-5000'; ok = false; }
-        }
-        return ok;
-    }
-
-// ---------------------------
-// Robust meals.json loader + normalizer
-// ---------------------------
-async function loadMealsDatabase(force = false) {
-    if (mealDatabase && !force) return mealDatabase;
-    if (mealDbLoadPromise && !force) return mealDbLoadPromise;
-
-    mealDbLoadPromise = (async () => {
-        const candidates = ['meals.json', '/meals.json', 'data/meals.json', location.origin + '/meals.json'];
-        let raw = null;
-        for (const url of candidates) {
-            try {
-                const res = await fetch(url, { cache: 'no-store' });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                raw = await res.json();
-                console.log('✅ Loaded meals.json from', url);
-                break;
-            } catch (err) {
-                console.warn('Could not load meals from', url, err);
-            }
-        }
-
-        if (!raw) {
-            console.warn('⚠️ meals.json not found — using built-in fallback.');
-            mealDatabase = createFallbackMeals();
-            return mealDatabase;
-        }
-
-        // If raw is an object with a "meals" array or "data.meals", use it:
-        if (raw.meals && Array.isArray(raw.meals)) raw = raw.meals;
-        else if (raw.data && Array.isArray(raw.data.meals)) raw = raw.data.meals;
-
-        // If raw is a flat array of meal objects -> convert to normalized shape
-        if (Array.isArray(raw)) {
-            const normalized = {};
-            for (let i = 0; i < raw.length; i++) {
-                const m = raw[i];
-                if (!m || typeof m !== 'object') continue;
-                const regionKey = (m.region || 'Global').toString();
-                const diets = Array.isArray(m.diets) && m.diets.length ? m.diets : ['Regular'];
-                const mealType = (m.mealType || m.type || 'lunch').toString().toLowerCase();
-
-                if (!normalized[regionKey]) normalized[regionKey] = {};
-                for (const diet of diets) {
-                    const dietKey = diet || 'Regular';
-                    if (!normalized[regionKey][dietKey]) normalized[regionKey][dietKey] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
-                    const bucket = normalized[regionKey][dietKey];
-
-                    // map meal object into normalized meal shape (reuse normalizeMealObject if present)
-                    const norm = (typeof normalizeMealObject === 'function')
-                        ? normalizeMealObject(m, i, regionKey, dietKey, mealType)
-                        : {
-                            id: m.id ?? `${regionKey}_${dietKey}_${mealType}_${i}`,
-                            title: m.title || m.name || `Meal ${i+1}`,
-                            serving_size: m.serving_size || m.serving || '',
-                            calories: safeNumber(m.calories ?? m.kcal ?? 0),
-                            protein: safeNumber(m.protein ?? 0),
-                            carbs: safeNumber(m.carbs ?? 0),
-                            fat: safeNumber(m.fat ?? 0),
-                            fiber: safeNumber(m.fiber ?? 0),
-                            foods: Array.isArray(m.foods) ? m.foods : (m.ingredients ? String(m.ingredients).split(',').map(s=>({name:s.trim()})) : [])
-                        };
-
-                    // place into appropriate mealType bucket (normalize names)
-                    const key = (['breakfast','lunch','dinner','snacks'].includes(mealType) ? mealType : (mealType.endsWith('s') ? mealType : mealType + (mealType==='snack' ? 's' : '')) );
-                    const targetKey = ['breakfast','lunch','dinner','snacks'].includes(key) ? key : 'lunch';
-                    bucket[targetKey].push(norm);
-                }
-            }
-
-            mealDatabase = normalized;
-            console.log('✅ meals.json was a flat array — converted to normalized structure.');
-            return mealDatabase;
-        }
-
-        // If raw appears already as nested region -> diet -> { breakfast:lunch:... }
-        try {
-            const normalized = {};
-            const regionKeys = Object.keys(raw);
-            const types = ['breakfast','lunch','dinner','snacks'];
-            regionKeys.forEach(regionKey => {
-                const regionObj = raw[regionKey];
-                if (!regionObj || typeof regionObj !== 'object') return;
-                normalized[regionKey] = {};
-                Object.keys(regionObj).forEach(dietKey => {
-                    const dietObj = regionObj[dietKey];
-                    if (!dietObj || typeof dietObj !== 'object') return;
-                    const out = {};
-                    types.forEach(t => {
-                        let arr = dietObj[t] || dietObj[t.charAt(0).toUpperCase()+t.slice(1)] || dietObj[t.replace('_',' ')] || [];
-                        if (!Array.isArray(arr)) arr = [];
-                        out[t] = arr.map((m, i) => (typeof normalizeMealObject === 'function') ? normalizeMealObject(m, i, regionKey, dietKey, t) : m);
-                    });
-                    normalized[regionKey][dietKey] = out;
-                });
-            });
-            // if normalized has any keys use it, otherwise fallback
-            mealDatabase = Object.keys(normalized).length ? normalized : createFallbackMeals();
-            console.log('✅ meals.json normalized and loaded.');
-            return mealDatabase;
-        } catch (err) {
-            console.warn('⚠️ Unexpected meals.json structure — using fallback.', err);
-            mealDatabase = createFallbackMeals();
-            return mealDatabase;
-        }
-    })();
-
-    return mealDbLoadPromise;
-}
-
-
- function normalizeMealObject(meal, idx, region, diet, mealType) {
-    // if meal is missing/invalid -> keep a synthetic placeholder
-    if (!meal || typeof meal !== 'object') {
-        return {
-            id: `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
-            title: `Option ${idx+1}`,
-            serving_size: '1 serving',
-            calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0,
-            foods: []
-        };
-    }
-
-    // extract raw fields (support many shapes)
-    const rawTitle = (meal.title || meal.name || meal.label || meal.dish_name || meal.display_name || '').toString().trim();
-    const serving_size = meal.serving_size || meal.servingSize || meal.serving || '';
-    const calories = safeNumber(meal.calories ?? meal.kcal ?? meal.cal ?? 0);
-    const protein = safeNumber(meal.protein ?? meal.prot ?? 0);
-    const carbs = safeNumber(meal.carbs ?? meal.carbohydrates ?? 0);
-    const fat = safeNumber(meal.fat ?? meal.fats ?? 0);
-    const fiber = safeNumber(meal.fiber ?? meal.fib ?? 0);
-
-    // build foods array consistently
-    let foods = [];
-    if (Array.isArray(meal.foods) && meal.foods.length) {
-        foods = meal.foods.map(f => (typeof f === 'string') ? { name: f } : (typeof f === 'object' ? f : { name: String(f) }));
-    } else if (meal.ingredients && typeof meal.ingredients === 'string') {
-        foods = meal.ingredients.split(',').map(s => ({ name: s.trim() })).filter(Boolean);
-    } else if (meal.components && Array.isArray(meal.components)) {
-        foods = meal.components.map(c => (typeof c === 'string') ? { name: c } : (c || {}));
-    }
-
-    // if no explicit title, derive one from foods (first few names)
-    let title = rawTitle;
-    if (!title) {
-        const foodNames = foods.map(f => (typeof f === 'string' ? f : (f.name || f.title || '')).trim()).filter(Boolean);
-        if (foodNames.length) {
-            title = foodNames.slice(0, 3).join(', ');
-        }
-    }
-
-    // final fallbacks
-    if (!title) title = `Meal ${idx + 1}`;
-
-    return {
-        id: meal.id ?? `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
-        title,
-        serving_size,
-        calories, protein, carbs, fat, fiber,
-        foods
-    };
-}
-
-    function createFallbackMeals() {
-        return {
-            "India": {
-                "Regular": {
-                    breakfast: [
-                        { id: 'fb1', title: "Oatmeal with Fruits", serving_size: "1 serving", calories: 250, protein: 8, carbs: 45, fat: 4, fiber: 5 },
-                        { id: 'fb2', title: "Boiled Eggs", serving_size: "2 eggs", calories: 150, protein: 12, carbs: 1, fat: 10, fiber: 0 }
-                    ],
-                    lunch: [
-                        { id: 'fl1', title: "Grilled Chicken Salad", serving_size: "1 bowl", calories: 350, protein: 30, carbs: 15, fat: 12, fiber: 6 },
-                        { id: 'fl2', title: "Veggie Wrap", serving_size: "1 wrap", calories: 300, protein: 10, carbs: 40, fat: 8, fiber: 5 }
-                    ],
-                    dinner: [
-                        { id: 'fd1', title: "Paneer Curry with Rice", serving_size: "1 plate", calories: 400, protein: 20, carbs: 50, fat: 15, fiber: 5 },
-                        { id: 'fd2', title: "Fish with Quinoa", serving_size: "1 plate", calories: 450, protein: 35, carbs: 40, fat: 14, fiber: 4 }
-                    ],
-                    snacks: [
-                        { id: 'fs1', title: "Fruit and Nuts", serving_size: "1 small bowl", calories: 150, protein: 4, carbs: 20, fat: 6, fiber: 3 }
-                    ]
-                }
-            },
-            "USA": {
-                "Regular": {
-                    breakfast: [{ id: 'us_b1', title: "Scrambled Eggs with Toast", serving_size: "1 serving", calories: 320, protein: 18, carbs: 28, fat: 14, fiber: 3 }],
-                    lunch: [{ id: 'us_l1', title: "Turkey Sandwich", serving_size: "1", calories: 420, protein: 30, carbs: 45, fat: 12, fiber: 4 }],
-                    dinner: [{ id: 'us_d1', title: "Grilled Salmon", serving_size: "1", calories: 500, protein: 35, carbs: 30, fat: 22, fiber: 3 }],
-                    snacks: [{ id: 'us_s1', title: "Greek Yogurt & Berries", serving_size: "1 cup", calories: 160, protein: 12, carbs: 18, fat: 4, fiber: 2 }]
-                }
-            }
-        };
-    }
-
-/* ---------------------------
-   Calculation: BMR & calories (robust)
---------------------------- */
-function calculateTargetCalories(profile) {
-    const age = safeNumber(profile.age);
-    const weight = safeNumber(profile.weight); // kg
-    const height = safeNumber(profile.height); // cm
-
-    // default guard
-    const gender = (profile.gender || '').toString().toLowerCase();
-
-    // Mifflin-St Jeor formula
-    let bmr;
-    if (gender === 'male' || gender === 'm') {
-        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-    } else {
-        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-    }
-
-    const activityFactors = { low: 1.2, moderate: 1.375, high: 1.55, 'very-high': 1.725 };
-    const activity = (profile.activityLevel || 'low').toString();
-    const factor = activityFactors[activity] || 1.2;
-
-    let tdee = bmr * factor;
-
-    switch ((profile.goal || '').toString().toLowerCase()) {
-        case 'loss':
-        case 'lose':
-        case 'weight_loss':
-            tdee *= 0.8;
-            break;
-        case 'gain':
-        case 'muscle':
-        case 'weight_gain':
-            tdee *= 1.15;
-            break;
-        case 'maintain':
-        default:
-            break;
-    }
-
-    // clamp to sensible range
-    tdee = Math.round(Math.max(800, Math.min(4200, tdee)));
-    return tdee;
-}
-
-/* ---------------------------
-   Robust meal selection + fallback logging
---------------------------- */
-
-function createDefaultMeal(mealType, targetCalories) {
-    const defaults = {
-        breakfast: { title: "Mixed Breakfast", serving_size: "1 serving", calories: Math.round(targetCalories) },
-        lunch:     { title: "Balanced Lunch", serving_size: "1 serving", calories: Math.round(targetCalories) },
-        dinner:    { title: "Nutritious Dinner", serving_size: "1 serving", calories: Math.round(targetCalories) },
-        snacks:    { title: "Healthy Snack", serving_size: "1 serving", calories: Math.round(targetCalories) }
-    };
-    const base = defaults[mealType] || defaults.lunch;
-    return {
-        id: `fallback_${mealType}_${Date.now()}_${Math.round(Math.random()*10000)}`,
-        ...base,
-        protein: Math.round(targetCalories * 0.15 / 4),
-        carbs:   Math.round(targetCalories * 0.50 / 4),
-        fat:     Math.round(targetCalories * 0.35 / 9),
-        fiber:   5,
-        _isFallback: true
-    };
-}
-
-function getMealsArrayForType(dietMeals, mealType) {
-    if (!dietMeals) return [];
-    const variants = [
-        mealType,
-        mealType.toLowerCase(),
-        mealType.charAt(0).toUpperCase() + mealType.slice(1),
-        mealType + 's',
-        mealType.replace('_',' '),
-        mealType.replace('_',' ').toLowerCase()
-    ];
-
-    for (const k of variants) {
-        if (k && Array.isArray(dietMeals[k]) && dietMeals[k].length) return dietMeals[k];
-    }
-
-    // if dietMeals itself is an array (legacy)
-    if (Array.isArray(dietMeals) && dietMeals.length) return dietMeals.slice();
-
-    // first non-empty array inside object
-    for (const k of Object.keys(dietMeals)) {
-        if (Array.isArray(dietMeals[k]) && dietMeals[k].length) return dietMeals[k];
-    }
-
-    return [];
-}
-
-function selectMealsForWeek(meals, targetCalories, profile) {
-    const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-    const mealTypes = ['breakfast','lunch','dinner','snacks'];
-    const weeklyPlan = {};
-    const usedMealIds = new Set();
-    const calorieDistribution = { breakfast:0.25, lunch:0.35, dinner:0.35, snacks:0.05 };
-
-    // flatten helper: gather any arrays found in the diet object
-    function flattenAllMeals(obj) {
-        const out = [];
-        if (!obj) return out;
-        if (Array.isArray(obj)) return obj.slice();
-        for (const k of Object.keys(obj)) {
-            if (Array.isArray(obj[k])) out.push(...obj[k]);
-        }
-        return out;
-    }
-    const allAvailable = flattenAllMeals(meals);
-
-    days.forEach((day, dayIndex) => {
-        weeklyPlan[day] = {};
-        mealTypes.forEach((mealType) => {
-            const targetForMeal = Math.max(0, Math.round(targetCalories * (calorieDistribution[mealType] || 0.25)));
-            let availableMeals = getMealsArrayForType(meals, mealType);
-
-            if (!availableMeals || availableMeals.length === 0) {
-                availableMeals = allAvailable.slice();
-            }
-
-            if (!availableMeals || availableMeals.length === 0) {
-                // no real meals anywhere: fallback
-                const fb = createDefaultMeal(mealType, targetForMeal);
-                console.warn(`[DietPlanner] No meals found for "${mealType}" — using fallback.`);
-                weeklyPlan[day][mealType] = fb;
-                return;
-            }
-
-            const candidates = availableMeals.filter(Boolean);
-
-            // prefer unused & in-range (range ±40%)
-            let suitable = candidates.filter(m => {
-                const c = safeNumber(m.calories);
-                const id = m.id ?? (m.title ? String(m.title) : null);
-                const unused = !usedMealIds.has(id);
-                const inRange = (c === 0) || (c >= targetForMeal * 0.6 && c <= targetForMeal * 1.4);
-                return unused && inRange;
-            });
-
-            // relax constraints progressively
-            if (suitable.length === 0) {
-                suitable = candidates.filter(m => {
-                    const c = safeNumber(m.calories);
-                    return (c === 0) || (c >= targetForMeal * 0.6 && c <= targetForMeal * 1.4);
-                });
-            }
-            if (suitable.length === 0) suitable = candidates.filter(m => {
-                const id = m.id ?? (m.title ? String(m.title) : null);
-                return !usedMealIds.has(id);
-            });
-            if (suitable.length === 0) suitable = candidates.slice();
-
-            // deterministic-ish pick via seed
-            const seedIndex = (dayIndex * 7 + mealTypes.indexOf(mealType)) % suitable.length;
-            const chosenRaw = suitable[seedIndex] || suitable[0];
-
-            // normalize chosen
-            const chosen = (function normalize(m) {
-                if (!m) return createDefaultMeal(mealType, targetForMeal);
-                if (typeof m !== 'object') return {
-                    id: String(m),
-                    title: String(m),
-                    serving_size: '',
-                    calories: 0,
-                    protein: 0,
-                    carbs: 0,
-                    fat: 0,
-                    fiber: 0,
-                    foods: []
-                };
-                return {
-                    id: m.id ?? (m.title ? String(m.title) : `meal_${Math.random()}`),
-                    title: (m.title || m.name || m.label || '').toString() || 'Meal',
-                    serving_size: m.serving_size || m.serving || m.servingSize || '',
-                    calories: safeNumber(m.calories ?? m.kcal ?? 0),
-                    protein: safeNumber(m.protein ?? m.prot ?? 0),
-                    carbs: safeNumber(m.carbs ?? m.carbohydrates ?? 0),
-                    fat: safeNumber(m.fat ?? m.fats ?? 0),
-                    fiber: safeNumber(m.fiber ?? 0),
-                    foods: Array.isArray(m.foods) ? m.foods : (m.ingredients ? String(m.ingredients).split(',').map(s=>({name:s.trim()})) : [])
-                };
-            })(chosenRaw);
-
-            weeklyPlan[day][mealType] = chosen;
-            usedMealIds.add(chosen.id);
-        });
-    });
-
-    return weeklyPlan;
-}
-
-/* ---------------------------
-   Generate & display plan (universal fix)
---------------------------- */
-function normalizeKey(value) {
-    if (!value) return "";
-    return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
-}
-
-/* ---------------------------
-   Generate & display plan (final clean version)
---------------------------- */
-async function generateMealPlan() {
+  const DIAG = (s) => {
     try {
-        await loadMealsDatabase();
+      const el = document.getElementById('diagConsole');
+      if (el) {
+        el.textContent = (new Date()).toLocaleTimeString() + ' — ' + String(s) + '\n' + el.textContent;
+      } else console.log(s);
+    } catch(e){ console.log(s); }
+  };
 
-        const profile = {
-            age: safeNumber(document.getElementById("age")?.value),
-            gender: document.getElementById("gender")?.value,
-            height: safeNumber(document.getElementById("height")?.value),
-            weight: safeNumber(document.getElementById("weight")?.value),
-            goal: document.getElementById("goal")?.value,
-            dietType: document.getElementById("dietType")?.value,
-            region: document.getElementById("region")?.value,
-            activityLevel: document.getElementById("activityLevel")?.value,
-            targetCalories: safeNumber(document.getElementById("targetCalories")?.value)
-        };
+  function safeNumber(v) {
+    if (v === null || v === undefined || v === '') return 0;
+    if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+    const n = parseFloat(String(v).replace(/[^\d.-]/g,''));
+    return Number.isFinite(n) ? n : 0;
+  }
 
-        if (!profile.targetCalories || profile.targetCalories === 0) {
-            profile.targetCalories = calculateTargetCalories(profile);
-        }
+  // ---------------------------
+  // Robust meals.json loader + normalizer
+  // ---------------------------
+  async function loadMealsDatabase(force = false) {
+      if (mealDatabase && !force) return mealDatabase;
+      if (mealDbLoadPromise && !force) return mealDbLoadPromise;
 
-        // ✅ Region resolution
-        const normRegion = normalizeKey(profile.region);
-        let regionKey = Object.keys(mealDatabase).find(
-            k => normalizeKey(k) === normRegion
-        ) || Object.keys(mealDatabase).find(
-            k => normalizeKey(k).includes(normRegion) || normRegion.includes(normalizeKey(k))
-        );
+      mealDbLoadPromise = (async () => {
+          const candidates = ['meals.json', '/meals.json', 'data/meals.json', location.origin + '/meals.json'];
+          let raw = null;
+          for (const url of candidates) {
+              try {
+                  const res = await fetch(url, { cache: 'no-store' });
+                  if (!res.ok) throw new Error('HTTP ' + res.status);
+                  raw = await res.json();
+                  console.log('✅ Loaded meals.json from', url);
+                  DIAG('Loaded meals.json from ' + url);
+                  break;
+              } catch (err) {
+                  console.warn('Could not load meals from', url, err && err.message ? err.message : err);
+              }
+          }
 
-        if (!regionKey) {
-            console.error("❌ Region not found:", profile.region, "Available regions:", Object.keys(mealDatabase));
-            throw new Error(`No meals available for region: ${profile.region}`);
-        }
+          if (!raw) {
+              console.warn('⚠️ meals.json not found — using built-in fallback.');
+              DIAG('meals.json not found — using fallback data');
+              mealDatabase = createFallbackMeals();
+              return mealDatabase;
+          }
 
-        const regionMeals = mealDatabase[regionKey];
+          // If raw is an object with a "meals" array or "data.meals", use it:
+          if (raw.meals && Array.isArray(raw.meals)) raw = raw.meals;
+          else if (raw.data && raw.data.meals && Array.isArray(raw.data.meals)) raw = raw.data.meals;
 
-        // ✅ Diet resolution
-        const normDiet = normalizeKey(profile.dietType);
-        let dietKey = Object.keys(regionMeals).find(
-            k => normalizeKey(k) === normDiet
-        ) || Object.keys(regionMeals).find(
-            k => normalizeKey(k).includes(normDiet) || normDiet.includes(normalizeKey(k))
-        );
+          // If raw is a flat array of meal objects -> convert to normalized shape
+          if (Array.isArray(raw)) {
+              const normalized = {};
+              for (let i = 0; i < raw.length; i++) {
+                  const m = raw[i];
+                  if (!m || typeof m !== 'object') continue;
+                  const regionKey = (m.region || 'Global').toString();
+                  const diets = Array.isArray(m.diets) && m.diets.length ? m.diets : [m.diet || 'Regular'];
+                  const mealType = (m.mealType || m.type || m.category || 'lunch').toString().toLowerCase();
 
-        const dietMeals = regionMeals[dietKey] || regionMeals["Regular"] || Object.values(regionMeals)[0];
+                  if (!normalized[regionKey]) normalized[regionKey] = {};
+                  for (const diet of diets) {
+                      const dietKey = diet || 'Regular';
+                      if (!normalized[regionKey][dietKey]) normalized[regionKey][dietKey] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
+                      const bucket = normalized[regionKey][dietKey];
 
-        if (!dietMeals) {
-            console.error("❌ Diet not found:", profile.dietType, "Available diets:", Object.keys(regionMeals));
-            throw new Error(`No meals available for diet: ${profile.dietType} in region: ${profile.region}`);
-        }
+                      // map meal object into normalized meal shape (reuse normalizeMealObject if present)
+                      const norm = (typeof normalizeMealObject === 'function')
+                          ? normalizeMealObject(m, i, regionKey, dietKey, mealType)
+                          : {
+                              id: m.id ?? `${regionKey}_${dietKey}_${mealType}_${i}`,
+                              title: m.title || m.name || `Meal ${i+1}`,
+                              serving_size: m.serving_size || m.serving || '',
+                              calories: safeNumber(m.calories ?? m.kcal ?? 0),
+                              protein: safeNumber(m.protein ?? 0),
+                              carbs: safeNumber(m.carbs ?? 0),
+                              fat: safeNumber(m.fat ?? 0),
+                              fiber: safeNumber(m.fiber ?? 0),
+                              foods: Array.isArray(m.foods) ? m.foods : (m.ingredients ? String(m.ingredients).split(',').map(s=>({name:s.trim()})) : [])
+                          };
 
-        console.log("✅ Using region:", regionKey, "| diet:", dietKey || "Regular");
+                      const key = (['breakfast','lunch','dinner','snacks'].includes(mealType) ? mealType : (mealType.endsWith('s') ? mealType : mealType + (mealType==='snack' ? 's' : '')) );
+                      const targetKey = ['breakfast','lunch','dinner','snacks'].includes(key) ? key : 'lunch';
+                      bucket[targetKey].push(norm);
+                  }
+              }
 
-        // ✅ Build weekly plan
-        const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
-// ------------------ Improve placeholders (replace generic fallbacks) ------------------
-(function replacePlaceholders() {
-    const mealTypes = ['breakfast','lunch','dinner','snacks'];
+              mealDatabase = normalized;
+              console.log('✅ meals.json was a flat array — converted to normalized structure.');
+              DIAG('meals.json was flat array — normalized');
+              return mealDatabase;
+          }
 
-    // helper: search a dietMeals object first by same mealType, then across all types, then across region/allAvailable
-    function findRealCandidate(dietMeals, mealType) {
-        // 1) same type pool
-        const pool1 = getMealsArrayForType(dietMeals, mealType) || [];
-        let cand = pool1.find(m => m && getMealTitle(m) && !/^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(getMealTitle(m)));
-        if (cand) return cand;
-
-        // 2) any type inside dietMeals
-        const poolAll = [];
-        Object.keys(dietMeals || {}).forEach(k => {
-            if (Array.isArray(dietMeals[k])) poolAll.push(...dietMeals[k]);
-        });
-        cand = poolAll.find(m => m && getMealTitle(m) && !/^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(getMealTitle(m)));
-        if (cand) return cand;
-
-        // 3) flatten everything in the region (if available globally)
-        const flatten = (obj => {
-            const out = [];
-            if (!obj) return out;
-            if (Array.isArray(obj)) return obj.slice();
-            Object.keys(obj).forEach(k => { if (Array.isArray(obj[k])) out.push(...obj[k]); });
-            return out;
-        })(dietMeals);
-        cand = flatten.find(m => m && getMealTitle(m) && !/^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(getMealTitle(m)));
-        return cand || null;
-    }
-
-    for (const day of Object.keys(weeklyPlan || {})) {
-        for (const mt of mealTypes) {
-            const meal = weeklyPlan[day][mt];
-            if (!meal) continue;
-            const title = (meal.title || '').toString();
-            const looksLikeFallback = !title || /^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(title);
-            if (!looksLikeFallback) continue;
-
-            // try to find a proper candidate
-            const candidate = findRealCandidate(dietMeals, mt);
-            if (candidate) {
-                // normalize candidate into same shape
-                weeklyPlan[day][mt] = {
-                    id: candidate.id ?? (candidate.title || Math.random().toString(36).slice(2)),
-                    title: candidate.title || candidate.name || getMealTitle(candidate),
-                    serving_size: candidate.serving_size || candidate.serving || candidate.servingSize || '',
-                    calories: safeNumber(candidate.calories ?? candidate.kcal ?? 0),
-                    protein: safeNumber(candidate.protein ?? candidate.prot ?? 0),
-                    carbs: safeNumber(candidate.carbs ?? candidate.carbohydrates ?? 0),
-                    fat: safeNumber(candidate.fat ?? candidate.fats ?? 0),
-                    fiber: safeNumber(candidate.fiber ?? 0),
-                    foods: Array.isArray(candidate.foods) ? candidate.foods : (candidate.ingredients ? String(candidate.ingredients).split(',').map(s=>({name:s.trim()})) : [])
-                };
-            }
-            // else keep fallback
-        }
-    }
-})();
-
-
-        currentMealPlan = weeklyPlan;
-        currentUserProfile = profile;
-
-        try {
-            localStorage.setItem("last_generated_plan_v1", JSON.stringify({
-                plan: weeklyPlan,
-                profile: profile,
-                generated: new Date().toISOString()
-            }));
-        } catch (e) { /* ignore storage errors */ }
-
-        displayMealPlan(weeklyPlan, profile);
-        await createCharts(weeklyPlan, profile);
-
-        console.log("✅ Weekly plan generated for", regionKey, profile.dietType);
-        return weeklyPlan;
-
-    } catch (error) {
-        console.error("❌ Error generating meal plan:", error);
-        alert("Failed to generate meal plan. Please check console for details.");
-        throw error;
-    }
-}
-   function displayMealPlan(weeklyPlan, profile) {
-        displayStatsCards(weeklyPlan, profile);
-        displayMealTable(weeklyPlan);
-    }
-
-    function displayStatsCards(weeklyPlan, profile) {
-        const stats = calculateWeeklyStats(weeklyPlan);
-        const container = document.getElementById('statsGrid');
-        if (!container) return;
-        const targetDiff = Math.round(((stats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
-        container.innerHTML = `
-            <div class="stat-card fade-in">
-                <div class="stat-title">Calories</div>
-                <div class="stat-value">${Math.round(stats.avgCalories)}</div>
-                <div class="stat-target">/ ${profile.targetCalories}</div>
-            </div>
-            <div class="stat-card fade-in">
-                <div class="stat-title">Protein</div>
-                <div class="stat-value">${Math.round(stats.avgProtein)}<span class="stat-unit">g</span></div>
-                <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.15 / 4)}g</div>
-            </div>
-            <div class="stat-card fade-in">
-                <div class="stat-title">Carbs</div>
-                <div class="stat-value">${Math.round(stats.avgCarbs)}<span class="stat-unit">g</span></div>
-                <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.5 / 4)}g</div>
-            </div>
-            <div class="stat-card fade-in">
-                <div class="stat-title">Fat</div>
-                <div class="stat-value">${Math.round(stats.avgFat)}<span class="stat-unit">g</span></div>
-                <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.35 / 9)}g</div>
-            </div>
-            <div class="stat-card fade-in">
-                <div class="stat-title">Fiber</div>
-                <div class="stat-value">${Math.round(stats.avgFiber)}<span class="stat-unit">g</span></div>
-                <div class="stat-target">/ 25g</div>
-            </div>
-            <div class="stat-card fade-in">
-                <div class="stat-title">Target Diff</div>
-                <div class="stat-value ${targetDiff >= 0 ? 'text-success' : 'text-warning'}">${targetDiff >= 0 ? '+' : ''}${targetDiff}%</div>
-            </div>
-        `;
-    }
-
-function getMealTitle(meal) {
-    if (!meal) return 'No meal';
-    if (typeof meal === 'string') return meal;
-
-    // prefer explicitly provided fields
-    const fields = [meal.title, meal.name, meal.display_name, meal.dish_name, meal.label];
-    for (const f of fields) {
-        if (f && String(f).trim()) return String(f).trim();
-    }
-
-    // if foods array exists, use it
-    if (Array.isArray(meal.foods) && meal.foods.length) {
-        const names = meal.foods.map(f => (typeof f === 'string' ? f : (f.name || f.title || '')).trim()).filter(Boolean);
-        if (names.length) return names.slice(0,4).join(', ');
-    }
-
-    // if ingredients string exists
-    if (meal.ingredients && typeof meal.ingredients === 'string') {
-        const parts = meal.ingredients.split(',').map(s => s.trim()).filter(Boolean);
-        if (parts.length) return parts.slice(0,4).join(', ');
-    }
-
-    // fallback to id or a generic label
-    if (meal.id) return `Meal #${meal.id}`;
-    return 'Custom Meal';
-}
-
-
-    function displayMealTable(weeklyPlan) {
-        const container = document.getElementById('mealPlanTable');
-        if (!container) return;
-        const days = Object.keys(weeklyPlan || {});
-        const mealTypes = [
-            { key: 'breakfast', name: '🌅 Breakfast' },
-            { key: 'lunch', name: '🍽️ Lunch' },
-            { key: 'dinner', name: '🌙 Dinner' },
-            { key: 'snacks', name: '🍎 Snack' }
-        ];
-
-        function escapeHtml(s){ if (s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-        function num(v){ return safeNumber(v); }
-
-        let html = '<table class="table"><thead><tr><th>Day</th>';
-        mealTypes.forEach(mt => html += `<th>${escapeHtml(mt.name)}</th>`);
-        html += '<th>Daily Total</th></tr></thead><tbody>';
-
-        days.forEach(day => {
-            html += '<tr>';
-            html += `<td class="day-header">${escapeHtml(day)}</td>`;
-            let totalCalories = 0;
-            mealTypes.forEach(mt => {
-                const meal = (weeklyPlan[day] || {})[mt.key];
-                if (meal) {
-                    const titleText = getMealTitle(meal);
-                    const calories = num(meal.calories || meal.kcal || 0);
-                    totalCalories += calories;
-                    const serving = meal.serving_size || meal.servingSize || '';
-                    const protein = num(meal.protein || meal.prot || 0);
-                    const carbs = num(meal.carbs || meal.carbohydrates || 0);
-                    const fat = num(meal.fat || meal.fats || 0);
-                    const fiber = num(meal.fiber || 0);
-
-                    html += `<td>
-                                <div class="meal-item">${escapeHtml(titleText)}</div>
-                                <div class="meal-serving text-primary">${escapeHtml(String(calories))} kcal</div>`;
-                    if (serving) html += `<div class="meal-serving">${escapeHtml(serving)}</div>`;
-                    if (protein || carbs || fat || fiber) {
-                        html += `<div class="meal-nutrients">P: ${escapeHtml(String(protein))}g • C: ${escapeHtml(String(carbs))}g • F: ${escapeHtml(String(fat))}g${(typeof fiber!=='undefined'? ' • Fib: '+escapeHtml(String(fiber))+'g':'')}</div>`;
-                    }
-                    html += `</td>`;
-                } else {
-                    html += '<td><div class="text-muted">No meal</div></td>';
-                }
-            });
-            html += `<td><strong class="text-success">${Math.round(totalCalories)} kcal</strong></td>`;
-            html += '</tr>';
-        });
-
-        html += '</tbody></table>';
-        container.innerHTML = html;
-    }
-
-    function calculateWeeklyStats(weeklyPlan) {
-        let totalCalories=0, totalProtein=0, totalCarbs=0, totalFat=0, totalFiber=0, mealCount=0;
-        Object.keys(weeklyPlan || {}).forEach(day => {
-            Object.keys(weeklyPlan[day] || {}).forEach(mt => {
-                const meal = weeklyPlan[day][mt];
-                if (meal) {
-                    totalCalories += safeNumber(meal.calories);
-                    totalProtein += safeNumber(meal.protein);
-                    totalCarbs += safeNumber(meal.carbs);
-                    totalFat += safeNumber(meal.fat);
-                    totalFiber += safeNumber(meal.fiber);
-                    mealCount++;
-                }
-            });
-        });
-        return {
-            totalCalories,
-            avgCalories: totalCalories / 7,
-            totalProtein,
-            avgProtein: totalProtein / 7,
-            totalCarbs,
-            avgCarbs: totalCarbs / 7,
-            totalFat,
-            avgFat: totalFat / 7,
-            totalFiber,
-            avgFiber: totalFiber / 7,
-            mealCount
-        };
-    }
-
-    /* ---------------------------
-       Charts - lazy load Chart.js
-    --------------------------- */
-    async function loadChartJS() {
-        if (ChartsLoaded || window.Chart) return Promise.resolve();
-        return new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
-            s.onload = () => { ChartsLoaded = true; resolve(); };
-            s.onerror = () => reject(new Error('Failed to load Chart.js'));
-            document.head.appendChild(s);
-        });
-    }
-
-    async function createCharts(weeklyPlan, profile) {
-        try {
-            await loadChartJS();
-        } catch (err) {
-            console.warn('Chart.js not loaded:', err);
-            return;
-        }
-
-        const days = Object.keys(weeklyPlan || {});
-        const dailyCalories = days.map(d => {
-            let tot = 0;
-            Object.keys(weeklyPlan[d] || {}).forEach(mt => tot += safeNumber(weeklyPlan[d][mt]?.calories));
-            return tot;
-        });
-        const weeklyStats = calculateWeeklyStats(weeklyPlan);
-        const isDark = currentTheme === 'dark';
-        const textColor = isDark ? '#ffffff' : '#212529';
-        const gridColor = isDark ? '#404040' : '#dee2e6';
-
-        // Calorie chart
-        const calorieCtx = document.getElementById('calorieChart');
-        try {
-            if (calorieCtx) {
-                if (window.calorieChartInstance && typeof window.calorieChartInstance.destroy === 'function') window.calorieChartInstance.destroy();
-                window.calorieChartInstance = new Chart(calorieCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: days.map(d => d.substr(0,3)),
-                        datasets: [
-                            { label:'Daily Calories', data: dailyCalories, backgroundColor:'rgba(0,123,255,0.8)', borderColor:'rgba(0,123,255,1)', borderWidth:1, borderRadius:2 },
-                            { label:'Target', data:Array(days.length).fill(profile.targetCalories), type:'line', borderColor:'rgba(40,167,69,1)', backgroundColor:'rgba(40,167,69,0.1)', borderWidth:2, fill:false, pointBackgroundColor:'rgba(40,167,69,1)', pointBorderColor:'#fff', pointBorderWidth:1, pointRadius:3 }
-                        ]
-                    },
-                    options: {
-                        responsive:true, maintainAspectRatio:false,
-                        plugins:{ legend:{ position:'top', labels:{ usePointStyle:true, padding:12, color:textColor, font:{ size:11 } } } },
-                        scales:{ x:{ grid:{ color:gridColor }, ticks:{ color:textColor, font:{ size:10 } } }, y:{ beginAtZero:true, title:{ display:true, text:'Calories', color:textColor, font:{ size:11 } }, grid:{ color:gridColor }, ticks:{ color:textColor, font:{ size:10 } } } }
-                    }
+          // If raw appears already as nested region -> diet -> { breakfast:lunch:... }
+          try {
+              const normalized = {};
+              const regionKeys = Object.keys(raw);
+              const types = ['breakfast','lunch','dinner','snacks'];
+              regionKeys.forEach(regionKey => {
+                  const regionObj = raw[regionKey];
+                  if (!regionObj || typeof regionObj !== 'object') return;
+                  normalized[regionKey] = {};
+                  Object.keys(regionObj).forEach(dietKey => {
+                      const dietObj = regionObj[dietKey];
+                      if (!dietObj || typeof dietObj !== 'object') return;
+                      const out = {};
+                      types.forEach(t => {
+                          let arr = dietObj[t] || dietObj[t.charAt(0).toUpperCase()+t.slice(1)] || dietObj[t.replace('_',' ')] || [];
+                          if (!Array.isArray(arr)) arr = [];
+                          out[t] = arr.map((m, i) => (typeof normalizeMealObject === 'function') ? normalizeMealObject(m, i, regionKey, dietKey, t) : m);
+                      });
+                      normalized[regionKey][dietKey] = out;
+                  });
+              });
+              // if normalized has any keys use it, otherwise fallback
+              mealDatabase = Object.keys(normalized).length ? normalized : createFallbackMeals();
+              console.log('✅ meals.json normalized and loaded.');
+              DIAG('meals.json normalized — regions: ' + Object.keys(mealDatabase).join(', '));
+              // print short diagnostics
+              Object.keys(mealDatabase).forEach(region => {
+                const diets = Object.keys(mealDatabase[region]||{});
+                diets.forEach(d => {
+                  const obj = mealDatabase[region][d] || {};
+                  DIAG(`[DietPlanner] ${region}/${d} counts: b:${(obj.breakfast||[]).length} l:${(obj.lunch||[]).length} d:${(obj.dinner||[]).length} s:${(obj.snacks||[]).length}`);
                 });
-            }
-        } catch (err) { console.error('Failed to create calorie chart:', err); }
+              });
+              return mealDatabase;
+          } catch (err) {
+              console.warn('⚠️ Unexpected meals.json structure — using fallback.', err);
+              mealDatabase = createFallbackMeals();
+              return mealDatabase;
+          }
+      })();
 
-        // Macros doughnut
-        try {
-            if (window.macrosChartInstance && typeof window.macrosChartInstance.destroy === 'function') window.macrosChartInstance.destroy();
-            const macrosCtx = document.getElementById('macrosChart');
-            if (macrosCtx) {
-                const proteinCals = weeklyStats.totalProtein * 4;
-                const carbsCals = weeklyStats.totalCarbs * 4;
-                const fatCals = weeklyStats.totalFat * 9;
-                window.macrosChartInstance = new Chart(macrosCtx, {
-                    type: 'doughnut',
-                    data: { labels:['Protein','Carbs','Fat'], datasets:[{ data:[proteinCals,carbsCals,fatCals], backgroundColor:['rgba(0,123,255,0.8)','rgba(40,167,69,0.8)','rgba(255,193,7,0.8)'], borderColor:['rgba(0,123,255,1)','rgba(40,167,69,1)','rgba(255,193,7,1)'], borderWidth:1 }] },
-                    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ usePointStyle:true, padding:10, color:textColor, font:{ size:10 } }, tooltip:{ callbacks:{ label:function(context){ const label = context.label; const value = context.raw; const total = context.dataset.data.reduce((a,b)=>a+b,0); const percentage = Math.round((value/total)*100); return `${label}: ${percentage}% (${Math.round(value)} cal)`; } } } } }, cutout:'60%' }
-                });
-            }
-        } catch (err) { console.error('Failed to create macros chart:', err); }
-    }
+      return mealDbLoadPromise;
+  }
 
-    /* ---------------------------
-       Send to Tracker & Export
-    --------------------------- */
-    function sendToTrackerAndRedirect() {
-        if (!currentMealPlan || !currentUserProfile) {
-            alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.');
-            return;
-        }
-        const overlay = document.getElementById('redirectOverlay');
-        if (overlay) overlay.style.display = 'flex';
 
-        const integrationData = {
-            version: '3.0',
-            timestamp: new Date().toISOString(),
-            source: 'thedietplanner-diet-planner',
-            userProfile: currentUserProfile,
-            mealPlan: currentMealPlan,
-            dailyTargets: {
-                calories: currentUserProfile.targetCalories,
-                protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4),
-                carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4),
-                fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9),
-                fiber: 25,
-                water: 2000
-            }
-        };
+  function normalizeMealObject(meal, idx, region, diet, mealType) {
+     if (!meal || typeof meal !== 'object') {
+         return {
+             id: `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
+             title: `Option ${idx+1}`,
+             serving_size: '1 serving',
+             calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0,
+             foods: []
+         };
+     }
 
-        try {
-            const payloadStr = JSON.stringify(integrationData);
-            localStorage.setItem(INTEGRATION_STORAGE_KEY, payloadStr);
-            localStorage.setItem('planned_meals_v1', payloadStr);
-            localStorage.setItem('diettracker_import', payloadStr);
-            localStorage.setItem('meal_plan_transfer', payloadStr);
-            localStorage.setItem('meal_plan_sent', 'true');
-            console.log('✅ Meal plan data stored for Diet Tracker');
-        } catch (err) {
-            console.error('❌ Failed to store meal plan for tracker:', err);
-            if (overlay) overlay.style.display = 'none';
-            return;
-        }
+     const rawTitle = (meal.title || meal.name || meal.label || meal.dish_name || meal.display_name || '').toString().trim();
+     const serving_size = meal.serving_size || meal.servingSize || meal.serving || '';
+     const calories = safeNumber(meal.calories ?? meal.kcal ?? meal.cal ?? 0);
+     const protein = safeNumber(meal.protein ?? meal.prot ?? 0);
+     const carbs = safeNumber(meal.carbs ?? meal.carbohydrates ?? 0);
+     const fat = safeNumber(meal.fat ?? meal.fats ?? 0);
+     const fiber = safeNumber(meal.fiber ?? meal.fib ?? 0);
 
-        // Ask user before opening tracker
-        const want = confirm('Meal plan is ready to send.\nDo you want to open the Diet Tracker now?');
-        if (want) {
-            const redirectUrl = document.body.getAttribute('data-diet-tracker-url') || `${location.protocol}//${location.host}/diet-tracker`;
-            try {
-                const newWin = window.open(redirectUrl, '_blank');
-                if (!newWin) alert('Popup blocked. Please allow popups or open the tracker manually.');
-            } catch (err) { console.warn('Failed to open tracker:', err); alert('Failed to open tracker. Please open it manually.'); }
-        }
-        if (overlay) overlay.style.display = 'none';
-    }
+     let foods = [];
+     if (Array.isArray(meal.foods) && meal.foods.length) {
+         foods = meal.foods.map(f => (typeof f === 'string') ? { name: f } : (typeof f === 'object' ? f : { name: String(f) }));
+     } else if (meal.ingredients && typeof meal.ingredients === 'string') {
+         foods = meal.ingredients.split(',').map(s => ({ name: s.trim() })).filter(Boolean);
+     } else if (meal.components && Array.isArray(meal.components)) {
+         foods = meal.components.map(c => (typeof c === 'string') ? { name: c } : (c || {}));
+     }
 
-    function downloadCSV() {
-        if (!currentMealPlan || !currentUserProfile) { alert('❌ No meal plan available to export\nPlease generate a meal plan first.'); return; }
-        let csv = '\uFEFF';
-        csv += 'Date,Meal Time,Food Name,Serving Size,Calories,Protein,Carbs,Fat,Fiber\n';
-        const days = Object.keys(currentMealPlan);
-        const mealTypes = ['breakfast','lunch','dinner','snacks'];
-        days.forEach(day => {
-            mealTypes.forEach(mt => {
-                const meal = (currentMealPlan[day] || {})[mt];
-                if (!meal) return;
-                const titleSafe = (meal.title && typeof meal.title === 'string') ? meal.title.replace(/"/g,'""') : getMealTitle(meal).replace(/"/g,'""');
-                const row = [day, mt.charAt(0).toUpperCase()+mt.slice(1), `"${titleSafe}"`, `"${(meal.serving_size||'N/A').replace(/"/g,'""')}"`, safeNumber(meal.calories), safeNumber(meal.protein), safeNumber(meal.carbs), safeNumber(meal.fat), safeNumber(meal.fiber)].join(',');
-                csv += row + '\n';
-            });
-        });
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `meal-plan-${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        console.log('✅ CSV downloaded');
-    }
+     let title = rawTitle;
+     if (!title) {
+         const foodNames = foods.map(f => (typeof f === 'string' ? f : (f.name || f.title || '')).trim()).filter(Boolean);
+         if (foodNames.length) title = foodNames.slice(0,3).join(', ');
+     }
+     if (!title) title = `Meal ${idx + 1}`;
 
-    function clearDietTrackerStorage() {
-        try {
-            const keys = [ INTEGRATION_STORAGE_KEY || 'dietplanner_integration_v3', 'planned_meals_v1', 'diettracker_import', 'meal_plan_transfer', 'meal_plan_sent' ];
-            keys.forEach(k => localStorage.removeItem(k));
-            console.log('✅ Cleared diet tracker integration keys from localStorage');
-        } catch (e) { console.warn('Failed clearing diet tracker storage:', e); }
-    }
+     return {
+         id: meal.id ?? `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
+         title,
+         serving_size,
+         calories, protein, carbs, fat, fiber,
+         foods
+     };
+  }
 
- // Replace downloadPDF() with this improved version
-async function loadHtml2Pdf() {
-    if (Html2PdfLoaded || window.html2pdf) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-        s.onload = () => { Html2PdfLoaded = true; resolve(); };
-        s.onerror = () => reject(new Error('Failed to load html2pdf'));
-        document.head.appendChild(s);
-    });
-}
+  function createFallbackMeals() {
+      return {
+          "India": {
+              "Regular": {
+                  breakfast: [
+                      { id: 'fb1', title: "Oatmeal with Fruits", serving_size: "1 serving", calories: 250, protein: 8, carbs: 45, fat: 4, fiber: 5 },
+                      { id: 'fb2', title: "Boiled Eggs", serving_size: "2 eggs", calories: 150, protein: 12, carbs: 1, fat: 10, fiber: 0 }
+                  ],
+                  lunch: [
+                      { id: 'fl1', title: "Grilled Chicken Salad", serving_size: "1 bowl", calories: 350, protein: 30, carbs: 15, fat: 12, fiber: 6 },
+                      { id: 'fl2', title: "Veggie Wrap", serving_size: "1 wrap", calories: 300, protein: 10, carbs: 40, fat: 8, fiber: 5 }
+                  ],
+                  dinner: [
+                      { id: 'fd1', title: "Paneer Curry with Rice", serving_size: "1 plate", calories: 400, protein: 20, carbs: 50, fat: 15, fiber: 5 },
+                      { id: 'fd2', title: "Fish with Quinoa", serving_size: "1 plate", calories: 450, protein: 35, carbs: 40, fat: 14, fiber: 4 }
+                  ],
+                  snacks: [
+                      { id: 'fs1', title: "Fruit and Nuts", serving_size: "1 small bowl", calories: 150, protein: 4, carbs: 20, fat: 6, fiber: 3 }
+                  ]
+              }
+          },
+          "USA": {
+              "Regular": {
+                  breakfast: [{ id: 'us_b1', title: "Scrambled Eggs with Toast", serving_size: "1 serving", calories: 320, protein: 18, carbs: 28, fat: 14, fiber: 3 }],
+                  lunch: [{ id: 'us_l1', title: "Turkey Sandwich", serving_size: "1", calories: 420, protein: 30, carbs: 45, fat: 12, fiber: 4 }],
+                  dinner: [{ id: 'us_d1', title: "Grilled Salmon", serving_size: "1", calories: 500, protein: 35, carbs: 30, fat: 22, fiber: 3 }],
+                  snacks: [{ id: 'us_s1', title: "Greek Yogurt & Berries", serving_size: "1 cup", calories: 160, protein: 12, carbs: 18, fat: 4, fiber: 2 }]
+              }
+          }
+      };
+  }
 
-async function downloadPDF() {
-    if (!currentMealPlan || !currentUserProfile) { alert('Please generate a meal plan first!'); return; }
-    try { await loadHtml2Pdf(); } catch (err) { console.error('PDF lib load failed', err); alert('Failed to load PDF library.'); return; }
-    const html2pdfLib = window.html2pdf;
-    if (!html2pdfLib) { alert('PDF library unavailable'); return; }
+  // ---------------------------
+  // Selection and generation logic
+  // ---------------------------
+  function calculateTargetCalories(profile) {
+      const age = safeNumber(profile.age);
+      const weight = safeNumber(profile.weight);
+      const height = safeNumber(profile.height);
+      const gender = (profile.gender || '').toString().toLowerCase();
 
-    const days = Object.keys(currentMealPlan || {});
-    const weeklyStats = calculateWeeklyStats(currentMealPlan);
+      let bmr;
+      if (gender === 'male' || gender === 'm') bmr = 10*weight + 6.25*height - 5*age + 5;
+      else bmr = 10*weight + 6.25*height - 5*age - 161;
 
-    const esc = s => (s===null||s===undefined) ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const activityFactors = { 'low':1.2, 'moderate':1.375, 'high':1.55, 'very-high':1.725 };
+      const activity = (profile.activityLevel || 'low').toString();
+      let tdee = bmr * (activityFactors[activity] || 1.2);
 
-    // build html
-    let html = `<div class="dp-pdf-root" style="font-family:Arial,Helvetica,sans-serif; padding:10px; font-size:11px; color:#222;">`;
-    html += `<h1 style="text-align:center; color:#007bff; margin-bottom:2px;">🍽️ The Diet Planner</h1>`;
-    html += `<p style="text-align:center; color:#6c757d; margin-top:0; margin-bottom:8px;">Personalized Meal Plan — ${new Date().toLocaleDateString()}</p>`;
-    html += `<h2 style="margin-bottom:6px;">Weekly Overview</h2>`;
-    html += `<p><strong>Average Calories:</strong> ${Math.round(weeklyStats.avgCalories)} kcal</p>`;
-    html += `<h2 style="margin-top:14px;">7-Day Meal Plan</h2>`;
+      switch((profile.goal||'').toString().toLowerCase()) {
+          case 'loss': case 'lose': tdee *= 0.8; break;
+          case 'gain': case 'muscle': tdee *= 1.15; break;
+          default: break;
+      }
+      tdee = Math.round(Math.max(800, Math.min(4200, tdee)));
+      return tdee;
+  }
 
-    days.forEach((day, idx) => {
-        html += `<h3 style="margin:12px 0 6px 0;">${esc(day)} (Day ${idx+1})</h3>`;
-        html += `<table style="width:100%; border-collapse:collapse; margin-bottom:10px; font-size:11px;">`;
-        html += `<thead><tr style="background:#f3f4f6;"><th style="padding:6px; border:1px solid #e6e7e9; text-align:left; width:40%;">Meal</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:left; width:45%;">Food</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:center; width:15%;">Cal</th></tr></thead><tbody>`;
-        ['breakfast','lunch','dinner','snacks'].forEach(mt => {
-            const meal = (currentMealPlan[day]||{})[mt];
-            if (!meal) return;
-            const foods = Array.isArray(meal.foods) ? meal.foods.map(f => (typeof f === 'string' ? f : (f.name||f.title||'')).trim()).filter(Boolean).slice(0,6).join(', ') : '';
-            const title = getMealTitle(meal);
-            const calories = safeNumber(meal.calories);
-            html += `<tr style="page-break-inside:avoid; -webkit-column-break-inside:avoid;"><td style="padding:6px;border:1px solid #e6e7e9;"><strong>${esc(title)}</strong></td><td style="padding:6px;border:1px solid #e6e7e9;">${esc(foods)}</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center;">${calories}</td></tr>`;
-        });
-        html += `</tbody></table>`;
-    });
+  function getMealsArrayForType(dietMeals, mealType) {
+      if (!dietMeals) return [];
+      const variants = [
+          mealType,
+          mealType.toLowerCase(),
+          mealType.charAt(0).toUpperCase()+mealType.slice(1),
+          mealType + 's',
+          mealType.replace('_',' '),
+          mealType.replace('_',' ').toLowerCase()
+      ];
+      for (const k of variants) {
+          if (k && Array.isArray(dietMeals[k]) && dietMeals[k].length) return dietMeals[k];
+      }
+      if (Array.isArray(dietMeals) && dietMeals.length) return dietMeals.slice();
+      for (const k of Object.keys(dietMeals)) {
+          if (Array.isArray(dietMeals[k]) && dietMeals[k].length) return dietMeals[k];
+      }
+      return [];
+  }
 
-    html += `</div>`;
+  function selectMealsForWeek(meals, targetCalories, profile) {
+      const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+      const mealTypes = ['breakfast','lunch','dinner','snacks'];
+      const weeklyPlan = {};
+      const usedMealIds = new Set();
+      const calorieDistribution = { breakfast:0.25, lunch:0.35, dinner:0.35, snacks:0.05 };
 
-    // create a temporary container and inject print-friendly CSS
-    const temp = document.createElement('div');
-    temp.style.boxSizing = 'border-box';
-    temp.style.width = '800px'; // a reasonable width for html2canvas -> A4 scaling
-    temp.style.padding = '6px';
-    temp.innerHTML = html;
+      function flattenAllMeals(obj) {
+          const out = [];
+          if (!obj) return out;
+          if (Array.isArray(obj)) return obj.slice();
+          for (const k of Object.keys(obj)) {
+              if (Array.isArray(obj[k])) out.push(...obj[k]);
+          }
+          return out;
+      }
+      const allAvailable = flattenAllMeals(meals);
 
-    // inject extra styles to help html2pdf keep headers and rows intact
-    const style = document.createElement('style');
-    style.innerHTML = `
-        .dp-pdf-root { color: #222; }
-        table { border-collapse: collapse; }
-        thead { display: table-header-group; }
-        tr { page-break-inside: avoid; -webkit-column-break-inside: avoid; }
-        td, th { word-break: break-word; }
-    `;
-    temp.insertBefore(style, temp.firstChild);
-    document.body.appendChild(temp);
+      days.forEach((day, di) => {
+          weeklyPlan[day] = {};
+          mealTypes.forEach((mt, mti) => {
+              const targetForMeal = Math.round((targetCalories || 2000) * (calorieDistribution[mt] || 0.25));
+              let available = getMealsArrayForType(meals, mt);
+              if (!available || available.length === 0) available = allAvailable.slice();
 
-    // html2pdf options - use pagebreak css mode and smaller margin
-    const opt = {
-        margin: [8, 8, 8, 8], // top/right/bottom/left (mm)
-        filename: `TheDietPlanner-MealPlan-${new Date().toISOString().slice(0,10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 1.5, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] }
-    };
+              if (!available || available.length === 0) {
+                  weeklyPlan[day][mt] = createDefaultMeal(mt, targetForMeal);
+                  console.warn(`[DietPlanner] No meals found for "${mt}" — using fallback.`);
+                  return;
+              }
 
-    try {
-        await html2pdfLib().set(opt).from(temp).save();
-        clearDietTrackerStorage();
-    } catch (err) {
-        console.error('[DietPlanner] PDF generation failed:', err);
-        alert('PDF generation failed. See console.');
-    } finally {
-        if (temp && temp.parentNode) temp.parentNode.removeChild(temp);
-    }
-}
+              const candidates = available.filter(Boolean);
+              let suitable = candidates.filter(m => {
+                  const c = safeNumber(m.calories);
+                  const id = m.id ?? m.title ?? String(Math.random());
+                  const unused = !usedMealIds.has(id);
+                  const inRange = (c === 0) || (c >= targetForMeal * 0.6 && c <= targetForMeal * 1.4);
+                  return unused && inRange;
+              });
+              if (suitable.length === 0) suitable = candidates.filter(m => { const c = safeNumber(m.calories); return c===0 || (c >= targetForMeal * 0.6 && c <= targetForMeal * 1.4); });
+              if (suitable.length === 0) suitable = candidates.filter(m => { const id = m.id ?? m.title; return !usedMealIds.has(id); });
+              if (suitable.length === 0) suitable = candidates.slice();
 
-    /* ---------------------------
-       Load existing saved plan
-    --------------------------- */
-    function loadExistingPlan() {
-        try {
-            const stored = localStorage.getItem('last_generated_plan_v1');
-            if (!stored) return;
-            const data = JSON.parse(stored);
-            const generated = new Date(data.generated);
-            const now = new Date();
-            const daysDiff = (now - generated) / (1000*60*60*24);
-            if (daysDiff <= 7 && data.plan && data.profile) {
-                currentMealPlan = data.plan;
-                currentUserProfile = data.profile;
-                if (currentUserProfile) {
-                    Object.keys(currentUserProfile).forEach(key => {
-                        const fld = document.getElementById(key);
-                        if (fld && currentUserProfile[key] !== undefined) fld.value = currentUserProfile[key];
-                    });
-                }
-                if (currentMealPlan) {
-                    displayMealPlan(currentMealPlan, currentUserProfile);
-                    createCharts(currentMealPlan, currentUserProfile);
-                }
-                console.log('✅ Loaded existing plan from localStorage');
-            }
-        } catch (err) { console.error('Failed to load existing plan:', err); }
-    }
+              const seed = (di * 7 + mti) % suitable.length;
+              const chosenRaw = suitable[seed] || suitable[0];
 
-    /* ---------------------------
-       DOMContentLoaded setup
-    --------------------------- */
-    document.addEventListener('DOMContentLoaded', () => {
-        // ensure functions are wired
-        initializeTheme();
-        initializeNavigation();
-        initializeMobileMenu();
-        initializeIntersectionObserver();
-        initializeResultsToggle();
-        initializeForm();
+              const chosen = (function normalize(m){
+                  if (!m) return createDefaultMeal(mt, targetForMeal);
+                  if (typeof m !== 'object') return { id:String(m), title:String(m), serving_size:'', calories:0, protein:0, carbs:0, fat:0, fiber:0 };
+                  return {
+                      id: m.id ?? (m.title ? String(m.title) : `meal_${Math.random()}`),
+                      title: (m.title || m.name || m.label || '').toString() || 'Meal',
+                      serving_size: m.serving_size || m.serving || m.servingSize || '',
+                      calories: safeNumber(m.calories ?? m.kcal ?? 0),
+                      protein: safeNumber(m.protein ?? m.prot ?? 0),
+                      carbs: safeNumber(m.carbs ?? m.carbohydrates ?? 0),
+                      fat: safeNumber(m.fat ?? m.fats ?? 0),
+                      fiber: safeNumber(m.fiber ?? 0),
+                      foods: Array.isArray(m.foods) ? m.foods : (m.ingredients ? String(m.ingredients).split(',').map(s=>({name:s.trim()})) : [])
+                  };
+              })(chosenRaw);
 
-        // wire send/csv/pdf buttons (safety)
-        const sendBtn = document.getElementById('sendToTrackerBtn');
-        if (sendBtn) sendBtn.addEventListener('click', sendToTrackerAndRedirect);
-        const csvBtn = document.getElementById('downloadCsvBtn');
-        if (csvBtn) csvBtn.addEventListener('click', downloadCSV);
-        const pdfBtn = document.getElementById('downloadPdfBtn');
-        if (pdfBtn) pdfBtn.addEventListener('click', downloadPDF);
+              weeklyPlan[day][mt] = chosen;
+              usedMealIds.add(chosen.id);
+          });
+      });
 
-        loadMealsDatabase().catch(()=>{});
-        loadExistingPlan();
-        console.log('🍽️ Diet Planner loaded (consolidated script).');
-    });
+      return weeklyPlan;
+  }
 
-    // Expose key functions globally (safe)
-    window.sendToTrackerAndRedirect = sendToTrackerAndRedirect;
-    window.downloadCSV = downloadCSV;
-    window.downloadPDF = downloadPDF;
-    window.generateMealPlan = generateMealPlan;
+  function createDefaultMeal(mealType, targetCalories) {
+      const defaults = {
+          breakfast: { title:"Mixed Breakfast", serving_size:"1 serving", calories: Math.round(targetCalories) },
+          lunch: { title:"Balanced Lunch", serving_size:"1 serving", calories: Math.round(targetCalories) },
+          dinner: { title:"Nutritious Dinner", serving_size:"1 serving", calories: Math.round(targetCalories) },
+          snacks: { title:"Healthy Snack", serving_size:"1 serving", calories: Math.round(targetCalories) }
+      };
+      const base = defaults[mealType] || defaults.lunch;
+      return { id: `fallback_${mealType}_${Date.now()}`, ...base, protein: Math.round(targetCalories*0.15/4), carbs: Math.round(targetCalories*0.5/4), fat: Math.round(targetCalories*0.35/9), fiber:5, _isFallback:true };
+  }
 
-    </script>
+  // ---------------------------
+  // Display & stats
+  // ---------------------------
+  function getMealTitle(meal) {
+      if (!meal) return 'No meal';
+      if (typeof meal === 'string') return meal;
+      const candidates = [meal.title, meal.name, meal.display_name, meal.dish_name, meal.label];
+      for (const c of candidates) if (c && String(c).trim()) return String(c).trim();
+      if (Array.isArray(meal.foods) && meal.foods.length) {
+          const parts = meal.foods.map(f => typeof f === 'string' ? f : (f.name || f.title || '')).filter(Boolean);
+          if (parts.length) return parts.slice(0,3).join(', ');
+      }
+      if (meal.id) return `Meal #${meal.id}`;
+      return 'Custom Meal';
+  }
+
+  function displayMealTable(weeklyPlan) {
+      const container = document.getElementById('mealPlanTable');
+      if (!container) return;
+      const days = Object.keys(weeklyPlan || {});
+      const mealTypes = [{key:'breakfast',name:'🌅 Breakfast'}, {key:'lunch',name:'🍽️ Lunch'}, {key:'dinner',name:'🌙 Dinner'}, {key:'snacks',name:'🍎 Snack'}];
+
+      function esc(s){ if (s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      function num(v){ return safeNumber(v); }
+
+      let html = '<h3>Your Meal Plan</h3>';
+      html += '<table class="table"><thead><tr><th>Day</th>';
+      mealTypes.forEach(mt => html += `<th>${esc(mt.name)}</th>`);
+      html += '<th>Daily Total</th></tr></thead><tbody>';
+
+      days.forEach(day => {
+          html += '<tr>';
+          html += `<td class="day-header">${esc(day)}</td>`;
+          let totalCalories = 0;
+          mealTypes.forEach(mt => {
+              const meal = (weeklyPlan[day] || {})[mt.key];
+              if (meal) {
+                  const titleText = getMealTitle(meal);
+                  const calories = num(meal.calories || meal.kcal || 0);
+                  totalCalories += calories;
+                  const serving = meal.serving_size || meal.servingSize || '';
+                  const protein = num(meal.protein || meal.prot || 0);
+                  const carbs = num(meal.carbs || meal.carbohydrates || 0);
+                  const fat = num(meal.fat || meal.fats || 0);
+                  const fiber = num(meal.fiber || 0);
+
+                  html += `<td>
+                      <div class="meal-item"><strong>${esc(titleText)}</strong></div>
+                      <div class="meal-serving text-primary">${esc(String(calories))} kcal</div>`;
+                  if (serving) html += `<div class="meal-serving">${esc(serving)}</div>`;
+                  if (protein || carbs || fat || fiber) html += `<div class="meal-nutrients">P: ${esc(String(protein))}g • C: ${esc(String(carbs))}g • F: ${esc(String(fat))}g • Fib: ${esc(String(fiber))}g</div>`;
+                  html += `</td>`;
+              } else {
+                  html += '<td><div class="text-muted">No meal</div></td>';
+              }
+          });
+          html += `<td><strong class="text-success">${Math.round(totalCalories)} kcal</strong></td>`;
+          html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+  }
+
+  function calculateWeeklyStats(weeklyPlan) {
+      let totalCalories=0, totalProtein=0, totalCarbs=0, totalFat=0, totalFiber=0, mealCount=0;
+      Object.keys(weeklyPlan || {}).forEach(day => {
+          Object.keys(weeklyPlan[day] || {}).forEach(mt => {
+              const meal = weeklyPlan[day][mt];
+              if (meal) {
+                  totalCalories += safeNumber(meal.calories);
+                  totalProtein += safeNumber(meal.protein);
+                  totalCarbs += safeNumber(meal.carbs);
+                  totalFat += safeNumber(meal.fat);
+                  totalFiber += safeNumber(meal.fiber);
+                  mealCount++;
+              }
+          });
+      });
+      return {
+          totalCalories,
+          avgCalories: totalCalories / 7,
+          totalProtein,
+          avgProtein: totalProtein / 7,
+          totalCarbs,
+          avgCarbs: totalCarbs / 7,
+          totalFat,
+          avgFat: totalFat / 7,
+          totalFiber,
+          avgFiber: totalFiber / 7,
+          mealCount
+      };
+  }
+
+  function displayStatsCards(weeklyPlan, profile) {
+      const weeklyStats = calculateWeeklyStats(weeklyPlan);
+      const container = document.getElementById('statsGrid');
+      if (!container) return;
+      container.innerHTML = `
+          <div class="stat-card"><div class="stat-title">Calories</div><div class="stat-value">${Math.round(weeklyStats.avgCalories||0)}</div><div class="stat-target">/ ${profile.targetCalories||'—'}</div></div>
+          <div class="stat-card"><div class="stat-title">Protein</div><div class="stat-value">${Math.round(weeklyStats.avgProtein||0)}<span class="stat-unit">g</span></div></div>
+          <div class="stat-card"><div class="stat-title">Carbs</div><div class="stat-value">${Math.round(weeklyStats.avgCarbs||0)}<span class="stat-unit">g</span></div></div>
+          <div class="stat-card"><div class="stat-title">Fat</div><div class="stat-value">${Math.round(weeklyStats.avgFat||0)}<span class="stat-unit">g</span></div></div>
+          <div class="stat-card"><div class="stat-title">Fiber</div><div class="stat-value">${Math.round(weeklyStats.avgFiber||0)}<span class="stat-unit">g</span></div></div>
+      `;
+  }
+
+  // ---------------------------
+  // Charts (lazy)
+  // ---------------------------
+  async function loadChartJS() {
+      if (ChartsLoaded || window.Chart) return;
+      return new Promise((resolve,reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+          s.onload = () => { ChartsLoaded = true; resolve(); };
+          s.onerror = () => reject(new Error('Failed to load Chart.js'));
+          document.head.appendChild(s);
+      });
+  }
+
+  async function createCharts(weeklyPlan, profile) {
+      try { await loadChartJS(); } catch(e){ console.warn('Chart.js not available', e); return; }
+      const days = Object.keys(weeklyPlan || {});
+      const dailyCalories = days.map(d => {
+          let tot = 0;
+          Object.keys(weeklyPlan[d]||{}).forEach(mt => tot += safeNumber(weeklyPlan[d][mt]?.calories));
+          return tot;
+      });
+      const weeklyStats = calculateWeeklyStats(weeklyPlan);
+      // calorie chart
+      try {
+          const ctx = document.getElementById('calorieChart');
+          if (ctx) {
+              if (window.calorieChartInstance && typeof window.calorieChartInstance.destroy === 'function') window.calorieChartInstance.destroy();
+              window.calorieChartInstance = new Chart(ctx, {
+                  type:'bar',
+                  data:{ labels: days.map(d => d.substr(0,3)), datasets:[{ label:'Daily Calories', data:dailyCalories }] },
+                  options:{ responsive:true, maintainAspectRatio:false }
+              });
+          }
+      } catch(e) { console.warn('createCharts calorie', e); }
+
+      try {
+          const ctx = document.getElementById('macrosChart');
+          if (ctx) {
+              if (window.macrosChartInstance && typeof window.macrosChartInstance.destroy === 'function') window.macrosChartInstance.destroy();
+              const p = weeklyStats.totalProtein*4;
+              const c = weeklyStats.totalCarbs*4;
+              const f = weeklyStats.totalFat*9;
+              window.macrosChartInstance = new Chart(ctx, { type:'doughnut', data:{ labels:['Protein','Carbs','Fat'], datasets:[{ data:[p,c,f] }] }, options:{ responsive:true, maintainAspectRatio:false } });
+          }
+      } catch(e) { console.warn('createCharts macros', e); }
+  }
+
+  // ---------------------------
+  // Generate & display plan
+  // ---------------------------
+  function normalizeKey(value) { if (!value) return ''; return String(value).trim().toLowerCase().replace(/[\s-]+/g, '_'); }
+
+  async function generateMealPlan() {
+      try {
+          await loadMealsDatabase();
+
+          const profile = {
+              age: safeNumber(document.getElementById('age')?.value),
+              gender: document.getElementById('gender')?.value,
+              height: safeNumber(document.getElementById('height')?.value),
+              weight: safeNumber(document.getElementById('weight')?.value),
+              goal: document.getElementById('goal')?.value,
+              dietType: document.getElementById('dietType')?.value,
+              region: document.getElementById('region')?.value,
+              activityLevel: document.getElementById('activityLevel')?.value,
+              targetCalories: safeNumber(document.getElementById('targetCalories')?.value)
+          };
+
+          if (!profile.targetCalories) profile.targetCalories = calculateTargetCalories(profile);
+
+          // region resolution tolerant
+          const normRegion = normalizeKey(profile.region);
+          let regionKey = Object.keys(mealDatabase || {}).find(k => normalizeKey(k) === normRegion);
+          if (!regionKey) regionKey = Object.keys(mealDatabase || {}).find(k => normalizeKey(k).includes(normRegion) || normRegion.includes(normalizeKey(k)));
+          if (!regionKey) { DIAG('Region not found: ' + profile.region); throw new Error('Region not found'); }
+          const regionMeals = mealDatabase[regionKey];
+
+          // diet resolution
+          const normDiet = normalizeKey(profile.dietType);
+          let dietKey = Object.keys(regionMeals || {}).find(k => normalizeKey(k) === normDiet);
+          if (!dietKey) dietKey = Object.keys(regionMeals || {}).find(k => normalizeKey(k).includes(normDiet) || normDiet.includes(normalizeKey(k)));
+          const dietMeals = (regionMeals && (regionMeals[dietKey] || regionMeals['Regular'] || Object.values(regionMeals)[0]));
+
+          if (!dietMeals) { DIAG('Diet not found in region: ' + profile.dietType); throw new Error('Diet not found'); }
+
+          DIAG(`Using region: ${regionKey} | diet: ${dietKey || 'Regular'}`);
+          const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
+
+          // try replace placeholders with real titled items from pool (if any)
+          const mealTypes = ['breakfast','lunch','dinner','snacks'];
+          for (const day of Object.keys(weeklyPlan)) {
+              for (const mt of mealTypes) {
+                  const meal = weeklyPlan[day][mt];
+                  if (meal && (!meal.title || /^Option|Mixed|Balanced|Nutritious|Healthy/i.test(String(meal.title)))) {
+                      const pool = getMealsArrayForType(dietMeals, mt) || [];
+                      const candidate = pool.find(m => m && m.title && !/^Option|Mixed|Balanced|Nutritious|Healthy/i.test(String(m.title)));
+                      if (candidate) weeklyPlan[day][mt] = candidate;
+                  }
+              }
+          }
+
+          currentMealPlan = weeklyPlan;
+          currentUserProfile = profile;
+
+          try { localStorage.setItem('last_generated_plan_v1', JSON.stringify({ plan: weeklyPlan, profile: profile, generated: new Date().toISOString() })); } catch(e){}
+
+          displayStatsCards(weeklyPlan, profile);
+          displayMealTable(weeklyPlan);
+          await createCharts(weeklyPlan, profile);
+
+          DIAG('Weekly plan generated for ' + regionKey + ' / ' + (dietKey || 'Regular'));
+          console.log('Weekly plan', weeklyPlan);
+          return weeklyPlan;
+      } catch (err) {
+          console.error('generateMealPlan error', err);
+          alert('Failed to generate. See console.');
+          throw err;
+      }
+  }
+
+  // ---------------------------
+  // CSV / PDF / Tracker
+  // ---------------------------
+  function downloadCSV() {
+      if (!currentMealPlan || !currentUserProfile) { alert('Please generate a meal plan first'); return; }
+      let csv = '\uFEFF';
+      csv += 'Date,Meal Time,Food Name,Serving Size,Calories,Protein,Carbs,Fat,Fiber\n';
+      const days = Object.keys(currentMealPlan);
+      const mealTypes = ['breakfast','lunch','dinner','snacks'];
+      days.forEach(day => {
+          mealTypes.forEach(mt => {
+              const meal = (currentMealPlan[day]||{})[mt];
+              if (!meal) return;
+              const titleSafe = (meal.title && typeof meal.title === 'string') ? meal.title.replace(/"/g,'""') : getMealTitle(meal).replace(/"/g,'""');
+              const row = [day, mt.charAt(0).toUpperCase()+mt.slice(1), `"${titleSafe}"`, `"${(meal.serving_size||'N/A').replace(/"/g,'""')}"`, safeNumber(meal.calories), safeNumber(meal.protein), safeNumber(meal.carbs), safeNumber(meal.fat), safeNumber(meal.fiber)].join(',');
+              csv += row + '\n';
+          });
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `meal-plan-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      DIAG('CSV downloaded');
+  }
+
+  async function loadHtml2Pdf() {
+      if (Html2PdfLoaded || window.html2pdf) return;
+      return new Promise((resolve,reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          s.onload = () => { Html2PdfLoaded = true; resolve(); };
+          s.onerror = () => reject(new Error('Failed to load html2pdf'));
+          document.head.appendChild(s);
+      });
+  }
+
+  async function downloadPDF() {
+      if (!currentMealPlan || !currentUserProfile) { alert('Please generate a meal plan first!'); return; }
+      try { await loadHtml2Pdf(); } catch(e){ console.error('pdf load',e); alert('PDF library failed to load'); return; }
+      const html2pdfLib = window.html2pdf;
+      if (!html2pdfLib) { alert('PDF lib not available'); return; }
+
+      const days = Object.keys(currentMealPlan || {});
+      const weeklyStats = calculateWeeklyStats(currentMealPlan);
+      const esc = s => (s===null||s===undefined) ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+      let html = `<div style="font-family:Arial,Helvetica,sans-serif;padding:10px;font-size:11px;color:#222">`;
+      html += `<h1 style="text-align:center;color:#007bff;margin:0 0 6px 0">🍽️ The Diet Planner</h1>`;
+      html += `<p style="text-align:center;color:#6c757d;margin:0 0 8px 0">Personalized Meal Plan — ${new Date().toLocaleDateString()}</p>`;
+      html += `<h3>Weekly Overview</h3><p><strong>Average Calories:</strong> ${Math.round(weeklyStats.avgCalories||0)} kcal</p>`;
+      days.forEach((day, idx) => {
+          html += `<h4 style="margin:10px 0 6px 0">${esc(day)} (Day ${idx+1})</h4>`;
+          html += `<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;">`;
+          html += `<thead><tr style="background:#f3f4f6"><th style="padding:6px;border:1px solid #e6e7e9;width:45%">Meal</th><th style="padding:6px;border:1px solid #e6e7e9;width:45%">Food</th><th style="padding:6px;border:1px solid #e6e7e9;width:10%;text-align:center">Cal</th></tr></thead><tbody>`;
+          ['breakfast','lunch','dinner','snacks'].forEach(mt => {
+              const meal = (currentMealPlan[day]||{})[mt];
+              if (!meal) return;
+              const foods = Array.isArray(meal.foods) ? meal.foods.map(f => typeof f === 'string' ? f : (f.name||f.title||'')).filter(Boolean).slice(0,6).join(', ') : '';
+              const title = getMealTitle(meal);
+              const cal = safeNumber(meal.calories);
+              html += `<tr style="page-break-inside:avoid"><td style="padding:6px;border:1px solid #e6e7e9"><strong>${esc(title)}</strong></td><td style="padding:6px;border:1px solid #e6e7e9">${esc(foods)}</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center">${cal}</td></tr>`;
+          });
+          html += `</tbody></table>`;
+      });
+      html += `</div>`;
+
+      const temp = document.createElement('div');
+      temp.style.width = '800px';
+      temp.style.padding = '6px';
+      temp.innerHTML = html;
+      const style = document.createElement('style');
+      style.innerHTML = `thead{display:table-header-group} tr{page-break-inside:avoid} td,th{word-break:break-word}`;
+      temp.insertBefore(style, temp.firstChild);
+      document.body.appendChild(temp);
+
+      const opt = { margin:8, filename:`TheDietPlanner-MealPlan-${new Date().toISOString().slice(0,10)}.pdf`, image:{type:'jpeg',quality:0.95}, html2canvas:{scale:1.5,useCORS:true}, jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}, pagebreak:{mode:['css','legacy']} };
+
+      try {
+          await html2pdfLib().set(opt).from(temp).save();
+          DIAG('PDF saved');
+      } catch (err) {
+          console.error('PDF generation failed', err);
+          alert('PDF generation failed. See console.');
+      } finally {
+          if (temp && temp.parentNode) temp.parentNode.removeChild(temp);
+      }
+  }
+
+  function sendToTrackerAndRedirect() {
+      if (!currentMealPlan || !currentUserProfile) { alert('No meal plan to send. Generate one first.'); return; }
+      const overlay = null;
+      const integrationData = {
+          version: '3.0',
+          timestamp: new Date().toISOString(),
+          source: 'thedietplanner-diet-planner',
+          userProfile: currentUserProfile,
+          mealPlan: currentMealPlan,
+          dailyTargets: { calories: currentUserProfile.targetCalories, protein: Math.round(currentUserProfile.targetCalories*0.15/4), carbs: Math.round(currentUserProfile.targetCalories*0.5/4), fat: Math.round(currentUserProfile.targetCalories*0.35/9), fiber:25, water:2000 }
+      };
+      try {
+          const payloadStr = JSON.stringify(integrationData);
+          localStorage.setItem(INTEGRATION_STORAGE_KEY, payloadStr);
+          localStorage.setItem('planned_meals_v1', payloadStr);
+          DIAG('Meal plan saved to localStorage for tracker');
+      } catch(e){ console.warn(e); }
+
+      const go = confirm('Meal plan saved for Diet Tracker. Open tracker now?');
+      if (go) {
+          const redirectUrl = document.body.getAttribute('data-diet-tracker-url') || (location.origin + '/diet-tracker');
+          const w = window.open(redirectUrl, '_blank');
+          if (!w) alert('Popup blocked. Please open tracker manually.');
+      }
+  }
+
+  // ---------------------------
+  // Load saved plan
+  // ---------------------------
+  function loadExistingPlan() {
+      try {
+          const stored = localStorage.getItem('last_generated_plan_v1');
+          if (!stored) { DIAG('No last_generated_plan_v1 in localStorage'); return; }
+          const data = JSON.parse(stored);
+          const generated = new Date(data.generated);
+          const now = new Date();
+          const daysDiff = (now - generated) / (1000*60*60*24);
+          if (daysDiff <= 7 && data.plan && data.profile) {
+              currentMealPlan = data.plan;
+              currentUserProfile = data.profile;
+              // populate form if fields exist
+              try {
+                  Object.keys(currentUserProfile).forEach(key => {
+                      const fld = document.getElementById(key);
+                      if (fld && currentUserProfile[key] !== undefined) fld.value = currentUserProfile[key];
+                  });
+              } catch(e){}
+              displayStatsCards(currentMealPlan, currentUserProfile);
+              displayMealTable(currentMealPlan);
+              createCharts(currentMealPlan, currentUserProfile);
+              DIAG('Loaded existing plan from localStorage');
+          }
+      } catch(e){ console.error('loadExistingPlan error', e); }
+  }
+
+  // ---------------------------
+  // Initialization stubs (safe)
+  // ---------------------------
+  function initializeTheme(){ /* stub for compatibility */ }
+  function initializeNavigation(){ /* stub for compatibility */ }
+  function initializeMobileMenu(){ /* stub for compatibility */ }
+  function initializeIntersectionObserver(){ /* stub for compatibility */ }
+  function initializeResultsToggle(){ /* stub for compatibility */ }
+  function initializeForm(){ /* stub for compatibility */ }
+  function initializePdfExport(){ /* stub for compatibility */ }
+
+  // ---------------------------
+  // wire UI
+  // ---------------------------
+  document.addEventListener('DOMContentLoaded', () => {
+      // button wiring
+      const gen = document.getElementById('generateBtn');
+      if (gen) gen.addEventListener('click', () => { gen.disabled = true; generateMealPlan().finally(()=>gen.disabled=false); });
+
+      const pdfBtn = document.getElementById('downloadPdfBtn');
+      if (pdfBtn) pdfBtn.addEventListener('click', () => { pdfBtn.disabled = true; downloadPDF().finally(()=>pdfBtn.disabled=false); });
+
+      const csvBtn = document.getElementById('downloadCsvBtn');
+      if (csvBtn) csvBtn.addEventListener('click', downloadCSV);
+
+      const sendBtn = document.getElementById('sendToTrackerBtn');
+      if (sendBtn) sendBtn.addEventListener('click', sendToTrackerAndRedirect);
+
+      // try load db and existing plan
+      loadMealsDatabase().catch(()=>{});
+      loadExistingPlan();
+      DIAG('Diet Planner loaded (consolidated)');
+  });
+
+  // Expose to window for debug
+  window.generateMealPlan = generateMealPlan;
+  window.loadMealsDatabase = loadMealsDatabase;
+  window.downloadPDF = downloadPDF;
+  window.downloadCSV = downloadCSV;
+  window.sendToTrackerAndRedirect = sendToTrackerAndRedirect;
+  </script>
 </body>
 </html>

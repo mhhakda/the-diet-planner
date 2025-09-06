@@ -699,24 +699,6 @@ function calculateTargetCalories(profile) {
    Robust meal selection + fallback logging
 --------------------------- */
 
-function createDefaultMeal(mealType, targetCalories) {
-    const defaults = {
-        breakfast: { title: "Mixed Breakfast", serving_size: "1 serving", calories: Math.round(targetCalories) },
-        lunch:     { title: "Balanced Lunch", serving_size: "1 serving", calories: Math.round(targetCalories) },
-        dinner:    { title: "Nutritious Dinner", serving_size: "1 serving", calories: Math.round(targetCalories) },
-        snacks:    { title: "Healthy Snack", serving_size: "1 serving", calories: Math.round(targetCalories) }
-    };
-    const base = defaults[mealType] || defaults.lunch;
-    return {
-        id: `fallback_${mealType}_${Date.now()}_${Math.round(Math.random()*10000)}`,
-        ...base,
-        protein: Math.round(targetCalories * 0.15 / 4),
-        carbs:   Math.round(targetCalories * 0.50 / 4),
-        fat:     Math.round(targetCalories * 0.35 / 9),
-        fiber:   5,
-        _isFallback: true
-    };
-}
 
 function getMealsArrayForType(dietMeals, mealType) {
     if (!dietMeals) return [];

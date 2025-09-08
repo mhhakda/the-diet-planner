@@ -124,89 +124,190 @@
             <div class="redirect-spinner" aria-hidden="true"></div>
             <h3 style="margin-bottom: 1rem;">🔄 Sending to Diet Tracker</h3>
             <p>Preparing your personalized meal plan...</p>
-            <p style="font-size: 0.9em; color: var(--text-secondary); margin-top: 1rem;">This will only take a moment</p>
+            <p style="font-size: 0.9em; color: var(--text-secondary); margin-top: 1rem;">
+                You'll be redirected automatically in a few seconds (after confirmation).
+            </p>
         </div>
     </div>
 
-    <!-- App Container -->
     <div class="app-container">
-        <!-- Sidebar -->
-        <nav class="sidebar" id="sidebar" aria-label="Main navigation">
+        <nav class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
             <div class="sidebar-header">
-                <div class="logo" aria-hidden="true">🍽️ Diet Planner</div>
-                <div class="tagline">Your personalized nutrition assistant</div>
+                <div class="logo">🍽️ Diet Planner</div>
+                <div class="tagline">The Diet Planner</div>
             </div>
-            <div class="nav-menu">
-                <button class="nav-item active" data-section="profile"><span class="nav-icon">👤</span> Profile</button>
-                <button class="nav-item" data-section="results"><span class="nav-icon">📋</span> Meal Plan</button>
-                <button class="nav-item" data-section="export"><span class="nav-icon">⬇️</span> Export</button>
+            <div class="nav-menu" role="menu">
+                <button class="nav-item active" data-section="profile" role="menuitem" aria-current="page">
+                    <span class="nav-icon" aria-hidden="true">👤</span> Profile Setup
+                </button>
+                <button class="nav-item" data-section="plan" role="menuitem">
+                    <span class="nav-icon" aria-hidden="true">📋</span> Weekly Plan
+                </button>
+                <button class="nav-item" data-section="analytics" role="menuitem">
+                    <span class="nav-icon" aria-hidden="true">📊</span> Analytics
+                </button>
+                <button class="nav-item" data-section="exports" role="menuitem">
+                    <span class="nav-icon" aria-hidden="true">📤</span> Export & Share
+                </button>
             </div>
         </nav>
 
-        <!-- Main Content -->
-        <main class="main-content" id="mainContent" tabindex="-1">
+        <main id="mainContent" class="main-content" role="main" aria-live="polite">
             <div class="content-wrapper">
-                <!-- Profile Section -->
-                <section id="profileSection" class="form-section" role="region" aria-labelledby="profileHeading">
-                    <div class="section-header">
-                        <h1 class="section-title" id="profileHeading">👤 Your Profile</h1>
-                        <p class="section-subtitle">Fill in your details to generate a personalized meal plan</p>
-                    </div>
-                    <form id="profileForm" novalidate>
-                        <!-- form fields here -->
-                    </form>
-                </section>
+                <div class="loading" id="loading">
+                    <div class="spinner" aria-hidden="true"></div>
+                    <p class="loading-text">Creating your personalized meal plan...</p>
+                </div>
 
-                <!-- Results Section -->
-                <section id="resultsSection" class="results-container" role="region" aria-labelledby="resultsHeading">
-                    <div class="results-header">
-                        <h1 class="results-title" id="resultsHeading">📋 Your Meal Plan</h1>
-                        <button type="button" class="edit-profile-btn" data-section="profile">✏️ Edit Profile</button>
+                <!-- Form Section -->
+                <div class="form-section" id="formSection">
+                    <div class="section-header">
+                        <h1 class="section-title">👤 Complete Your Profile</h1>
+                        <p class="section-subtitle">Tell us about yourself to create your personalized meal plan</p>
                     </div>
+
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">Health Profile</h3></div>
+                        <div class="card-body">
+                            <form id="profile-form" aria-describedby="profile-help">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="age" class="form-label">Age *</label>
+                                        <input type="number" id="age" class="form-control" min="13" max="120" required placeholder="Enter your age">
+                                        <div class="invalid-feedback" id="age-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="gender" class="form-label">Gender *</label>
+                                        <select id="gender" class="form-control" required>
+                                            <option value="">Select Gender</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="gender-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="height" class="form-label">Height (cm) *</label>
+                                        <input type="number" id="height" class="form-control" min="100" max="250" required placeholder="e.g., 175">
+                                        <div class="invalid-feedback" id="height-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="weight" class="form-label">Weight (kg) *</label>
+                                        <input type="number" id="weight" class="form-control" min="30" max="300" step="0.1" required placeholder="e.g., 70.5">
+                                        <div class="invalid-feedback" id="weight-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="goal" class="form-label">Health Goal *</label>
+                                        <select id="goal" class="form-control" required>
+                                            <option value="">Select Goal</option>
+                                            <option value="loss">Weight Loss</option>
+                                            <option value="gain">Weight Gain</option>
+                                            <option value="maintain">Maintain Weight</option>
+                                            <option value="muscle">Muscle Gain</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="goal-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="dietType" class="form-label">Dietary Preference *</label>
+                                        <select id="dietType" class="form-control" required>
+                                            <option value="Mixed">Mixed (Veg & Non-Veg)</option>
+                                            <option value="Vegetarian">Vegetarian</option>
+                                            <option value="Non-Vegetarian">Non-Vegetarian</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="dietType-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="region" class="form-label">Region *</label>
+                                        <select id="region" class="form-control" required>
+                                            <option value="India">India</option>
+                                            <option value="USA">USA</option>
+                                            <option value="Europe">Europe</option>
+                                            <option value="Middle_East">Middle East</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="region-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="activityLevel" class="form-label">Activity Level *</label>
+                                        <select id="activityLevel" class="form-control" required>
+                                            <option value="">Select Activity Level</option>
+                                            <option value="low">Low (Sedentary)</option>
+                                            <option value="moderate">Moderate (Light exercise)</option>
+                                            <option value="high">High (Regular exercise)</option>
+                                            <option value="very-high">Very High (Intense exercise)</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="activityLevel-error"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="targetCalories" class="form-label">Target Daily Calories (optional)</label>
+                                        <input type="number" id="targetCalories" class="form-control" min="800" max="5000" placeholder="Auto-calculated if empty">
+                                        <div class="invalid-feedback" id="targetCalories-error"></div>
+                                    </div>
+                                </div>
+
+                                <div class="text-center">
+                                    <button type="button" class="btn btn-primary btn-lg" id="generateBtn" aria-label="Generate Meal Plan">
+                                        <span id="generateBtnText">Generate My Meal Plan</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Container -->
+                <div class="results-container" id="resultsContainer" aria-hidden="true">
+                    <div class="results-header">
+                        <h1 class="results-title">🍽️ Your Meal Plan</h1>
+                        <button class="edit-profile-btn" id="editProfileBtn" aria-label="Edit profile">
+                            <span>←</span>
+                            <span>Edit My Profile</span>
+                        </button>
+                    </div>
+
                     <div class="results-content">
-                        <div class="results-scroll">
+                        <div class="results-scroll" id="resultsScroll">
                             <div class="stats-grid" id="statsGrid"></div>
+
                             <div class="table-responsive">
+                                <!-- FIXED: container name changed to mealPlanContainer -->
                                 <div id="mealPlanContainer"></div>
                             </div>
+
                             <div class="charts-grid">
                                 <div class="chart-container">
-                                    <div class="chart-title">Daily Calories</div>
-                                    <canvas id="calorieChart"></canvas>
+                                    <h3 class="chart-title">Daily Calorie Distribution</h3>
+                                    <canvas id="calorieChart" width="400" height="200"></canvas>
                                 </div>
                                 <div class="chart-container">
-                                    <div class="chart-title">Macronutrient Breakdown</div>
-                                    <canvas id="macrosChart"></canvas>
+                                    <h3 class="chart-title">Weekly Macros Breakdown</h3>
+                                    <canvas id="macrosChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="export-section">
+                                <h3 class="export-title">📤 Export & Share</h3>
+                                <div class="btn-group">
+                                    <button class="btn btn-primary btn-lg" id="sendToTrackerBtn" aria-label="Send to diet tracker">🔄 Send to Diet Tracker</button>
+                                    <button class="btn btn-success" id="downloadCsvBtn" aria-label="Download CSV">📊 Download CSV</button>
+                                    <button class="btn btn-success" id="downloadPdfBtn" aria-label="Download PDF">📄 Download PDF</button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </section>
+                </div>
 
-                <!-- Export Section -->
-                <section id="exportSection" class="form-section hidden" role="region" aria-labelledby="exportHeading">
-                    <div class="section-header">
-                        <h1 class="section-title" id="exportHeading">⬇️ Export Options</h1>
-                        <p class="section-subtitle">Save your plan for later or share with your nutritionist</p>
-                    </div>
-                    <div class="export-section">
-                        <div class="export-title">Choose Export Method</div>
-                        <div class="btn-group">
-                            <button id="downloadCsvBtn" class="btn btn-success">⬇️ Download CSV</button>
-                            <button id="downloadPdfBtn" class="btn btn-primary">⬇️ Download PDF</button>
-                            <button id="sendToTrackerBtn" class="btn btn-primary">📲 Send to Diet Tracker</button>
-                        </div>
-                    </div>
-                </section>
             </div>
         </main>
     </div>
 
-    <!-- Loading Overlay -->
-    <div class="loading" id="loadingOverlay">
-        <div class="spinner"></div>
-        <div class="loading-text">Generating your personalized meal plan...</div>
-    </div>
     <!-- Single consolidated script block: PART 1 -->
     <script>
     /*************************************************************************
@@ -225,36 +326,37 @@
     let currentTheme = localStorage.getItem('theme') || 'light';
 
     const INTEGRATION_STORAGE_KEY = 'dietplanner_integration_v3';
-// --- Render stubs + handoff (place near top, after globals) ---
-// These provide no-op/queue behavior if renderers are called before the real functions are defined.
 
-window.__dp_pending_restore = null;
+    // --- Render stubs + handoff (place near top, after globals) ---
+    // These provide no-op/queue behavior if renderers are called before the real functions are defined.
 
-// stub for displayMealPlan: queue the plan if real impl not present
-if (typeof window.displayMealPlan !== 'function') {
-  window.displayMealPlan = function(weeklyPlan, profile) {
-    // If real implementation registered, forward immediately
-    if (typeof window.__real_displayMealPlan === 'function') {
-      return window.__real_displayMealPlan(weeklyPlan, profile);
+    window.__dp_pending_restore = null;
+
+    // stub for displayMealPlan: queue the plan if real impl not present
+    if (typeof window.displayMealPlan !== 'function') {
+      window.displayMealPlan = function(weeklyPlan, profile) {
+        // If real implementation registered, forward immediately
+        if (typeof window.__real_displayMealPlan === 'function') {
+          return window.__real_displayMealPlan(weeklyPlan, profile);
+        }
+        // otherwise store pending plan and log; will be rendered when real function registers
+        window.__dp_pending_restore = { plan: weeklyPlan, profile: profile, ts: Date.now() };
+        console.warn('[DietPlanner] displayMealPlan called before real renderer registered — queued for later render.');
+      };
     }
-    // otherwise store pending plan and log; will be rendered when real function registers
-    window.__dp_pending_restore = { plan: weeklyPlan, profile: profile, ts: Date.now() };
-    console.warn('[DietPlanner] displayMealPlan called before real renderer registered — queued for later render.');
-  };
-}
 
-// stub for createCharts: queue if real impl not present
-if (typeof window.createCharts !== 'function') {
-  window.createCharts = async function(weeklyPlan, profile) {
-    if (typeof window.__real_createCharts === 'function') {
-      return window.__real_createCharts(weeklyPlan, profile);
+    // stub for createCharts: queue if real impl not present
+    if (typeof window.createCharts !== 'function') {
+      window.createCharts = async function(weeklyPlan, profile) {
+        if (typeof window.__real_createCharts === 'function') {
+          return window.__real_createCharts(weeklyPlan, profile);
+        }
+        // queue request (only last request kept)
+        window.__dp_pending_charts = { plan: weeklyPlan, profile: profile, ts: Date.now() };
+        console.warn('[DietPlanner] createCharts called before real renderer registered — queued for later render.');
+        return Promise.resolve(); // keep callers happy
+      };
     }
-    // queue request (only last request kept)
-    window.__dp_pending_charts = { plan: weeklyPlan, profile: profile, ts: Date.now() };
-    console.warn('[DietPlanner] createCharts called before real renderer registered — queued for later render.');
-    return Promise.resolve(); // keep callers happy
-  };
-}
 
     // safe number parser
     function safeNumber(v) {
@@ -490,17 +592,17 @@ if (typeof window.createCharts !== 'function') {
                 return mealDatabase;
             }
 
-            // Normalize into expected shape: region -> diet -> { breakfast:[], lunch:[], dinner:[], snacks:[] }
-            // support wrapper shapes
+            // support wrapper shapes like { meals: [...] } or { data: { meals: [...] } }
             if (raw && raw.meals && Array.isArray(raw.meals)) raw = raw.meals;
             else if (raw && raw.data && raw.data.meals && Array.isArray(raw.data.meals)) raw = raw.data.meals;
 
-            // If raw is a flat array -> convert
+            // If raw is an array of meals (flat array) convert to normalized structure
             if (Array.isArray(raw)) {
                 const normalized = {};
                 for (let i = 0; i < raw.length; i++) {
                     const m = raw[i];
                     if (!m || typeof m !== 'object') continue;
+
                     const regionKey = (m.region || 'Global').toString();
                     const diets = Array.isArray(m.diets) && m.diets.length ? m.diets : [m.diet || 'Regular'];
                     const mealType = (m.mealType || m.type || m.category || 'lunch').toString().toLowerCase();
@@ -525,45 +627,52 @@ if (typeof window.createCharts !== 'function') {
                                 foods: Array.isArray(m.foods) ? m.foods : (m.ingredients ? String(m.ingredients).split(',').map(s=>({name:s.trim()})) : [])
                               };
 
-                        // normalize mealType
+                        // normalize mealType to one of breakfast|lunch|dinner|snacks
                         let key = mealType;
                         if (!['breakfast','lunch','dinner','snacks'].includes(key)) {
-                            if (key === 'snack') key = 'snacks';
+                            if (key.endsWith('s')) key = key;
+                            else if (key === 'snack') key = 'snacks';
                             else key = 'lunch';
                         }
-                        bucket[key].push(norm);
+                        const targetKey = ['breakfast','lunch','dinner','snacks'].includes(key) ? key : 'lunch';
+                        bucket[targetKey].push(norm);
                     }
                 }
+
                 mealDatabase = normalized;
                 console.log('✅ meals.json was a flat array — converted to normalized structure.');
                 return mealDatabase;
             }
 
-            // raw might already be nested region -> diet -> { breakfast:[], ... }
+            // If raw looks like nested region -> diet -> { breakfast:[], lunch:[] ... }
             try {
                 const normalized = {};
-                const regionKeys = Object.keys(raw);
+                const regionKeys = Object.keys(raw || {});
                 const types = ['breakfast','lunch','dinner','snacks'];
+
                 regionKeys.forEach(regionKey => {
-                    const region = raw[regionKey];
-                    if (!region || typeof region !== 'object') return;
+                    const regionObj = raw[regionKey];
+                    if (!regionObj || typeof regionObj !== 'object') return;
                     normalized[regionKey] = {};
-                    Object.keys(region).forEach(dietKey => {
-                        const dietObj = region[dietKey];
+
+                    Object.keys(regionObj).forEach(dietKey => {
+                        const dietObj = regionObj[dietKey];
                         if (!dietObj || typeof dietObj !== 'object') return;
+
                         const out = {};
                         types.forEach(t => {
-                            let arr = dietObj[t] || dietObj[t.charAt(0).toUpperCase()+t.slice(1)] || dietObj[t.replace('_',' ')] || [];
+                            let arr = dietObj[t] || dietObj[t.charAt(0).toUpperCase() + t.slice(1)] || dietObj[t.replace('_',' ')] || [];
                             if (!Array.isArray(arr)) arr = [];
-                            out[t] = arr.map((m, i) => normalizeMealObject(m, i, regionKey, dietKey, t));
+                            out[t] = arr.map((m, i) => (typeof normalizeMealObject === 'function') ? normalizeMealObject(m, i, regionKey, dietKey, t) : m);
                         });
+
                         normalized[regionKey][dietKey] = out;
                     });
                 });
 
                 mealDatabase = Object.keys(normalized).length ? normalized : createFallbackMeals();
                 console.log('✅ meals.json normalized and loaded.');
-                // small diagnostic printout
+                // small diagnostics
                 Object.keys(mealDatabase).forEach(r => {
                     Object.keys(mealDatabase[r] || {}).forEach(d => {
                         const obj = mealDatabase[r][d] || {};
@@ -582,36 +691,46 @@ if (typeof window.createCharts !== 'function') {
     }
 
     function normalizeMealObject(meal, idx, region, diet, mealType) {
+        // If invalid meal object, return a safe placeholder
         if (!meal || typeof meal !== 'object') {
-            return { id:`${region}_${diet}_${mealType}_${idx}_${Date.now()}`, title:`Option ${idx+1}`, serving_size:'1 serving', calories:0, protein:0, carbs:0, fat:0, fiber:0, foods:[] };
+            return {
+                id: `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
+                title: `Option ${idx+1}`,
+                serving_size: '1 serving',
+                calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, foods: []
+            };
         }
-        const title = (meal.title || meal.name || meal.label || '').toString().trim();
+
+        // Support many possible field names
+        const rawTitle = (meal.title || meal.name || meal.label || meal.dish_name || meal.display_name || '').toString().trim();
         const serving_size = meal.serving_size || meal.servingSize || meal.serving || '';
         const calories = safeNumber(meal.calories ?? meal.kcal ?? meal.cal ?? 0);
         const protein = safeNumber(meal.protein ?? meal.prot ?? 0);
-        const carbs = safeNumber(meal.carbs ?? meal.carbohydrates ?? 0);
+        const carbs = safeNumber(meal.carbs ?? meal.carbohydrates ?? meal.carb ?? 0);
         const fat = safeNumber(meal.fat ?? meal.fats ?? 0);
         const fiber = safeNumber(meal.fiber ?? meal.fib ?? 0);
+
+        // Build foods array consistently
         let foods = [];
         if (Array.isArray(meal.foods) && meal.foods.length) {
-            foods = meal.foods.map(f => typeof f === 'string' ? { name: f } : (typeof f === 'object' ? f : { name: String(f) }));
+            foods = meal.foods.map(f => (typeof f === 'string') ? { name: f } : (typeof f === 'object' ? f : { name: String(f) }));
         } else if (meal.ingredients && typeof meal.ingredients === 'string') {
-            const parts = meal.ingredients.split(',').map(s => s.trim()).filter(Boolean);
-            foods = parts.map(p => ({ name: p }));
+            foods = meal.ingredients.split(',').map(s => ({ name: s.trim() })).filter(Boolean);
         } else if (meal.components && Array.isArray(meal.components)) {
             foods = meal.components.map(c => (typeof c === 'string') ? { name: c } : (c || {}));
         }
 
-        let outTitle = title;
-        if (!outTitle) {
-            const foodNames = foods.map(f => (typeof f === 'string' ? f : (f.name || f.title || '')).trim()).filter(Boolean);
-            if (foodNames.length) outTitle = foodNames.slice(0, 3).join(', ');
+        // If no explicit title, derive from foods (first up to 3 names)
+        let title = rawTitle;
+        if (!title) {
+            const foodNames = foods.map(f => (typeof f === 'string') ? f : (f.name || f.title || '')).filter(Boolean);
+            if (foodNames.length) title = foodNames.slice(0, 3).join(', ');
         }
-        if (!outTitle) outTitle = `Meal ${idx + 1}`;
+        if (!title) title = `Meal ${idx + 1}`;
 
         return {
             id: meal.id ?? `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
-            title: outTitle,
+            title,
             serving_size,
             calories, protein, carbs, fat, fiber,
             foods

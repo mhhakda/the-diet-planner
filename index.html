@@ -1590,7 +1590,8 @@ async function downloadPDF() {
 }
 
 // ---------------------------
-// Load existing saved plan
+// Load existing saved plan (robust, waits for renderer functions)
+// ---------------------------
 function loadExistingPlan() {
     try {
         const stored = localStorage.getItem('last_generated_plan_v1');
@@ -1599,22 +1600,64 @@ function loadExistingPlan() {
         const generated = new Date(data.generated);
         const now = new Date();
         const daysDiff = (now - generated) / (1000*60*60*24);
-        if (daysDiff <= 7 && data.plan && data.profile) {
-            currentMealPlan = data.plan;
-            currentUserProfile = data.profile;
-            if (currentUserProfile) {
-                Object.keys(currentUserProfile).forEach(key => {
+        if (!(daysDiff <= 7 && data.plan && data.profile)) return;
+
+        // restore into globals
+        currentMealPlan = data.plan;
+        currentUserProfile = data.profile;
+
+        // populate input fields if present
+        if (currentUserProfile) {
+            Object.keys(currentUserProfile).forEach(key => {
+                try {
                     const fld = document.getElementById(key);
                     if (fld && currentUserProfile[key] !== undefined) fld.value = currentUserProfile[key];
-                });
-            }
-            if (currentMealPlan) {
-                displayMealPlan(currentMealPlan, currentUserProfile);
-                createCharts(currentMealPlan, currentUserProfile);
-            }
-            console.log('✅ Loaded existing plan from localStorage');
+                } catch (e) { /* ignore individual field errors */ }
+            });
         }
-    } catch (err) { console.error('Failed to load existing plan:', err); }
+
+        // Function to attempt rendering when renderer functions are available
+        function tryRender(attempt = 0) {
+            const MAX_ATTEMPTS = 20; // 20 * 100ms = 2s max wait
+            const R_DELAY = 100; // ms
+
+            // If displayMealPlan exists, render immediately
+            if (typeof displayMealPlan === 'function') {
+                try {
+                    displayMealPlan(currentMealPlan, currentUserProfile);
+                } catch (err) {
+                    console.warn('[DietPlanner] displayMealPlan threw:', err);
+                }
+                // create charts if available (async-friendly)
+                if (typeof createCharts === 'function') {
+                    try {
+                        // createCharts may be async; call but don't await here
+                        const maybePromise = createCharts(currentMealPlan, currentUserProfile);
+                        if (maybePromise && typeof maybePromise.then === 'function') {
+                            maybePromise.catch(e => console.warn('[DietPlanner] createCharts error:', e));
+                        }
+                    } catch (e) { console.warn('[DietPlanner] createCharts threw:', e); }
+                }
+                console.log('✅ Loaded existing plan from localStorage (rendered).');
+                return;
+            }
+
+            // otherwise retry a few times with delay
+            if (attempt < MAX_ATTEMPTS) {
+                setTimeout(() => tryRender(attempt + 1), R_DELAY);
+                return;
+            }
+
+            // if still not available, keep the plan in memory and log a warning.
+            console.warn('[DietPlanner] Loaded plan from storage but renderer functions not available yet. Plan kept in memory and will render when you generate next plan.');
+        }
+
+        // start trying to render
+        tryRender();
+
+    } catch (err) {
+        console.error('Failed to load existing plan:', err);
+    }
 }
 
 // ---------------------------

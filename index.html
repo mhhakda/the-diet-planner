@@ -1080,18 +1080,19 @@ function normalizeKey(value) {
     return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
 }
 
+// Replace existing generateMealPlan with this defensive version
 async function generateMealPlan() {
     try {
-        await loadMealsDatabase(); // load meals into mealDatabase
+        // Ensure DB loaded
+        await loadMealsDatabase();
 
-        // gather profile from DOM
         const profile = {
             age: safeNumber(document.getElementById("age")?.value),
             gender: document.getElementById("gender")?.value,
             height: safeNumber(document.getElementById("height")?.value),
             weight: safeNumber(document.getElementById("weight")?.value),
             goal: document.getElementById("goal")?.value,
-            dietType: document.getElementById("dietType")?.value || 'Mixed',
+            dietType: document.getElementById("dietType")?.value,
             region: document.getElementById("region")?.value,
             activityLevel: document.getElementById("activityLevel")?.value,
             targetCalories: safeNumber(document.getElementById("targetCalories")?.value)
@@ -1101,99 +1102,114 @@ async function generateMealPlan() {
             profile.targetCalories = calculateTargetCalories(profile);
         }
 
-        // resolve region key tolerant
+        // Resolve region key (normalized)
         const normRegion = normalizeKey(profile.region);
-        let regionKey = Object.keys(mealDatabase || {}).find(k => normalizeKey(k) === normRegion);
+        let regionKey = Object.keys(mealDatabase || {}).find(k => normalizeKey(k) === normRegion)
+            || Object.keys(mealDatabase || {}).find(k => normalizeKey(k).includes(normRegion) || normRegion.includes(normalizeKey(k)));
+
         if (!regionKey) {
-            regionKey = Object.keys(mealDatabase || {}).find(k => normalizeKey(k).includes(normRegion) || normRegion.includes(normalizeKey(k)));
-        }
-        if (!regionKey) {
-            // if not found, try case-insensitive contains
-            regionKey = Object.keys(mealDatabase || {}).find(k => (k||'').toLowerCase().includes((profile.region||'').toLowerCase()));
-        }
-        if (!regionKey) {
-            console.error('Region not found:', profile.region, 'available:', Object.keys(mealDatabase||{}));
+            console.error("❌ Region not found:", profile.region, "Available regions:", Object.keys(mealDatabase || {}));
             throw new Error(`No meals available for region: ${profile.region}`);
         }
 
-        const regionMeals = mealDatabase[regionKey];
-        if (!regionMeals) throw new Error('Region meals missing for ' + regionKey);
+        const regionMeals = mealDatabase[regionKey] || {};
+        // Resolve diet
+        const normDiet = normalizeKey(profile.dietType);
+        let dietKey = Object.keys(regionMeals).find(k => normalizeKey(k) === normDiet)
+            || Object.keys(regionMeals).find(k => normalizeKey(k).includes(normDiet) || normDiet.includes(normalizeKey(k)));
 
-        // Resolve diet by first attempting direct match, otherwise fallback to flatten-and-filter
-        let dietKey = Object.keys(regionMeals || {}).find(k => normalizeKey(k) === normalizeKey(profile.dietType));
-        if (!dietKey) {
-            dietKey = Object.keys(regionMeals || {}).find(k => normalizeKey(k).includes(normalizeKey(profile.dietType)) || normalizeKey(profile.dietType).includes(normalizeKey(k)));
+        const dietMeals = regionMeals[dietKey] || regionMeals["Regular"] || Object.values(regionMeals)[0];
+
+        if (!dietMeals) {
+            console.error("❌ Diet not found:", profile.dietType, "Available diets:", Object.keys(regionMeals));
+            throw new Error(`No meals available for diet: ${profile.dietType} in region: ${profile.region}`);
         }
 
-        // get dietMeals object for the requested diet selection (filtered)
-        const dietMeals = resolveDietMealsFromRegion(regionMeals, profile.dietType);
-
-        // diagnostics
-        console.log('generateMealPlan -> regionKey:', regionKey, 'requestedDiet:', profile.dietType, 'resolved diet key (exact):', dietKey);
-        console.log('dietMeals counts:', {
-            breakfast: (dietMeals.breakfast||[]).length,
-            lunch: (dietMeals.lunch||[]).length,
-            dinner: (dietMeals.dinner||[]).length,
-            snacks: (dietMeals.snacks||[]).length
-        });
-
-        // If too few items in dietMeals, fallback to region flatten (all)
-        const totalAvailable = (dietMeals.breakfast||[]).length + (dietMeals.lunch||[]).length + (dietMeals.dinner||[]).length + (dietMeals.snacks||[]).length;
-        if (totalAvailable === 0) {
-            console.warn('[DietPlanner] No meals found for requested diet; falling back to all region meals.');
-            const flatAll = flattenRegionMeals(regionMeals);
-            // if still empty -> fallback fallback
-            if (((flatAll.breakfast||[]).length + (flatAll.lunch||[]).length + (flatAll.dinner||[]).length + (flatAll.snacks||[]).length) === 0) {
-                throw new Error('No meals present in region: ' + regionKey);
-            }
-            // use flatAll as dietMeals
-            Object.assign(dietMeals, flatAll);
+        console.log("✅ Using region:", regionKey, "| diet:", dietKey || "Regular");
+        // diagnostic: print sizes and a sample of first few meals for each type
+        try {
+            const sample = {};
+            ['breakfast','lunch','dinner','snacks'].forEach(mt => {
+                const arr = getMealsArrayForType(dietMeals, mt) || [];
+                sample[mt] = { count: arr.length, sample: arr.slice(0,3).map(m => (m && (m.title || m.name)) || m) };
+            });
+            console.log('[DietPlanner] dietMeals counts:', sample);
+        } catch (e) {
+            console.warn('[DietPlanner] failed to inspect dietMeals:', e);
         }
 
-        // build weekly plan
+        // Build weekly plan (this can still throw if something inside selectMealsForWeek is broken)
         const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
 
-        // attempt to replace placeholder-like titles with first real items
-        ['breakfast','lunch','dinner','snacks'].forEach(mt => {
-            for (const day of Object.keys(weeklyPlan)) {
-                const meal = weeklyPlan[day][mt];
-                const title = asString(meal && meal.title);
-                if (!title || /^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(title)) {
-                    const pool = dietMeals[mt] || [];
-                    const real = pool.find(m => m && asString(m.title).trim() && !/^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(asString(m.title)));
-                    if (real) {
-                        weeklyPlan[day][mt] = {
-                            id: real.id ?? real.title ?? Math.random().toString(36).slice(2),
-                            title: real.title || real.name || getMealTitle(real),
-                            serving_size: real.serving_size || real.serving || real.servingSize || '',
-                            calories: safeNumber(real.calories ?? real.kcal ?? 0),
-                            protein: safeNumber(real.protein ?? real.prot ?? 0),
-                            carbs: safeNumber(real.carbs ?? real.carbohydrates ?? 0),
-                            fat: safeNumber(real.fat ?? real.fats ?? 0),
-                            fiber: safeNumber(real.fiber ?? 0),
-                            foods: Array.isArray(real.foods) ? real.foods : (real.ingredients ? String(real.ingredients).split(',').map(s=>({name:s.trim()})) : [])
-                        };
+        // Try to improve placeholder/fallback titles (keep this non-throwing)
+        try {
+            const mealTypes = ['breakfast','lunch','dinner','snacks'];
+            for (const day of Object.keys(weeklyPlan || {})) {
+                for (const mt of mealTypes) {
+                    const meal = weeklyPlan[day][mt];
+                    if (meal && (!meal.title || /^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(String(meal.title)))) {
+                        const pool = getMealsArrayForType(dietMeals, mt) || [];
+                        const candidate = pool.find(m => m && (m.title || m.name) && !/^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(String(m.title || m.name)));
+                        if (candidate) {
+                            weeklyPlan[day][mt] = {
+                                id: candidate.id ?? candidate.title ?? (`meal_${Math.random()}`),
+                                title: candidate.title || candidate.name || candidate.label || 'Meal',
+                                serving_size: candidate.serving_size || candidate.serving || candidate.servingSize || '',
+                                calories: safeNumber(candidate.calories ?? candidate.kcal ?? 0),
+                                protein: safeNumber(candidate.protein ?? candidate.prot ?? 0),
+                                carbs: safeNumber(candidate.carbs ?? candidate.carbohydrates ?? 0),
+                                fat: safeNumber(candidate.fat ?? candidate.fats ?? 0),
+                                fiber: safeNumber(candidate.fiber ?? 0),
+                                foods: Array.isArray(candidate.foods) ? candidate.foods : []
+                            };
+                        }
                     }
                 }
             }
-        });
+        } catch (e) {
+            console.warn('[DietPlanner] placeholder replacement failed (non-fatal):', e);
+        }
 
+        // persist & set globals
         currentMealPlan = weeklyPlan;
         currentUserProfile = profile;
-
-        // store
         try {
-            localStorage.setItem("last_generated_plan_v1", JSON.stringify({ plan: weeklyPlan, profile: profile, generated: new Date().toISOString() }));
-        } catch (e) {}
+            localStorage.setItem('last_generated_plan_v1', JSON.stringify({ plan: weeklyPlan, profile: profile, generated: new Date().toISOString() }));
+        } catch (e) { /* ignore storage errors */ }
 
-        // render & charts
-        displayMealPlan(weeklyPlan, profile);
-        await createCharts(weeklyPlan, profile);
+        // render - be defensive: if displayMealPlan/createCharts fail, log but do not abort
+        try {
+            if (typeof displayMealPlan === 'function') {
+                try { displayMealPlan(weeklyPlan, profile); }
+                catch (e) { console.warn('[DietPlanner] displayMealPlan threw (non-fatal):', e); }
+            } else {
+                console.warn('[DietPlanner] displayMealPlan not defined yet.');
+            }
+
+            if (typeof createCharts === 'function') {
+                try {
+                    // call and await, but guard exceptions separately
+                    await createCharts(weeklyPlan, profile);
+                } catch (e) {
+                    console.warn('[DietPlanner] createCharts threw (non-fatal):', e);
+                }
+            } else {
+                console.warn('[DietPlanner] createCharts not defined yet.');
+            }
+        } catch (e) {
+            console.warn('[DietPlanner] render stage caught unexpected error (non-fatal):', e);
+        }
+
         console.log('✅ Weekly plan generated for', regionKey, profile.dietType);
         return weeklyPlan;
-    } catch (err) {
-        console.error('Error generating meal plan:', err);
-        throw err;
+
+    } catch (error) {
+        // Print full error (stack) for debugging
+        console.error('❌ Error generating meal plan:', error, error && error.stack ? error.stack : '');
+        // show an informative alert to the user
+        alert('Failed to generate meal plan. See console for details.');
+        // rethrow so callers receive a rejected promise just like before
+        throw error;
     }
 }
 

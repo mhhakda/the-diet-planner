@@ -325,6 +325,36 @@
     let currentTheme = localStorage.getItem('theme') || 'light';
 
     const INTEGRATION_STORAGE_KEY = 'dietplanner_integration_v3';
+// --- Render stubs + handoff (place near top, after globals) ---
+// These provide no-op/queue behavior if renderers are called before the real functions are defined.
+
+window.__dp_pending_restore = null;
+
+// stub for displayMealPlan: queue the plan if real impl not present
+if (typeof window.displayMealPlan !== 'function') {
+  window.displayMealPlan = function(weeklyPlan, profile) {
+    // If real implementation registered, forward immediately
+    if (typeof window.__real_displayMealPlan === 'function') {
+      return window.__real_displayMealPlan(weeklyPlan, profile);
+    }
+    // otherwise store pending plan and log; will be rendered when real function registers
+    window.__dp_pending_restore = { plan: weeklyPlan, profile: profile, ts: Date.now() };
+    console.warn('[DietPlanner] displayMealPlan called before real renderer registered — queued for later render.');
+  };
+}
+
+// stub for createCharts: queue if real impl not present
+if (typeof window.createCharts !== 'function') {
+  window.createCharts = async function(weeklyPlan, profile) {
+    if (typeof window.__real_createCharts === 'function') {
+      return window.__real_createCharts(weeklyPlan, profile);
+    }
+    // queue request (only last request kept)
+    window.__dp_pending_charts = { plan: weeklyPlan, profile: profile, ts: Date.now() };
+    console.warn('[DietPlanner] createCharts called before real renderer registered — queued for later render.');
+    return Promise.resolve(); // keep callers happy
+  };
+}
 
     // safe number parser
     function safeNumber(v) {
@@ -1357,6 +1387,82 @@ function calculateWeeklyStats(weeklyPlan) {
         mealCount
     };
 }
+// ---------------------------
+// Display meal plan (table + stats)
+// ---------------------------
+function displayMealPlan(weeklyPlan, profile) {
+    const container = document.getElementById('mealPlanContainer');
+    if (!container) {
+        console.warn("⚠️ mealPlanContainer not found in DOM.");
+        return;
+    }
+
+    const days = Object.keys(weeklyPlan || {});
+    if (!days.length) {
+        container.innerHTML = `<p>No meal plan available.</p>`;
+        return;
+    }
+
+    // Build HTML table
+    let html = '';
+    days.forEach((day, idx) => {
+        html += `<h3 class="day-title">Day ${idx + 1} — ${day}</h3>`;
+        html += `<table class="meal-table"><thead>
+                    <tr>
+                      <th>Meal</th>
+                      <th>Food</th>
+                      <th>Calories</th>
+                      <th>Protein</th>
+                      <th>Carbs</th>
+                      <th>Fat</th>
+                      <th>Fiber</th>
+                    </tr>
+                 </thead><tbody>`;
+
+        ['breakfast','lunch','dinner','snacks'].forEach(mt => {
+            const meal = (weeklyPlan[day] || {})[mt];
+            if (!meal) return;
+
+            const title = getMealTitle(meal);
+            const foods = Array.isArray(meal.foods) ? meal.foods.map(f => (typeof f === 'string' ? f : f.name)).join(', ') : '';
+            html += `<tr>
+                       <td>${mt.charAt(0).toUpperCase() + mt.slice(1)}</td>
+                       <td>${title}${foods ? ' — ' + foods : ''}</td>
+                       <td>${safeNumber(meal.calories)}</td>
+                       <td>${safeNumber(meal.protein)}g</td>
+                       <td>${safeNumber(meal.carbs)}g</td>
+                       <td>${safeNumber(meal.fat)}g</td>
+                       <td>${safeNumber(meal.fiber)}g</td>
+                     </tr>`;
+        });
+
+        html += `</tbody></table>`;
+    });
+
+    container.innerHTML = html;
+
+    // Update stats summary
+    displayStatsCards(weeklyPlan, profile);
+}
+// Register real renderers (handoff from stubs)
+window.__real_displayMealPlan = displayMealPlan;
+window.__real_createCharts = createCharts;
+
+// If something was queued earlier, flush it now
+if (window.__dp_pending_restore) {
+  try {
+    displayMealPlan(window.__dp_pending_restore.plan, window.__dp_pending_restore.profile);
+    console.log('[DietPlanner] Flushed queued displayMealPlan render.');
+  } catch (e) { console.warn('[DietPlanner] queued displayMealPlan failed:', e); }
+  window.__dp_pending_restore = null;
+}
+if (window.__dp_pending_charts) {
+  try {
+    createCharts(window.__dp_pending_charts.plan, window.__dp_pending_charts.profile);
+    console.log('[DietPlanner] Flushed queued createCharts render.');
+  } catch (e) { console.warn('[DietPlanner] queued createCharts failed:', e); }
+  window.__dp_pending_charts = null;
+}
 
 // ---------------------------
 // Charts - lazy load Chart.js
@@ -1427,6 +1533,25 @@ async function createCharts(weeklyPlan, profile) {
             });
         }
     } catch (err) { console.error('Failed to create macros chart:', err); }
+}
+// Register real renderers (handoff from stubs)
+window.__real_displayMealPlan = displayMealPlan;
+window.__real_createCharts = createCharts;
+
+// If something was queued earlier, flush it now
+if (window.__dp_pending_restore) {
+  try {
+    displayMealPlan(window.__dp_pending_restore.plan, window.__dp_pending_restore.profile);
+    console.log('[DietPlanner] Flushed queued displayMealPlan render.');
+  } catch (e) { console.warn('[DietPlanner] queued displayMealPlan failed:', e); }
+  window.__dp_pending_restore = null;
+}
+if (window.__dp_pending_charts) {
+  try {
+    createCharts(window.__dp_pending_charts.plan, window.__dp_pending_charts.profile);
+    console.log('[DietPlanner] Flushed queued createCharts render.');
+  } catch (e) { console.warn('[DietPlanner] queued createCharts failed:', e); }
+  window.__dp_pending_charts = null;
 }
 
 // ---------------------------

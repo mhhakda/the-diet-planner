@@ -215,13 +215,9 @@
                                     <div class="form-group">
                                         <label for="dietType" class="form-label">Dietary Preference *</label>
                                         <select id="dietType" class="form-control" required>
-                                            <option value="Regular">Regular</option>
-                                            <option value="Keto">Ketogenic</option>
-                                            <option value="Low_Carb">Low Carb</option>
+                                            <option value="Mixed">Mixed (Veg & Non-Veg)</option>
                                             <option value="Vegetarian">Vegetarian</option>
-                                            <option value="Vegan">Vegan</option>
-                                            <option value="Mediterranean">Mediterranean</option>
-                                            <option value="High_Protein">High Protein</option>
+                                            <option value="Non-Vegetarian">Non-Vegetarian</option>
                                         </select>
                                         <div class="invalid-feedback" id="dietType-error"></div>
                                     </div>
@@ -232,12 +228,7 @@
                                             <option value="India">India</option>
                                             <option value="USA">USA</option>
                                             <option value="Europe">Europe</option>
-                                            <option value="Middle_Eastern">Middle East</option>
-                                            <option value="Latin_American">Latin America</option>
-                                            <option value="Nordic">Nordic</option>
-                                            <option value="East_Asian">East Asia</option>
-                                            <option value="African">Africa</option>
-                                            <option value="Australian">Australia</option>
+                                            <option value="Middle_East">Middle East</option>
                                         </select>
                                         <div class="invalid-feedback" id="region-error"></div>
                                     </div>
@@ -316,10 +307,10 @@
         </main>
     </div>
 
-    <!-- Single consolidated script block: place here -->
+    <!-- Single consolidated script block: PART 1 -->
     <script>
     /*************************************************************************
-     * Consolidated Diet Planner JS (single script block)
+     * PART 1 - Core utilities, initialization, and meals loader
      *************************************************************************/
 
     // Globals
@@ -542,264 +533,402 @@
         return ok;
     }
 
-/* ---------------------------
-   Robust meals.json loader + normalizer
-   Replace your existing loadMealsDatabase, normalizeMealObject and createFallbackMeals
-   with this block (paste exactly as-is).
---------------------------- */
-async function loadMealsDatabase(force = false) {
-  if (mealDatabase && !force) return mealDatabase;
-  if (mealDbLoadPromise && !force) return mealDbLoadPromise;
+    /* ---------------------------
+       Robust meals.json loader + normalizer
+    --------------------------- */
+    async function loadMealsDatabase(force = false) {
+        if (mealDatabase && !force) return mealDatabase;
+        if (mealDbLoadPromise && !force) return mealDbLoadPromise;
 
-  mealDbLoadPromise = (async () => {
-    const candidates = ['meals.json', '/meals.json', 'data/meals.json', location.origin + '/meals.json'];
-    let raw = null;
+        mealDbLoadPromise = (async () => {
+            const candidates = ['meals.json','/meals.json','data/meals.json', location.origin + '/meals.json'];
+            let raw = null;
+            for (const url of candidates) {
+                try {
+                    const res = await fetch(url, { cache: 'no-store' });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    raw = await res.json();
+                    console.log('✅ Loaded meals.json from', url);
+                    break;
+                } catch (err) {
+                    console.warn('Could not load meals from', url, err && err.message ? err.message : err);
+                }
+            }
+            if (!raw) {
+                console.warn('⚠️ meals.json not found — using fallback data.');
+                mealDatabase = createFallbackMeals();
+                return mealDatabase;
+            }
 
-    for (const url of candidates) {
-      try {
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        raw = await res.json();
-        console.log('✅ Loaded meals.json from', url);
-        break;
-      } catch (err) {
-        console.warn('Could not load meals from', url, err && err.message ? err.message : err);
-      }
+            // Normalize into expected shape: region -> diet -> { breakfast:[], lunch:[], dinner:[], snacks:[] }
+            // support wrapper shapes
+            if (raw && raw.meals && Array.isArray(raw.meals)) raw = raw.meals;
+            else if (raw && raw.data && raw.data.meals && Array.isArray(raw.data.meals)) raw = raw.data.meals;
+
+            // If raw is a flat array -> convert
+            if (Array.isArray(raw)) {
+                const normalized = {};
+                for (let i = 0; i < raw.length; i++) {
+                    const m = raw[i];
+                    if (!m || typeof m !== 'object') continue;
+                    const regionKey = (m.region || 'Global').toString();
+                    const diets = Array.isArray(m.diets) && m.diets.length ? m.diets : [m.diet || 'Regular'];
+                    const mealType = (m.mealType || m.type || m.category || 'lunch').toString().toLowerCase();
+
+                    if (!normalized[regionKey]) normalized[regionKey] = {};
+                    for (const diet of diets) {
+                        const dietKey = diet || 'Regular';
+                        if (!normalized[regionKey][dietKey]) normalized[regionKey][dietKey] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
+                        const bucket = normalized[regionKey][dietKey];
+
+                        const norm = (typeof normalizeMealObject === 'function')
+                            ? normalizeMealObject(m, i, regionKey, dietKey, mealType)
+                            : {
+                                id: m.id ?? `${regionKey}_${dietKey}_${mealType}_${i}`,
+                                title: m.title || m.name || `Meal ${i+1}`,
+                                serving_size: m.serving_size || m.serving || '',
+                                calories: safeNumber(m.calories ?? m.kcal ?? 0),
+                                protein: safeNumber(m.protein ?? 0),
+                                carbs: safeNumber(m.carbs ?? 0),
+                                fat: safeNumber(m.fat ?? 0),
+                                fiber: safeNumber(m.fiber ?? 0),
+                                foods: Array.isArray(m.foods) ? m.foods : (m.ingredients ? String(m.ingredients).split(',').map(s=>({name:s.trim()})) : [])
+                              };
+
+                        // normalize mealType
+                        let key = mealType;
+                        if (!['breakfast','lunch','dinner','snacks'].includes(key)) {
+                            if (key === 'snack') key = 'snacks';
+                            else key = 'lunch';
+                        }
+                        bucket[key].push(norm);
+                    }
+                }
+                mealDatabase = normalized;
+                console.log('✅ meals.json was a flat array — converted to normalized structure.');
+                return mealDatabase;
+            }
+
+            // raw might already be nested region -> diet -> { breakfast:[], ... }
+            try {
+                const normalized = {};
+                const regionKeys = Object.keys(raw);
+                const types = ['breakfast','lunch','dinner','snacks'];
+                regionKeys.forEach(regionKey => {
+                    const region = raw[regionKey];
+                    if (!region || typeof region !== 'object') return;
+                    normalized[regionKey] = {};
+                    Object.keys(region).forEach(dietKey => {
+                        const dietObj = region[dietKey];
+                        if (!dietObj || typeof dietObj !== 'object') return;
+                        const out = {};
+                        types.forEach(t => {
+                            let arr = dietObj[t] || dietObj[t.charAt(0).toUpperCase()+t.slice(1)] || dietObj[t.replace('_',' ')] || [];
+                            if (!Array.isArray(arr)) arr = [];
+                            out[t] = arr.map((m, i) => normalizeMealObject(m, i, regionKey, dietKey, t));
+                        });
+                        normalized[regionKey][dietKey] = out;
+                    });
+                });
+
+                mealDatabase = Object.keys(normalized).length ? normalized : createFallbackMeals();
+                console.log('✅ meals.json normalized and loaded.');
+                // small diagnostic printout
+                Object.keys(mealDatabase).forEach(r => {
+                    Object.keys(mealDatabase[r] || {}).forEach(d => {
+                        const obj = mealDatabase[r][d] || {};
+                        console.log(`[DietPlanner] ${r}/${d} -> breakfast:${(obj.breakfast||[]).length} lunch:${(obj.lunch||[]).length} dinner:${(obj.dinner||[]).length} snacks:${(obj.snacks||[]).length}`);
+                    });
+                });
+                return mealDatabase;
+            } catch (err) {
+                console.warn('⚠️ Unexpected meals.json structure — using fallback.', err && err.message ? err.message : err);
+                mealDatabase = createFallbackMeals();
+                return mealDatabase;
+            }
+        })();
+
+        return mealDbLoadPromise;
     }
 
-    if (!raw) {
-      console.warn('⚠️ meals.json not found — using built-in fallback.');
-      mealDatabase = createFallbackMeals();
-      return mealDatabase;
-    }
-
-    // support wrapper shapes like { meals: [...] } or { data: { meals: [...] } }
-    if (raw && raw.meals && Array.isArray(raw.meals)) raw = raw.meals;
-    else if (raw && raw.data && raw.data.meals && Array.isArray(raw.data.meals)) raw = raw.data.meals;
-
-    // If raw is an array of meals (flat array) convert to normalized structure
-    if (Array.isArray(raw)) {
-      const normalized = {};
-      for (let i = 0; i < raw.length; i++) {
-        const m = raw[i];
-        if (!m || typeof m !== 'object') continue;
-
-        const regionKey = (m.region || 'Global').toString();
-        const diets = Array.isArray(m.diets) && m.diets.length ? m.diets : [m.diet || 'Regular'];
-        const mealType = (m.mealType || m.type || m.category || 'lunch').toString().toLowerCase();
-
-        if (!normalized[regionKey]) normalized[regionKey] = {};
-        for (const diet of diets) {
-          const dietKey = diet || 'Regular';
-          if (!normalized[regionKey][dietKey]) normalized[regionKey][dietKey] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
-          const bucket = normalized[regionKey][dietKey];
-
-          const norm = (typeof normalizeMealObject === 'function')
-            ? normalizeMealObject(m, i, regionKey, dietKey, mealType)
-            : {
-                id: m.id ?? `${regionKey}_${dietKey}_${mealType}_${i}`,
-                title: m.title || m.name || `Meal ${i+1}`,
-                serving_size: m.serving_size || m.serving || '',
-                calories: safeNumber(m.calories ?? m.kcal ?? 0),
-                protein: safeNumber(m.protein ?? 0),
-                carbs: safeNumber(m.carbs ?? 0),
-                fat: safeNumber(m.fat ?? 0),
-                fiber: safeNumber(m.fiber ?? 0),
-                foods: Array.isArray(m.foods) ? m.foods : (m.ingredients ? String(m.ingredients).split(',').map(s => ({ name: s.trim() })) : [])
-              };
-
-          // normalize mealType to one of breakfast|lunch|dinner|snacks
-          let key = mealType;
-          if (!['breakfast','lunch','dinner','snacks'].includes(key)) {
-            if (key.endsWith('s')) key = key;
-            else if (key === 'snack') key = 'snacks';
-            else key = 'lunch';
-          }
-          const targetKey = ['breakfast','lunch','dinner','snacks'].includes(key) ? key : 'lunch';
-          bucket[targetKey].push(norm);
+    function normalizeMealObject(meal, idx, region, diet, mealType) {
+        if (!meal || typeof meal !== 'object') {
+            return { id:`${region}_${diet}_${mealType}_${idx}_${Date.now()}`, title:`Option ${idx+1}`, serving_size:'1 serving', calories:0, protein:0, carbs:0, fat:0, fiber:0, foods:[] };
         }
-      }
+        const title = (meal.title || meal.name || meal.label || '').toString().trim();
+        const serving_size = meal.serving_size || meal.servingSize || meal.serving || '';
+        const calories = safeNumber(meal.calories ?? meal.kcal ?? meal.cal ?? 0);
+        const protein = safeNumber(meal.protein ?? meal.prot ?? 0);
+        const carbs = safeNumber(meal.carbs ?? meal.carbohydrates ?? 0);
+        const fat = safeNumber(meal.fat ?? meal.fats ?? 0);
+        const fiber = safeNumber(meal.fiber ?? meal.fib ?? 0);
+        let foods = [];
+        if (Array.isArray(meal.foods) && meal.foods.length) {
+            foods = meal.foods.map(f => typeof f === 'string' ? { name: f } : (typeof f === 'object' ? f : { name: String(f) }));
+        } else if (meal.ingredients && typeof meal.ingredients === 'string') {
+            const parts = meal.ingredients.split(',').map(s => s.trim()).filter(Boolean);
+            foods = parts.map(p => ({ name: p }));
+        } else if (meal.components && Array.isArray(meal.components)) {
+            foods = meal.components.map(c => (typeof c === 'string') ? { name: c } : (c || {}));
+        }
 
-      mealDatabase = normalized;
-      console.log('✅ meals.json was a flat array — converted to normalized structure.');
-      return mealDatabase;
+        let outTitle = title;
+        if (!outTitle) {
+            const foodNames = foods.map(f => (typeof f === 'string' ? f : (f.name || f.title || '')).trim()).filter(Boolean);
+            if (foodNames.length) outTitle = foodNames.slice(0, 3).join(', ');
+        }
+        if (!outTitle) outTitle = `Meal ${idx + 1}`;
+
+        return {
+            id: meal.id ?? `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
+            title: outTitle,
+            serving_size,
+            calories, protein, carbs, fat, fiber,
+            foods
+        };
     }
 
-    // If raw looks like nested region -> diet -> { breakfast:[], lunch:[] ... }
-    try {
-      const normalized = {};
-      const regionKeys = Object.keys(raw || {});
-      const types = ['breakfast','lunch','dinner','snacks'];
+    function createFallbackMeals() {
+        return {
+            "India": {
+                "Regular": {
+                    breakfast: [
+                        { id: 'fb1', title: "Oatmeal with Fruits", serving_size: "1 serving", calories: 250, protein: 8, carbs: 45, fat: 4, fiber: 5 },
+                        { id: 'fb2', title: "Boiled Eggs", serving_size: "2 eggs", calories: 150, protein: 12, carbs: 1, fat: 10, fiber: 0 }
+                    ],
+                    lunch: [
+                        { id: 'fl1', title: "Grilled Chicken Salad", serving_size: "1 bowl", calories: 350, protein: 30, carbs: 15, fat: 12, fiber: 6 },
+                        { id: 'fl2', title: "Veggie Wrap", serving_size: "1 wrap", calories: 300, protein: 10, carbs: 40, fat: 8, fiber: 5 }
+                    ],
+                    dinner: [
+                        { id: 'fd1', title: "Paneer Curry with Rice", serving_size: "1 plate", calories: 400, protein: 20, carbs: 50, fat: 15, fiber: 5 },
+                        { id: 'fd2', title: "Fish with Quinoa", serving_size: "1 plate", calories: 450, protein: 35, carbs: 40, fat: 14, fiber: 4 }
+                    ],
+                    snacks: [
+                        { id: 'fs1', title: "Fruit and Nuts", serving_size: "1 small bowl", calories: 150, protein: 4, carbs: 20, fat: 6, fiber: 3 }
+                    ]
+                }
+            },
+            "USA": {
+                "Regular": {
+                    breakfast: [{ id: 'us_b1', title: "Scrambled Eggs with Toast", serving_size: "1 serving", calories: 320, protein: 18, carbs: 28, fat: 14, fiber: 3 }],
+                    lunch: [{ id: 'us_l1', title: "Turkey Sandwich", serving_size: "1", calories: 420, protein: 30, carbs: 45, fat: 12, fiber: 4 }],
+                    dinner: [{ id: 'us_d1', title: "Grilled Salmon", serving_size: "1", calories: 500, protein: 35, carbs: 30, fat: 22, fiber: 3 }],
+                    snacks: [{ id: 'us_s1', title: "Greek Yogurt & Berries", serving_size: "1 cup", calories: 160, protein: 12, carbs: 18, fat: 4, fiber: 2 }]
+                }
+            },
+            "Europe": {
+                "Regular": {
+                    breakfast: [{ id: 'eu_b1', title: "Yogurt & Granola", serving_size: "1 bowl", calories: 300, protein: 10, carbs: 45, fat: 8, fiber: 4 }],
+                    lunch: [{ id: 'eu_l1', title: "Caprese Salad with Bread", serving_size: "1", calories: 420, protein: 18, carbs: 32, fat: 18, fiber: 3 }],
+                    dinner: [{ id: 'eu_d1', title: "Grilled Veg & Lentils", serving_size: "1 plate", calories: 480, protein: 20, carbs: 60, fat: 12, fiber: 8 }],
+                    snacks: [{ id: 'eu_s1', title: "Apple & Almonds", serving_size: "1", calories: 150, protein: 4, carbs: 20, fat: 7, fiber: 3 }]
+                }
+            },
+            "Middle_East": {
+                "Regular": {
+                    breakfast: [{ id: 'me_b1', title: "Labneh & Za'atar with Pita", serving_size: "1", calories: 320, protein: 12, carbs: 30, fat: 15, fiber: 3 }],
+                    lunch: [{ id: 'me_l1', title: "Grilled Chicken Shawarma Bowl", serving_size: "1", calories: 520, protein: 34, carbs: 45, fat: 18, fiber: 4 }],
+                    dinner: [{ id: 'me_d1', title: "Falafel with Salad & Hummus", serving_size: "1", calories: 450, protein: 16, carbs: 50, fat: 18, fiber: 8 }],
+                    snacks: [{ id: 'me_s1', title: "Dates & Walnuts", serving_size: "1 small plate", calories: 180, protein: 3, carbs: 28, fat: 7, fiber: 3 }]
+                }
+            }
+        };
+    }
 
-      regionKeys.forEach(regionKey => {
-        const regionObj = raw[regionKey];
-        if (!regionObj || typeof regionObj !== 'object') return;
-        normalized[regionKey] = {};
+    /* ---------------------------
+       Calculation: BMR & calories (robust)
+    --------------------------- */
+    function calculateTargetCalories(profile) {
+        const age = safeNumber(profile.age);
+        const weight = safeNumber(profile.weight); // kg
+        const height = safeNumber(profile.height); // cm
 
-        Object.keys(regionObj).forEach(dietKey => {
-          const dietObj = regionObj[dietKey];
-          if (!dietObj || typeof dietObj !== 'object') return;
+        // default guard
+        const gender = (profile.gender || '').toString().toLowerCase();
 
-          const out = {};
-          types.forEach(t => {
+        // Mifflin-St Jeor formula
+        let bmr;
+        if (gender === 'male' || gender === 'm') {
+            bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+        } else {
+            bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+        }
+
+        const activityFactors = { low: 1.2, moderate: 1.375, high: 1.55, 'very-high': 1.725 };
+        const activity = (profile.activityLevel || 'low').toString();
+        const factor = activityFactors[activity] || 1.2;
+
+        let tdee = bmr * factor;
+
+        switch ((profile.goal || '').toString().toLowerCase()) {
+            case 'loss':
+            case 'lose':
+            case 'weight_loss':
+                tdee *= 0.8;
+                break;
+            case 'gain':
+            case 'muscle':
+            case 'weight_gain':
+                tdee *= 1.15;
+                break;
+            case 'maintain':
+            default:
+                break;
+        }
+
+        // clamp to sensible range
+        tdee = Math.round(Math.max(800, Math.min(4200, tdee)));
+        return tdee;
+    }
+
+    // Expose some init functions (Part 2 will reuse init functions too)
+    window.initializeTheme = initializeTheme;
+    window.initializeNavigation = initializeNavigation;
+    window.initializeMobileMenu = initializeMobileMenu;
+    window.initializeIntersectionObserver = initializeIntersectionObserver;
+    window.initializeResultsToggle = initializeResultsToggle;
+    window.initializeForm = initializeForm;
+    window.loadMealsDatabase = loadMealsDatabase;
+    window.calculateTargetCalories = calculateTargetCalories;
+        
+/* ---------------------------
+   Robust meal selection + fallback logging + PDF/export + UI wiring
+--------------------------- */
+
+// small helper: check arrays/strings
+function asString(v){ return v===null||v===undefined ? '' : String(v); }
+
+// ---------------------------
+// Vegetarian detection helpers
+// ---------------------------
+// Non-veg keywords (tunable). Remove 'egg' if you want eggs treated vegetarian.
+const NON_VEG_KEYWORDS = [
+  'chicken','chiken','chickn','beef','pork','mutton','lamb','goat','fish','tuna','salmon','shrimp','prawn',
+  'crab','lobster','anchovy','anchovies','bacon','ham','sausage','pepperoni','anchov','seafood','octopus','squid',
+  'egg','eggs'  // remove 'egg' here if you want ovo-vegetarian accepted as Vegetarian
+];
+
+// return true if meal clearly veg; false if contains non-veg
+function isMealVegetarian(meal) {
+    if (!meal) return false;
+    // prefer explicit flag
+    if (meal.isVegetarian === true) return true;
+    if (meal.isVegetarian === false) return false;
+    // tags
+    const tags = (meal.tags || meal.tagsList || meal.type || '').toString().toLowerCase();
+    if (/\b(veg|vegetarian|vegan|plant)\b/.test(tags)) return true;
+    if (/\b(non-veg|nonveg|non vegetarian|meat|seafood|pescatarian|fish|chicken|beef|pork)\b/.test(tags)) return false;
+
+    // check title + foods + ingredients
+    const txt = [
+        asString(meal.title),
+        asString(meal.name),
+        asString(meal.label),
+        asString(meal.display_name),
+        asString(meal.ingredients),
+        asString(meal.description)
+    ].join(' ').toLowerCase();
+
+    // check foods array too
+    const foodsList = [];
+    if (Array.isArray(meal.foods)) {
+        meal.foods.forEach(f => {
+            if (!f) return;
+            if (typeof f === 'string') foodsList.push(f.toLowerCase());
+            else if (typeof f === 'object') foodsList.push((f.name || f.title || '').toString().toLowerCase());
+        });
+    }
+
+    // check for non-veg keywords
+    for (const kw of NON_VEG_KEYWORDS) {
+        if (!kw) continue;
+        if (txt.includes(kw)) return false;
+        for (const f of foodsList) { if (f.includes(kw)) return false; }
+    }
+
+    // otherwise assume vegetarian (conservative)
+    return true;
+}
+
+// ---------------------------
+// Meal database flattening & diet resolution
+// ---------------------------
+
+// Flatten regionMeals into { breakfast:[], lunch:[], dinner:[], snacks:[] }
+function flattenRegionMeals(regionMeals) {
+    const out = { breakfast:[], lunch:[], dinner:[], snacks:[] };
+    if (!regionMeals || typeof regionMeals !== 'object') return out;
+
+    // If regionMeals is already shape { breakfast:[], ... }
+    const hasTypes = ['breakfast','lunch','dinner','snacks'].every(t => Array.isArray(regionMeals[t]));
+    if (hasTypes) {
+        return {
+            breakfast: (regionMeals.breakfast || []).slice(),
+            lunch: (regionMeals.lunch || []).slice(),
+            dinner: (regionMeals.dinner || []).slice(),
+            snacks: (regionMeals.snacks || []).slice()
+        };
+    }
+
+    // Otherwise iterate diet buckets and merge arrays
+    for (const dietKey of Object.keys(regionMeals || {})) {
+        const dietObj = regionMeals[dietKey];
+        if (!dietObj || typeof dietObj !== 'object') continue;
+        ['breakfast','lunch','dinner','snacks'].forEach(t => {
             let arr = dietObj[t] || dietObj[t.charAt(0).toUpperCase() + t.slice(1)] || dietObj[t.replace('_',' ')] || [];
             if (!Array.isArray(arr)) arr = [];
-            out[t] = arr.map((m, i) => (typeof normalizeMealObject === 'function') ? normalizeMealObject(m, i, regionKey, dietKey, t) : m);
-          });
-
-          normalized[regionKey][dietKey] = out;
+            out[t].push(...arr);
         });
-      });
+    }
 
-      mealDatabase = Object.keys(normalized).length ? normalized : createFallbackMeals();
-      console.log('✅ meals.json normalized and loaded.');
-      // small diagnostics
-      Object.keys(mealDatabase).forEach(r => {
-        Object.keys(mealDatabase[r] || {}).forEach(d => {
-          const obj = mealDatabase[r][d] || {};
-          console.log(`[DietPlanner] ${r}/${d} -> breakfast:${(obj.breakfast||[]).length} lunch:${(obj.lunch||[]).length} dinner:${(obj.dinner||[]).length} snacks:${(obj.snacks||[]).length}`);
+    // remove duplicates by id/title
+    ['breakfast','lunch','dinner','snacks'].forEach(t => {
+        const seen = new Set();
+        out[t] = out[t].filter(m => {
+            const id = m && (m.id ?? m.title ?? JSON.stringify(m));
+            if (!id) return false;
+            if (seen.has(String(id))) return false;
+            seen.add(String(id));
+            return true;
         });
-      });
-      return mealDatabase;
-    } catch (err) {
-      console.warn('⚠️ Unexpected meals.json structure — using fallback.', err && err.message ? err.message : err);
-      mealDatabase = createFallbackMeals();
-      return mealDatabase;
-    }
-  })();
+    });
 
-  return mealDbLoadPromise;
+    return out;
 }
 
-function normalizeMealObject(meal, idx, region, diet, mealType) {
-  // If invalid meal object, return a safe placeholder
-  if (!meal || typeof meal !== 'object') {
-    return {
-      id: `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
-      title: `Option ${idx+1}`,
-      serving_size: '1 serving',
-      calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, foods: []
-    };
-  }
+// Given regionMeals and requested dietType ('Vegetarian'|'Non-Vegetarian'|'Mixed'),
+// return a dietMeals object with arrays for each meal type
+function resolveDietMealsFromRegion(regionMeals, selectedDietType) {
+    const flat = flattenRegionMeals(regionMeals); // all meals in region
+    if (!flat) return { breakfast:[], lunch:[], dinner:[], snacks:[] };
 
-  // Support many possible field names
-  const rawTitle = (meal.title || meal.name || meal.label || meal.dish_name || meal.display_name || '').toString().trim();
-  const serving_size = meal.serving_size || meal.servingSize || meal.serving || '';
-  const calories = safeNumber(meal.calories ?? meal.kcal ?? meal.cal ?? 0);
-  const protein = safeNumber(meal.protein ?? meal.prot ?? 0);
-  const carbs = safeNumber(meal.carbs ?? meal.carbohydrates ?? meal.carb ?? 0);
-  const fat = safeNumber(meal.fat ?? meal.fats ?? 0);
-  const fiber = safeNumber(meal.fiber ?? meal.fib ?? 0);
-
-  // Build foods array consistently
-  let foods = [];
-  if (Array.isArray(meal.foods) && meal.foods.length) {
-    foods = meal.foods.map(f => (typeof f === 'string') ? { name: f } : (typeof f === 'object' ? f : { name: String(f) }));
-  } else if (meal.ingredients && typeof meal.ingredients === 'string') {
-    foods = meal.ingredients.split(',').map(s => ({ name: s.trim() })).filter(Boolean);
-  } else if (meal.components && Array.isArray(meal.components)) {
-    foods = meal.components.map(c => (typeof c === 'string') ? { name: c } : (c || {}));
-  }
-
-  // If no explicit title, derive from foods (first up to 3 names)
-  let title = rawTitle;
-  if (!title) {
-    const foodNames = foods.map(f => (typeof f === 'string') ? f : (f.name || f.title || '')).filter(Boolean);
-    if (foodNames.length) title = foodNames.slice(0, 3).join(', ');
-  }
-  if (!title) title = `Meal ${idx + 1}`;
-
-  return {
-    id: meal.id ?? `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
-    title,
-    serving_size,
-    calories, protein, carbs, fat, fiber,
-    foods
-  };
-}
-
-function createFallbackMeals() {
-  return {
-    "India": {
-      "Regular": {
-        breakfast: [
-          { id: 'fb1', title: "Oatmeal with Fruits", serving_size: "1 serving", calories: 250, protein: 8, carbs: 45, fat: 4, fiber: 5 },
-          { id: 'fb2', title: "Boiled Eggs", serving_size: "2 eggs", calories: 150, protein: 12, carbs: 1, fat: 10, fiber: 0 }
-        ],
-        lunch: [
-          { id: 'fl1', title: "Grilled Chicken Salad", serving_size: "1 bowl", calories: 350, protein: 30, carbs: 15, fat: 12, fiber: 6 },
-          { id: 'fl2', title: "Veggie Wrap", serving_size: "1 wrap", calories: 300, protein: 10, carbs: 40, fat: 8, fiber: 5 }
-        ],
-        dinner: [
-          { id: 'fd1', title: "Paneer Curry with Rice", serving_size: "1 plate", calories: 400, protein: 20, carbs: 50, fat: 15, fiber: 5 },
-          { id: 'fd2', title: "Fish with Quinoa", serving_size: "1 plate", calories: 450, protein: 35, carbs: 40, fat: 14, fiber: 4 }
-        ],
-        snacks: [
-          { id: 'fs1', title: "Fruit and Nuts", serving_size: "1 small bowl", calories: 150, protein: 4, carbs: 20, fat: 6, fiber: 3 }
-        ]
-      }
-    },
-    "USA": {
-      "Regular": {
-        breakfast: [{ id: 'us_b1', title: "Scrambled Eggs with Toast", serving_size: "1 serving", calories: 320, protein: 18, carbs: 28, fat: 14, fiber: 3 }],
-        lunch: [{ id: 'us_l1', title: "Turkey Sandwich", serving_size: "1", calories: 420, protein: 30, carbs: 45, fat: 12, fiber: 4 }],
-        dinner: [{ id: 'us_d1', title: "Grilled Salmon", serving_size: "1", calories: 500, protein: 35, carbs: 30, fat: 22, fiber: 3 }],
-        snacks: [{ id: 'us_s1', title: "Greek Yogurt & Berries", serving_size: "1 cup", calories: 160, protein: 12, carbs: 18, fat: 4, fiber: 2 }]
-      }
-    }
-  };
-}
-
-/* ---------------------------
-   Calculation: BMR & calories (robust)
---------------------------- */
-function calculateTargetCalories(profile) {
-    const age = safeNumber(profile.age);
-    const weight = safeNumber(profile.weight); // kg
-    const height = safeNumber(profile.height); // cm
-
-    // default guard
-    const gender = (profile.gender || '').toString().toLowerCase();
-
-    // Mifflin-St Jeor formula
-    let bmr;
-    if (gender === 'male' || gender === 'm') {
-        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+    const sel = (selectedDietType || '').toString().trim().toLowerCase();
+    if (sel === 'vegetarian' || sel === 'veg') {
+        // filter to vegetarian items only
+        return {
+            breakfast: flat.breakfast.filter(isMealVegetarian),
+            lunch: flat.lunch.filter(isMealVegetarian),
+            dinner: flat.dinner.filter(isMealVegetarian),
+            snacks: flat.snacks.filter(isMealVegetarian)
+        };
+    } else if (sel === 'non-vegetarian' || sel === 'non_vegetarian' || sel === 'non-veg' || sel === 'nonveg' || sel === 'nonveg') {
+        // prefer items that are non-veg (not vegetarian)
+        return {
+            breakfast: flat.breakfast.filter(m => !isMealVegetarian(m)),
+            lunch: flat.lunch.filter(m => !isMealVegetarian(m)),
+            dinner: flat.dinner.filter(m => !isMealVegetarian(m)),
+            snacks: flat.snacks.filter(m => !isMealVegetarian(m))
+        };
     } else {
-        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+        // Mixed: keep everything (both veg & non-veg)
+        return flat;
     }
-
-    const activityFactors = { low: 1.2, moderate: 1.375, high: 1.55, 'very-high': 1.725 };
-    const activity = (profile.activityLevel || 'low').toString();
-    const factor = activityFactors[activity] || 1.2;
-
-    let tdee = bmr * factor;
-
-    switch ((profile.goal || '').toString().toLowerCase()) {
-        case 'loss':
-        case 'lose':
-        case 'weight_loss':
-            tdee *= 0.8;
-            break;
-        case 'gain':
-        case 'muscle':
-        case 'weight_gain':
-            tdee *= 1.15;
-            break;
-        case 'maintain':
-        default:
-            break;
-    }
-
-    // clamp to sensible range
-    tdee = Math.round(Math.max(800, Math.min(4200, tdee)));
-    return tdee;
 }
 
-/* ---------------------------
-   Robust meal selection + fallback logging
---------------------------- */
-
+// ---------------------------
+// Fallback meal creator
+// ---------------------------
 function createDefaultMeal(mealType, targetCalories) {
     const defaults = {
         breakfast: { title: "Mixed Breakfast", serving_size: "1 serving", calories: Math.round(targetCalories) },
@@ -819,32 +948,59 @@ function createDefaultMeal(mealType, targetCalories) {
     };
 }
 
+// ---------------------------
+// Helpers: pick suitable meals and ensure variety
+// ---------------------------
 function getMealsArrayForType(dietMeals, mealType) {
     if (!dietMeals) return [];
+    // accept many variants
     const variants = [
-        mealType,
-        mealType.toLowerCase(),
-        mealType.charAt(0).toUpperCase() + mealType.slice(1),
-        mealType + 's',
-        mealType.replace('_',' '),
-        mealType.replace('_',' ').toLowerCase()
+        mealType, mealType.toLowerCase(),
+        mealType.charAt(0).toUpperCase()+mealType.slice(1),
+        mealType + 's', mealType.replace('_',' '), mealType.replace('_',' ').toLowerCase()
     ];
-
     for (const k of variants) {
-        if (k && Array.isArray(dietMeals[k]) && dietMeals[k].length) return dietMeals[k];
+        if (k && Array.isArray(dietMeals[k]) && dietMeals[k].length) return dietMeals[k].slice();
     }
-
-    // if dietMeals itself is an array (legacy)
+    // if dietMeals itself is array
     if (Array.isArray(dietMeals) && dietMeals.length) return dietMeals.slice();
-
-    // first non-empty array inside object
-    for (const k of Object.keys(dietMeals)) {
-        if (Array.isArray(dietMeals[k]) && dietMeals[k].length) return dietMeals[k];
+    // else find any array inside
+    for (const k of Object.keys(dietMeals || {})) {
+        if (Array.isArray(dietMeals[k]) && dietMeals[k].length) return dietMeals[k].slice();
     }
-
     return [];
 }
 
+// choose from candidates attempting to avoid reuse and prefer in-range calories
+function pickMealCandidate(candidates, usedIds, targetForMeal, seed) {
+    if (!candidates || candidates.length === 0) return null;
+    // normalize candidates
+    const candList = candidates.filter(Boolean).map(m => {
+        return {
+            raw: m,
+            id: m.id ?? (m.title ? String(m.title) : JSON.stringify(m)),
+            calories: safeNumber(m.calories ?? m.kcal ?? 0),
+            title: asString(m.title || m.name || m.label || '')
+        };
+    });
+
+    // 1) unused & in-range (60%-140%)
+    let suitable = candList.filter(c => !usedIds.has(c.id) && (c.calories === 0 || (c.calories >= targetForMeal*0.6 && c.calories <= targetForMeal*1.4)));
+    // 2) in-range (any)
+    if (suitable.length === 0) suitable = candList.filter(c => (c.calories === 0 || (c.calories >= targetForMeal*0.6 && c.calories <= targetForMeal*1.4)));
+    // 3) unused
+    if (suitable.length === 0) suitable = candList.filter(c => !usedIds.has(c.id));
+    // 4) fallback all
+    if (suitable.length === 0) suitable = candList;
+
+    // deterministic-ish pick using seed
+    const idx = (Math.abs(seed) % suitable.length);
+    return suitable[idx] ? suitable[idx].raw : null;
+}
+
+// ---------------------------
+// selectMealsForWeek: main selection logic
+// ---------------------------
 function selectMealsForWeek(meals, targetCalories, profile) {
     const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     const mealTypes = ['breakfast','lunch','dinner','snacks'];
@@ -852,121 +1008,90 @@ function selectMealsForWeek(meals, targetCalories, profile) {
     const usedMealIds = new Set();
     const calorieDistribution = { breakfast:0.25, lunch:0.35, dinner:0.35, snacks:0.05 };
 
-    // flatten helper: gather any arrays found in the diet object
-    function flattenAllMeals(obj) {
-        const out = [];
-        if (!obj) return out;
-        if (Array.isArray(obj)) return obj.slice();
-        for (const k of Object.keys(obj)) {
-            if (Array.isArray(obj[k])) out.push(...obj[k]);
-        }
-        return out;
-    }
-    const allAvailable = flattenAllMeals(meals);
+    // If meals is a flat object with keys breakfast/lunch/dinner/snacks use directly
+    const isFlat = meals && (Array.isArray(meals.breakfast) || Array.isArray(meals.lunch) || Array.isArray(meals.dinner) || Array.isArray(meals.snacks));
+
+    // Pre-flatten if the caller passed a regionMeals object, ensure arrays
+    const pools = isFlat ? {
+        breakfast: getMealsArrayForType(meals, 'breakfast'),
+        lunch: getMealsArrayForType(meals, 'lunch'),
+        dinner: getMealsArrayForType(meals, 'dinner'),
+        snacks: getMealsArrayForType(meals, 'snacks')
+    } : { breakfast:[], lunch:[], dinner:[], snacks:[] };
+
+    // If regions provided a single array in any bucket, it's already handled in getMealsArrayForType
 
     days.forEach((day, dayIndex) => {
         weeklyPlan[day] = {};
-        mealTypes.forEach((mealType) => {
+        mealTypes.forEach((mealType, mtIndex) => {
             const targetForMeal = Math.max(0, Math.round(targetCalories * (calorieDistribution[mealType] || 0.25)));
-            let availableMeals = getMealsArrayForType(meals, mealType);
 
+            // availableMeals: prefer pool for that mealType; if empty, take from other pools
+            let availableMeals = (pools[mealType] && pools[mealType].slice()) || [];
             if (!availableMeals || availableMeals.length === 0) {
-                availableMeals = allAvailable.slice();
+                // collect across other types
+                availableMeals = [];
+                Object.keys(pools).forEach(k => { if (Array.isArray(pools[k])) availableMeals.push(...pools[k]); });
             }
 
             if (!availableMeals || availableMeals.length === 0) {
-                // no real meals anywhere: fallback
-                const fb = createDefaultMeal(mealType, targetForMeal);
-                console.warn(`[DietPlanner] No meals found for "${mealType}" — using fallback.`);
-                weeklyPlan[day][mealType] = fb;
+                // extreme fallback
+                weeklyPlan[day][mealType] = createDefaultMeal(mealType, targetForMeal);
                 return;
             }
 
-            const candidates = availableMeals.filter(Boolean);
+            const seed = dayIndex * 13 + mtIndex * 7 + (profile.age || 0);
+            const chosen = pickMealCandidate(availableMeals, usedMealIds, targetForMeal, seed);
 
-            // prefer unused & in-range (range ±40%)
-            let suitable = candidates.filter(m => {
-                const c = safeNumber(m.calories);
-                const id = m.id ?? (m.title ? String(m.title) : null);
-                const unused = !usedMealIds.has(id);
-                const inRange = (c === 0) || (c >= targetForMeal * 0.6 && c <= targetForMeal * 1.4);
-                return unused && inRange;
-            });
-
-            // relax constraints progressively
-            if (suitable.length === 0) {
-                suitable = candidates.filter(m => {
-                    const c = safeNumber(m.calories);
-                    return (c === 0) || (c >= targetForMeal * 0.6 && c <= targetForMeal * 1.4);
-                });
+            // normalize chosen into required shape
+            let normalized;
+            if (!chosen) {
+                normalized = createDefaultMeal(mealType, targetForMeal);
+            } else if (typeof chosen !== 'object') {
+                normalized = { id: String(chosen), title: String(chosen), serving_size:'', calories:0, protein:0, carbs:0, fat:0, fiber:0, foods:[] };
+            } else {
+                normalized = {
+                    id: chosen.id ?? (chosen.title ? String(chosen.title) : `meal_${Math.random().toString(36).slice(2)}`),
+                    title: chosen.title || chosen.name || chosen.label || '',
+                    serving_size: chosen.serving_size || chosen.serving || chosen.servingSize || '',
+                    calories: safeNumber(chosen.calories ?? chosen.kcal ?? 0),
+                    protein: safeNumber(chosen.protein ?? chosen.prot ?? 0),
+                    carbs: safeNumber(chosen.carbs ?? chosen.carbohydrates ?? 0),
+                    fat: safeNumber(chosen.fat ?? chosen.fats ?? 0),
+                    fiber: safeNumber(chosen.fiber ?? 0),
+                    foods: Array.isArray(chosen.foods) ? chosen.foods : (chosen.ingredients ? String(chosen.ingredients).split(',').map(s=>({name:s.trim()})) : [])
+                };
             }
-            if (suitable.length === 0) suitable = candidates.filter(m => {
-                const id = m.id ?? (m.title ? String(m.title) : null);
-                return !usedMealIds.has(id);
-            });
-            if (suitable.length === 0) suitable = candidates.slice();
 
-            // deterministic-ish pick via seed
-            const seedIndex = (dayIndex * 7 + mealTypes.indexOf(mealType)) % suitable.length;
-            const chosenRaw = suitable[seedIndex] || suitable[0];
-
-            // normalize chosen
-            const chosen = (function normalize(m) {
-                if (!m) return createDefaultMeal(mealType, targetForMeal);
-                if (typeof m !== 'object') return {
-                    id: String(m),
-                    title: String(m),
-                    serving_size: '',
-                    calories: 0,
-                    protein: 0,
-                    carbs: 0,
-                    fat: 0,
-                    fiber: 0,
-                    foods: []
-                };
-                return {
-                    id: m.id ?? (m.title ? String(m.title) : `meal_${Math.random()}`),
-                    title: (m.title || m.name || m.label || '').toString() || 'Meal',
-                    serving_size: m.serving_size || m.serving || m.servingSize || '',
-                    calories: safeNumber(m.calories ?? m.kcal ?? 0),
-                    protein: safeNumber(m.protein ?? m.prot ?? 0),
-                    carbs: safeNumber(m.carbs ?? m.carbohydrates ?? 0),
-                    fat: safeNumber(m.fat ?? m.fats ?? 0),
-                    fiber: safeNumber(m.fiber ?? 0),
-                    foods: Array.isArray(m.foods) ? m.foods : (m.ingredients ? String(m.ingredients).split(',').map(s=>({name:s.trim()})) : [])
-                };
-            })(chosenRaw);
-
-            weeklyPlan[day][mealType] = chosen;
-            usedMealIds.add(chosen.id);
+            weeklyPlan[day][mealType] = normalized;
+            usedMealIds.add(normalized.id);
         });
     });
 
     return weeklyPlan;
 }
 
-/* ---------------------------
-   Generate & display plan (universal fix)
---------------------------- */
+// ---------------------------
+// Generate & display plan (final)
+// ---------------------------
+
 function normalizeKey(value) {
     if (!value) return "";
     return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
 }
 
-/* ---------------------------
-   Generate & display plan (final clean version)
---------------------------- */
 async function generateMealPlan() {
     try {
-        await loadMealsDatabase();
+        await loadMealsDatabase(); // load meals into mealDatabase
 
+        // gather profile from DOM
         const profile = {
             age: safeNumber(document.getElementById("age")?.value),
             gender: document.getElementById("gender")?.value,
             height: safeNumber(document.getElementById("height")?.value),
             weight: safeNumber(document.getElementById("weight")?.value),
             goal: document.getElementById("goal")?.value,
-            dietType: document.getElementById("dietType")?.value,
+            dietType: document.getElementById("dietType")?.value || 'Mixed',
             region: document.getElementById("region")?.value,
             activityLevel: document.getElementById("activityLevel")?.value,
             targetCalories: safeNumber(document.getElementById("targetCalories")?.value)
@@ -976,442 +1101,410 @@ async function generateMealPlan() {
             profile.targetCalories = calculateTargetCalories(profile);
         }
 
-        // ✅ Region resolution
+        // resolve region key tolerant
         const normRegion = normalizeKey(profile.region);
-        let regionKey = Object.keys(mealDatabase).find(
-            k => normalizeKey(k) === normRegion
-        ) || Object.keys(mealDatabase).find(
-            k => normalizeKey(k).includes(normRegion) || normRegion.includes(normalizeKey(k))
-        );
-
+        let regionKey = Object.keys(mealDatabase || {}).find(k => normalizeKey(k) === normRegion);
         if (!regionKey) {
-            console.error("❌ Region not found:", profile.region, "Available regions:", Object.keys(mealDatabase));
+            regionKey = Object.keys(mealDatabase || {}).find(k => normalizeKey(k).includes(normRegion) || normRegion.includes(normalizeKey(k)));
+        }
+        if (!regionKey) {
+            // if not found, try case-insensitive contains
+            regionKey = Object.keys(mealDatabase || {}).find(k => (k||'').toLowerCase().includes((profile.region||'').toLowerCase()));
+        }
+        if (!regionKey) {
+            console.error('Region not found:', profile.region, 'available:', Object.keys(mealDatabase||{}));
             throw new Error(`No meals available for region: ${profile.region}`);
         }
 
         const regionMeals = mealDatabase[regionKey];
+        if (!regionMeals) throw new Error('Region meals missing for ' + regionKey);
 
-        // ✅ Diet resolution
-        const normDiet = normalizeKey(profile.dietType);
-        let dietKey = Object.keys(regionMeals).find(
-            k => normalizeKey(k) === normDiet
-        ) || Object.keys(regionMeals).find(
-            k => normalizeKey(k).includes(normDiet) || normDiet.includes(normalizeKey(k))
-        );
-
-        const dietMeals = regionMeals[dietKey] || regionMeals["Regular"] || Object.values(regionMeals)[0];
-
-        if (!dietMeals) {
-            console.error("❌ Diet not found:", profile.dietType, "Available diets:", Object.keys(regionMeals));
-            throw new Error(`No meals available for diet: ${profile.dietType} in region: ${profile.region}`);
+        // Resolve diet by first attempting direct match, otherwise fallback to flatten-and-filter
+        let dietKey = Object.keys(regionMeals || {}).find(k => normalizeKey(k) === normalizeKey(profile.dietType));
+        if (!dietKey) {
+            dietKey = Object.keys(regionMeals || {}).find(k => normalizeKey(k).includes(normalizeKey(profile.dietType)) || normalizeKey(profile.dietType).includes(normalizeKey(k)));
         }
 
-        console.log("✅ Using region:", regionKey, "| diet:", dietKey || "Regular");
+        // get dietMeals object for the requested diet selection (filtered)
+        const dietMeals = resolveDietMealsFromRegion(regionMeals, profile.dietType);
 
-        // ✅ Build weekly plan
-        const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
-// ------------------ Improve placeholders (replace generic fallbacks) ------------------
-(function replacePlaceholders() {
-    const mealTypes = ['breakfast','lunch','dinner','snacks'];
-
-    // helper: search a dietMeals object first by same mealType, then across all types, then across region/allAvailable
-    function findRealCandidate(dietMeals, mealType) {
-        // 1) same type pool
-        const pool1 = getMealsArrayForType(dietMeals, mealType) || [];
-        let cand = pool1.find(m => m && getMealTitle(m) && !/^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(getMealTitle(m)));
-        if (cand) return cand;
-
-        // 2) any type inside dietMeals
-        const poolAll = [];
-        Object.keys(dietMeals || {}).forEach(k => {
-            if (Array.isArray(dietMeals[k])) poolAll.push(...dietMeals[k]);
+        // diagnostics
+        console.log('generateMealPlan -> regionKey:', regionKey, 'requestedDiet:', profile.dietType, 'resolved diet key (exact):', dietKey);
+        console.log('dietMeals counts:', {
+            breakfast: (dietMeals.breakfast||[]).length,
+            lunch: (dietMeals.lunch||[]).length,
+            dinner: (dietMeals.dinner||[]).length,
+            snacks: (dietMeals.snacks||[]).length
         });
-        cand = poolAll.find(m => m && getMealTitle(m) && !/^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(getMealTitle(m)));
-        if (cand) return cand;
 
-        // 3) flatten everything in the region (if available globally)
-        const flatten = (obj => {
-            const out = [];
-            if (!obj) return out;
-            if (Array.isArray(obj)) return obj.slice();
-            Object.keys(obj).forEach(k => { if (Array.isArray(obj[k])) out.push(...obj[k]); });
-            return out;
-        })(dietMeals);
-        cand = flatten.find(m => m && getMealTitle(m) && !/^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(getMealTitle(m)));
-        return cand || null;
-    }
-
-    for (const day of Object.keys(weeklyPlan || {})) {
-        for (const mt of mealTypes) {
-            const meal = weeklyPlan[day][mt];
-            if (!meal) continue;
-            const title = (meal.title || '').toString();
-            const looksLikeFallback = !title || /^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(title);
-            if (!looksLikeFallback) continue;
-
-            // try to find a proper candidate
-            const candidate = findRealCandidate(dietMeals, mt);
-            if (candidate) {
-                // normalize candidate into same shape
-                weeklyPlan[day][mt] = {
-                    id: candidate.id ?? (candidate.title || Math.random().toString(36).slice(2)),
-                    title: candidate.title || candidate.name || getMealTitle(candidate),
-                    serving_size: candidate.serving_size || candidate.serving || candidate.servingSize || '',
-                    calories: safeNumber(candidate.calories ?? candidate.kcal ?? 0),
-                    protein: safeNumber(candidate.protein ?? candidate.prot ?? 0),
-                    carbs: safeNumber(candidate.carbs ?? candidate.carbohydrates ?? 0),
-                    fat: safeNumber(candidate.fat ?? candidate.fats ?? 0),
-                    fiber: safeNumber(candidate.fiber ?? 0),
-                    foods: Array.isArray(candidate.foods) ? candidate.foods : (candidate.ingredients ? String(candidate.ingredients).split(',').map(s=>({name:s.trim()})) : [])
-                };
+        // If too few items in dietMeals, fallback to region flatten (all)
+        const totalAvailable = (dietMeals.breakfast||[]).length + (dietMeals.lunch||[]).length + (dietMeals.dinner||[]).length + (dietMeals.snacks||[]).length;
+        if (totalAvailable === 0) {
+            console.warn('[DietPlanner] No meals found for requested diet; falling back to all region meals.');
+            const flatAll = flattenRegionMeals(regionMeals);
+            // if still empty -> fallback fallback
+            if (((flatAll.breakfast||[]).length + (flatAll.lunch||[]).length + (flatAll.dinner||[]).length + (flatAll.snacks||[]).length) === 0) {
+                throw new Error('No meals present in region: ' + regionKey);
             }
-            // else keep fallback
+            // use flatAll as dietMeals
+            Object.assign(dietMeals, flatAll);
         }
-    }
-})();
 
+        // build weekly plan
+        const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
+
+        // attempt to replace placeholder-like titles with first real items
+        ['breakfast','lunch','dinner','snacks'].forEach(mt => {
+            for (const day of Object.keys(weeklyPlan)) {
+                const meal = weeklyPlan[day][mt];
+                const title = asString(meal && meal.title);
+                if (!title || /^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(title)) {
+                    const pool = dietMeals[mt] || [];
+                    const real = pool.find(m => m && asString(m.title).trim() && !/^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(asString(m.title)));
+                    if (real) {
+                        weeklyPlan[day][mt] = {
+                            id: real.id ?? real.title ?? Math.random().toString(36).slice(2),
+                            title: real.title || real.name || getMealTitle(real),
+                            serving_size: real.serving_size || real.serving || real.servingSize || '',
+                            calories: safeNumber(real.calories ?? real.kcal ?? 0),
+                            protein: safeNumber(real.protein ?? real.prot ?? 0),
+                            carbs: safeNumber(real.carbs ?? real.carbohydrates ?? 0),
+                            fat: safeNumber(real.fat ?? real.fats ?? 0),
+                            fiber: safeNumber(real.fiber ?? 0),
+                            foods: Array.isArray(real.foods) ? real.foods : (real.ingredients ? String(real.ingredients).split(',').map(s=>({name:s.trim()})) : [])
+                        };
+                    }
+                }
+            }
+        });
 
         currentMealPlan = weeklyPlan;
         currentUserProfile = profile;
 
+        // store
         try {
-            localStorage.setItem("last_generated_plan_v1", JSON.stringify({
-                plan: weeklyPlan,
-                profile: profile,
-                generated: new Date().toISOString()
-            }));
-        } catch (e) { /* ignore storage errors */ }
+            localStorage.setItem("last_generated_plan_v1", JSON.stringify({ plan: weeklyPlan, profile: profile, generated: new Date().toISOString() }));
+        } catch (e) {}
 
+        // render & charts
         displayMealPlan(weeklyPlan, profile);
         await createCharts(weeklyPlan, profile);
-
-        console.log("✅ Weekly plan generated for", regionKey, profile.dietType);
+        console.log('✅ Weekly plan generated for', regionKey, profile.dietType);
         return weeklyPlan;
-
-    } catch (error) {
-        console.error("❌ Error generating meal plan:", error);
-        alert("Failed to generate meal plan. Please check console for details.");
-        throw error;
+    } catch (err) {
+        console.error('Error generating meal plan:', err);
+        throw err;
     }
 }
-   function displayMealPlan(weeklyPlan, profile) {
-        displayStatsCards(weeklyPlan, profile);
-        displayMealTable(weeklyPlan);
-    }
 
-    function displayStatsCards(weeklyPlan, profile) {
-        const stats = calculateWeeklyStats(weeklyPlan);
-        const container = document.getElementById('statsGrid');
-        if (!container) return;
-        const targetDiff = Math.round(((stats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
-        container.innerHTML = `
-            <div class="stat-card fade-in">
-                <div class="stat-title">Calories</div>
-                <div class="stat-value">${Math.round(stats.avgCalories)}</div>
-                <div class="stat-target">/ ${profile.targetCalories}</div>
-            </div>
-            <div class="stat-card fade-in">
-                <div class="stat-title">Protein</div>
-                <div class="stat-value">${Math.round(stats.avgProtein)}<span class="stat-unit">g</span></div>
-                <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.15 / 4)}g</div>
-            </div>
-            <div class="stat-card fade-in">
-                <div class="stat-title">Carbs</div>
-                <div class="stat-value">${Math.round(stats.avgCarbs)}<span class="stat-unit">g</span></div>
-                <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.5 / 4)}g</div>
-            </div>
-            <div class="stat-card fade-in">
-                <div class="stat-title">Fat</div>
-                <div class="stat-value">${Math.round(stats.avgFat)}<span class="stat-unit">g</span></div>
-                <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.35 / 9)}g</div>
-            </div>
-            <div class="stat-card fade-in">
-                <div class="stat-title">Fiber</div>
-                <div class="stat-value">${Math.round(stats.avgFiber)}<span class="stat-unit">g</span></div>
-                <div class="stat-target">/ 25g</div>
-            </div>
-            <div class="stat-card fade-in">
-                <div class="stat-title">Target Diff</div>
-                <div class="stat-value ${targetDiff >= 0 ? 'text-success' : 'text-warning'}">${targetDiff >= 0 ? '+' : ''}${targetDiff}%</div>
-            </div>
-        `;
-    }
-
+// ---------------------------
+// Display helpers (table/stats)
 function getMealTitle(meal) {
     if (!meal) return 'No meal';
     if (typeof meal === 'string') return meal;
-
-    // prefer explicitly provided fields
-    const fields = [meal.title, meal.name, meal.display_name, meal.dish_name, meal.label];
-    for (const f of fields) {
-        if (f && String(f).trim()) return String(f).trim();
-    }
-
-    // if foods array exists, use it
+    const candidates = [meal.title, meal.name, meal.display_name, meal.dish_name, meal.label];
+    for (const c of candidates) if (c && String(c).trim()) return String(c).trim();
     if (Array.isArray(meal.foods) && meal.foods.length) {
-        const names = meal.foods.map(f => (typeof f === 'string' ? f : (f.name || f.title || '')).trim()).filter(Boolean);
-        if (names.length) return names.slice(0,4).join(', ');
+        const parts = meal.foods.map(f => {
+            if (!f) return '';
+            if (typeof f === 'string') return f;
+            return f.name || f.title || '';
+        }).filter(Boolean);
+        if (parts.length) return parts.slice(0,4).join(', ');
     }
-
-    // if ingredients string exists
     if (meal.ingredients && typeof meal.ingredients === 'string') {
         const parts = meal.ingredients.split(',').map(s => s.trim()).filter(Boolean);
         if (parts.length) return parts.slice(0,4).join(', ');
     }
-
-    // fallback to id or a generic label
     if (meal.id) return `Meal #${meal.id}`;
     return 'Custom Meal';
 }
 
+function displayStatsCards(weeklyPlan, profile) {
+    const stats = calculateWeeklyStats(weeklyPlan);
+    const container = document.getElementById('statsGrid');
+    if (!container) return;
+    const targetDiff = Math.round(((stats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
+    container.innerHTML = `
+        <div class="stat-card fade-in">
+            <div class="stat-title">Calories</div>
+            <div class="stat-value">${Math.round(stats.avgCalories)}</div>
+            <div class="stat-target">/ ${profile.targetCalories}</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Protein</div>
+            <div class="stat-value">${Math.round(stats.avgProtein)}<span class="stat-unit">g</span></div>
+            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.15 / 4)}g</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Carbs</div>
+            <div class="stat-value">${Math.round(stats.avgCarbs)}<span class="stat-unit">g</span></div>
+            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.5 / 4)}g</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Fat</div>
+            <div class="stat-value">${Math.round(stats.avgFat)}<span class="stat-unit">g</span></div>
+            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.35 / 9)}g</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Fiber</div>
+            <div class="stat-value">${Math.round(stats.avgFiber)}<span class="stat-unit">g</span></div>
+            <div class="stat-target">/ 25g</div>
+        </div>
+        <div class="stat-card fade-in">
+            <div class="stat-title">Target Diff</div>
+            <div class="stat-value ${targetDiff >= 0 ? 'text-success' : 'text-warning'}">${targetDiff >= 0 ? '+' : ''}${targetDiff}%</div>
+        </div>
+    `;
+}
 
-    function displayMealTable(weeklyPlan) {
-        const container = document.getElementById('mealPlanTable');
-        if (!container) return;
-        const days = Object.keys(weeklyPlan || {});
-        const mealTypes = [
-            { key: 'breakfast', name: '🌅 Breakfast' },
-            { key: 'lunch', name: '🍽️ Lunch' },
-            { key: 'dinner', name: '🌙 Dinner' },
-            { key: 'snacks', name: '🍎 Snack' }
-        ];
+function displayMealTable(weeklyPlan) {
+    const container = document.getElementById('mealPlanTable');
+    if (!container) return;
+    const days = Object.keys(weeklyPlan || {});
+    const mealTypes = [
+        { key: 'breakfast', name: '🌅 Breakfast' },
+        { key: 'lunch', name: '🍽️ Lunch' },
+        { key: 'dinner', name: '🌙 Dinner' },
+        { key: 'snacks', name: '🍎 Snack' }
+    ];
 
-        function escapeHtml(s){ if (s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-        function num(v){ return safeNumber(v); }
+    function escapeHtml(s){ if (s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function num(v){ return safeNumber(v); }
 
-        let html = '<table class="table"><thead><tr><th>Day</th>';
-        mealTypes.forEach(mt => html += `<th>${escapeHtml(mt.name)}</th>`);
-        html += '<th>Daily Total</th></tr></thead><tbody>';
+    let html = '<table class="table"><thead><tr><th>Day</th>';
+    mealTypes.forEach(mt => html += `<th>${escapeHtml(mt.name)}</th>`);
+    html += '<th>Daily Total</th></tr></thead><tbody>';
 
-        days.forEach(day => {
-            html += '<tr>';
-            html += `<td class="day-header">${escapeHtml(day)}</td>`;
-            let totalCalories = 0;
-            mealTypes.forEach(mt => {
-                const meal = (weeklyPlan[day] || {})[mt.key];
-                if (meal) {
-                    const titleText = getMealTitle(meal);
-                    const calories = num(meal.calories || meal.kcal || 0);
-                    totalCalories += calories;
-                    const serving = meal.serving_size || meal.servingSize || '';
-                    const protein = num(meal.protein || meal.prot || 0);
-                    const carbs = num(meal.carbs || meal.carbohydrates || 0);
-                    const fat = num(meal.fat || meal.fats || 0);
-                    const fiber = num(meal.fiber || 0);
+    days.forEach(day => {
+        html += '<tr>';
+        html += `<td class="day-header">${escapeHtml(day)}</td>`;
+        let totalCalories = 0;
+        mealTypes.forEach(mt => {
+            const meal = (weeklyPlan[day] || {})[mt.key];
+            if (meal) {
+                const titleText = getMealTitle(meal);
+                const calories = num(meal.calories || meal.kcal || 0);
+                totalCalories += calories;
+                const serving = meal.serving_size || meal.servingSize || '';
+                const protein = num(meal.protein || meal.prot || 0);
+                const carbs = num(meal.carbs || meal.carbohydrates || 0);
+                const fat = num(meal.fat || meal.fats || 0);
+                const fiber = num(meal.fiber || 0);
 
-                    html += `<td>
-                                <div class="meal-item">${escapeHtml(titleText)}</div>
-                                <div class="meal-serving text-primary">${escapeHtml(String(calories))} kcal</div>`;
-                    if (serving) html += `<div class="meal-serving">${escapeHtml(serving)}</div>`;
-                    if (protein || carbs || fat || fiber) {
-                        html += `<div class="meal-nutrients">P: ${escapeHtml(String(protein))}g • C: ${escapeHtml(String(carbs))}g • F: ${escapeHtml(String(fat))}g${(typeof fiber!=='undefined'? ' • Fib: '+escapeHtml(String(fiber))+'g':'')}</div>`;
-                    }
-                    html += `</td>`;
-                } else {
-                    html += '<td><div class="text-muted">No meal</div></td>';
+                html += `<td>
+                            <div class="meal-item">${escapeHtml(titleText)}</div>
+                            <div class="meal-serving text-primary">${escapeHtml(String(calories))} kcal</div>`;
+                if (serving) html += `<div class="meal-serving">${escapeHtml(serving)}</div>`;
+                if (protein || carbs || fat || fiber) {
+                    html += `<div class="meal-nutrients">P: ${escapeHtml(String(protein))}g • C: ${escapeHtml(String(carbs))}g • F: ${escapeHtml(String(fat))}g${(typeof fiber!=='undefined'? ' • Fib: '+escapeHtml(String(fiber))+'g':'')}</div>`;
+                }
+                html += `</td>`;
+            } else {
+                html += '<td><div class="text-muted">No meal</div></td>';
+            }
+        });
+        html += `<td><strong class="text-success">${Math.round(totalCalories)} kcal</strong></td>`;
+        html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function calculateWeeklyStats(weeklyPlan) {
+    let totalCalories=0, totalProtein=0, totalCarbs=0, totalFat=0, totalFiber=0, mealCount=0;
+    Object.keys(weeklyPlan || {}).forEach(day => {
+        Object.keys(weeklyPlan[day] || {}).forEach(mt => {
+            const meal = weeklyPlan[day][mt];
+            if (meal) {
+                totalCalories += safeNumber(meal.calories);
+                totalProtein += safeNumber(meal.protein);
+                totalCarbs += safeNumber(meal.carbs);
+                totalFat += safeNumber(meal.fat);
+                totalFiber += safeNumber(meal.fiber);
+                mealCount++;
+            }
+        });
+    });
+    return {
+        totalCalories,
+        avgCalories: totalCalories / 7,
+        totalProtein,
+        avgProtein: totalProtein / 7,
+        totalCarbs,
+        avgCarbs: totalCarbs / 7,
+        totalFat,
+        avgFat: totalFat / 7,
+        totalFiber,
+        avgFiber: totalFiber / 7,
+        mealCount
+    };
+}
+
+// ---------------------------
+// Charts - lazy load Chart.js
+// ---------------------------
+async function loadChartJS() {
+    if (ChartsLoaded || window.Chart) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+        s.onload = () => { ChartsLoaded = true; resolve(); };
+        s.onerror = () => reject(new Error('Failed to load Chart.js'));
+        document.head.appendChild(s);
+    });
+}
+
+async function createCharts(weeklyPlan, profile) {
+    try {
+        await loadChartJS();
+    } catch (err) {
+        console.warn('Chart.js not loaded:', err);
+        return;
+    }
+
+    const days = Object.keys(weeklyPlan || {});
+    const dailyCalories = days.map(d => {
+        let tot = 0;
+        Object.keys(weeklyPlan[d] || {}).forEach(mt => tot += safeNumber(weeklyPlan[d][mt]?.calories));
+        return tot;
+    });
+    const weeklyStats = calculateWeeklyStats(weeklyPlan);
+    const isDark = currentTheme === 'dark';
+    const textColor = isDark ? '#ffffff' : '#212529';
+    const gridColor = isDark ? '#404040' : '#dee2e6';
+
+    const calorieCtx = document.getElementById('calorieChart');
+    try {
+        if (calorieCtx) {
+            if (window.calorieChartInstance && typeof window.calorieChartInstance.destroy === 'function') window.calorieChartInstance.destroy();
+            window.calorieChartInstance = new Chart(calorieCtx, {
+                type: 'bar',
+                data: {
+                    labels: days.map(d => d.substr(0,3)),
+                    datasets: [
+                        { label:'Daily Calories', data: dailyCalories, backgroundColor:'rgba(0,123,255,0.8)', borderColor:'rgba(0,123,255,1)', borderWidth:1, borderRadius:2 },
+                        { label:'Target', data:Array(days.length).fill(profile.targetCalories), type:'line', borderColor:'rgba(40,167,69,1)', backgroundColor:'rgba(40,167,69,0.1)', borderWidth:2, fill:false, pointBackgroundColor:'rgba(40,167,69,1)', pointBorderColor:'#fff', pointBorderWidth:1, pointRadius:3 }
+                    ]
+                },
+                options: {
+                    responsive:true, maintainAspectRatio:false,
+                    plugins:{ legend:{ position:'top', labels:{ usePointStyle:true, padding:12, color:textColor, font:{ size:11 } } } },
+                    scales:{ x:{ grid:{ color:gridColor }, ticks:{ color:textColor, font:{ size:10 } } }, y:{ beginAtZero:true, title:{ display:true, text:'Calories', color:textColor, font:{ size:11 } }, grid:{ color:gridColor }, ticks:{ color:textColor, font:{ size:10 } } } }
                 }
             });
-            html += `<td><strong class="text-success">${Math.round(totalCalories)} kcal</strong></td>`;
-            html += '</tr>';
-        });
+        }
+    } catch (err) { console.error('Failed to create calorie chart:', err); }
 
-        html += '</tbody></table>';
-        container.innerHTML = html;
-    }
-
-    function calculateWeeklyStats(weeklyPlan) {
-        let totalCalories=0, totalProtein=0, totalCarbs=0, totalFat=0, totalFiber=0, mealCount=0;
-        Object.keys(weeklyPlan || {}).forEach(day => {
-            Object.keys(weeklyPlan[day] || {}).forEach(mt => {
-                const meal = weeklyPlan[day][mt];
-                if (meal) {
-                    totalCalories += safeNumber(meal.calories);
-                    totalProtein += safeNumber(meal.protein);
-                    totalCarbs += safeNumber(meal.carbs);
-                    totalFat += safeNumber(meal.fat);
-                    totalFiber += safeNumber(meal.fiber);
-                    mealCount++;
-                }
+    try {
+        if (window.macrosChartInstance && typeof window.macrosChartInstance.destroy === 'function') window.macrosChartInstance.destroy();
+        const macrosCtx = document.getElementById('macrosChart');
+        if (macrosCtx) {
+            const proteinCals = weeklyStats.totalProtein * 4;
+            const carbsCals = weeklyStats.totalCarbs * 4;
+            const fatCals = weeklyStats.totalFat * 9;
+            window.macrosChartInstance = new Chart(macrosCtx, {
+                type: 'doughnut',
+                data: { labels:['Protein','Carbs','Fat'], datasets:[{ data:[proteinCals,carbsCals,fatCals], backgroundColor:['rgba(0,123,255,0.8)','rgba(40,167,69,0.8)','rgba(255,193,7,0.8)'], borderColor:['rgba(0,123,255,1)','rgba(40,167,69,1)','rgba(255,193,7,1)'], borderWidth:1 }] },
+                options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ usePointStyle:true, padding:10, color:textColor, font:{ size:10 } }, tooltip:{ callbacks:{ label:function(context){ const label = context.label; const value = context.raw; const total = context.dataset.data.reduce((a,b)=>a+b,0); const percentage = Math.round((value/total)*100); return `${label}: ${percentage}% (${Math.round(value)} cal)`; } } } } }, cutout:'60%' }
             });
-        });
-        return {
-            totalCalories,
-            avgCalories: totalCalories / 7,
-            totalProtein,
-            avgProtein: totalProtein / 7,
-            totalCarbs,
-            avgCarbs: totalCarbs / 7,
-            totalFat,
-            avgFat: totalFat / 7,
-            totalFiber,
-            avgFiber: totalFiber / 7,
-            mealCount
-        };
+        }
+    } catch (err) { console.error('Failed to create macros chart:', err); }
+}
+
+// ---------------------------
+// Send to Tracker & Export
+// ---------------------------
+function sendToTrackerAndRedirect() {
+    if (!currentMealPlan || !currentUserProfile) {
+        alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.');
+        return;
     }
+    const overlay = document.getElementById('redirectOverlay');
+    if (overlay) overlay.style.display = 'flex';
 
-    /* ---------------------------
-       Charts - lazy load Chart.js
-    --------------------------- */
-    async function loadChartJS() {
-        if (ChartsLoaded || window.Chart) return Promise.resolve();
-        return new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
-            s.onload = () => { ChartsLoaded = true; resolve(); };
-            s.onerror = () => reject(new Error('Failed to load Chart.js'));
-            document.head.appendChild(s);
-        });
-    }
-
-    async function createCharts(weeklyPlan, profile) {
-        try {
-            await loadChartJS();
-        } catch (err) {
-            console.warn('Chart.js not loaded:', err);
-            return;
+    const integrationData = {
+        version: '3.0',
+        timestamp: new Date().toISOString(),
+        source: 'thedietplanner-diet-planner',
+        userProfile: currentUserProfile,
+        mealPlan: currentMealPlan,
+        dailyTargets: {
+            calories: currentUserProfile.targetCalories,
+            protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4),
+            carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4),
+            fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9),
+            fiber: 25,
+            water: 2000
         }
+    };
 
-        const days = Object.keys(weeklyPlan || {});
-        const dailyCalories = days.map(d => {
-            let tot = 0;
-            Object.keys(weeklyPlan[d] || {}).forEach(mt => tot += safeNumber(weeklyPlan[d][mt]?.calories));
-            return tot;
-        });
-        const weeklyStats = calculateWeeklyStats(weeklyPlan);
-        const isDark = currentTheme === 'dark';
-        const textColor = isDark ? '#ffffff' : '#212529';
-        const gridColor = isDark ? '#404040' : '#dee2e6';
-
-        // Calorie chart
-        const calorieCtx = document.getElementById('calorieChart');
-        try {
-            if (calorieCtx) {
-                if (window.calorieChartInstance && typeof window.calorieChartInstance.destroy === 'function') window.calorieChartInstance.destroy();
-                window.calorieChartInstance = new Chart(calorieCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: days.map(d => d.substr(0,3)),
-                        datasets: [
-                            { label:'Daily Calories', data: dailyCalories, backgroundColor:'rgba(0,123,255,0.8)', borderColor:'rgba(0,123,255,1)', borderWidth:1, borderRadius:2 },
-                            { label:'Target', data:Array(days.length).fill(profile.targetCalories), type:'line', borderColor:'rgba(40,167,69,1)', backgroundColor:'rgba(40,167,69,0.1)', borderWidth:2, fill:false, pointBackgroundColor:'rgba(40,167,69,1)', pointBorderColor:'#fff', pointBorderWidth:1, pointRadius:3 }
-                        ]
-                    },
-                    options: {
-                        responsive:true, maintainAspectRatio:false,
-                        plugins:{ legend:{ position:'top', labels:{ usePointStyle:true, padding:12, color:textColor, font:{ size:11 } } } },
-                        scales:{ x:{ grid:{ color:gridColor }, ticks:{ color:textColor, font:{ size:10 } } }, y:{ beginAtZero:true, title:{ display:true, text:'Calories', color:textColor, font:{ size:11 } }, grid:{ color:gridColor }, ticks:{ color:textColor, font:{ size:10 } } } }
-                    }
-                });
-            }
-        } catch (err) { console.error('Failed to create calorie chart:', err); }
-
-        // Macros doughnut
-        try {
-            if (window.macrosChartInstance && typeof window.macrosChartInstance.destroy === 'function') window.macrosChartInstance.destroy();
-            const macrosCtx = document.getElementById('macrosChart');
-            if (macrosCtx) {
-                const proteinCals = weeklyStats.totalProtein * 4;
-                const carbsCals = weeklyStats.totalCarbs * 4;
-                const fatCals = weeklyStats.totalFat * 9;
-                window.macrosChartInstance = new Chart(macrosCtx, {
-                    type: 'doughnut',
-                    data: { labels:['Protein','Carbs','Fat'], datasets:[{ data:[proteinCals,carbsCals,fatCals], backgroundColor:['rgba(0,123,255,0.8)','rgba(40,167,69,0.8)','rgba(255,193,7,0.8)'], borderColor:['rgba(0,123,255,1)','rgba(40,167,69,1)','rgba(255,193,7,1)'], borderWidth:1 }] },
-                    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ usePointStyle:true, padding:10, color:textColor, font:{ size:10 } }, tooltip:{ callbacks:{ label:function(context){ const label = context.label; const value = context.raw; const total = context.dataset.data.reduce((a,b)=>a+b,0); const percentage = Math.round((value/total)*100); return `${label}: ${percentage}% (${Math.round(value)} cal)`; } } } } }, cutout:'60%' }
-                });
-            }
-        } catch (err) { console.error('Failed to create macros chart:', err); }
-    }
-
-    /* ---------------------------
-       Send to Tracker & Export
-    --------------------------- */
-    function sendToTrackerAndRedirect() {
-        if (!currentMealPlan || !currentUserProfile) {
-            alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.');
-            return;
-        }
-        const overlay = document.getElementById('redirectOverlay');
-        if (overlay) overlay.style.display = 'flex';
-
-        const integrationData = {
-            version: '3.0',
-            timestamp: new Date().toISOString(),
-            source: 'thedietplanner-diet-planner',
-            userProfile: currentUserProfile,
-            mealPlan: currentMealPlan,
-            dailyTargets: {
-                calories: currentUserProfile.targetCalories,
-                protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4),
-                carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4),
-                fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9),
-                fiber: 25,
-                water: 2000
-            }
-        };
-
-        try {
-            const payloadStr = JSON.stringify(integrationData);
-            localStorage.setItem(INTEGRATION_STORAGE_KEY, payloadStr);
-            localStorage.setItem('planned_meals_v1', payloadStr);
-            localStorage.setItem('diettracker_import', payloadStr);
-            localStorage.setItem('meal_plan_transfer', payloadStr);
-            localStorage.setItem('meal_plan_sent', 'true');
-            console.log('✅ Meal plan data stored for Diet Tracker');
-        } catch (err) {
-            console.error('❌ Failed to store meal plan for tracker:', err);
-            if (overlay) overlay.style.display = 'none';
-            return;
-        }
-
-        // Ask user before opening tracker
-        const want = confirm('Meal plan is ready to send.\nDo you want to open the Diet Tracker now?');
-        if (want) {
-            const redirectUrl = document.body.getAttribute('data-diet-tracker-url') || `${location.protocol}//${location.host}/diet-tracker`;
-            try {
-                const newWin = window.open(redirectUrl, '_blank');
-                if (!newWin) alert('Popup blocked. Please allow popups or open the tracker manually.');
-            } catch (err) { console.warn('Failed to open tracker:', err); alert('Failed to open tracker. Please open it manually.'); }
-        }
+    try {
+        const payloadStr = JSON.stringify(integrationData);
+        localStorage.setItem(INTEGRATION_STORAGE_KEY, payloadStr);
+        localStorage.setItem('planned_meals_v1', payloadStr);
+        localStorage.setItem('diettracker_import', payloadStr);
+        localStorage.setItem('meal_plan_transfer', payloadStr);
+        localStorage.setItem('meal_plan_sent', 'true');
+        console.log('✅ Meal plan data stored for Diet Tracker');
+    } catch (err) {
+        console.error('❌ Failed to store meal plan for tracker:', err);
         if (overlay) overlay.style.display = 'none';
+        return;
     }
 
-    function downloadCSV() {
-        if (!currentMealPlan || !currentUserProfile) { alert('❌ No meal plan available to export\nPlease generate a meal plan first.'); return; }
-        let csv = '\uFEFF';
-        csv += 'Date,Meal Time,Food Name,Serving Size,Calories,Protein,Carbs,Fat,Fiber\n';
-        const days = Object.keys(currentMealPlan);
-        const mealTypes = ['breakfast','lunch','dinner','snacks'];
-        days.forEach(day => {
-            mealTypes.forEach(mt => {
-                const meal = (currentMealPlan[day] || {})[mt];
-                if (!meal) return;
-                const titleSafe = (meal.title && typeof meal.title === 'string') ? meal.title.replace(/"/g,'""') : getMealTitle(meal).replace(/"/g,'""');
-                const row = [day, mt.charAt(0).toUpperCase()+mt.slice(1), `"${titleSafe}"`, `"${(meal.serving_size||'N/A').replace(/"/g,'""')}"`, safeNumber(meal.calories), safeNumber(meal.protein), safeNumber(meal.carbs), safeNumber(meal.fat), safeNumber(meal.fiber)].join(',');
-                csv += row + '\n';
-            });
-        });
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `meal-plan-${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        console.log('✅ CSV downloaded');
-    }
-
-    function clearDietTrackerStorage() {
+    // Ask user before opening tracker
+    const want = confirm('Meal plan is ready to send.\nDo you want to open the Diet Tracker now?');
+    if (want) {
+        // Use data-diet-tracker-url attribute on body (set in part1)
+        const redirectUrl = document.body.getAttribute('data-diet-tracker-url') || `${location.protocol}//${location.host}/diet-tracker`;
         try {
-            const keys = [ INTEGRATION_STORAGE_KEY || 'dietplanner_integration_v3', 'planned_meals_v1', 'diettracker_import', 'meal_plan_transfer', 'meal_plan_sent' ];
-            keys.forEach(k => localStorage.removeItem(k));
-            console.log('✅ Cleared diet tracker integration keys from localStorage');
-        } catch (e) { console.warn('Failed clearing diet tracker storage:', e); }
+            const newWin = window.open(redirectUrl, '_blank');
+            if (!newWin) alert('Popup blocked. Please allow popups or open the tracker manually.');
+        } catch (err) { console.warn('Failed to open tracker:', err); alert('Failed to open tracker. Please open it manually.'); }
     }
+    if (overlay) overlay.style.display = 'none';
+}
 
- // Replace downloadPDF() with this improved version
+function downloadCSV() {
+    if (!currentMealPlan || !currentUserProfile) { alert('❌ No meal plan available to export\nPlease generate a meal plan first.'); return; }
+    let csv = '\uFEFF';
+    csv += 'Date,Meal Time,Food Name,Serving Size,Calories,Protein,Carbs,Fat,Fiber\n';
+    const days = Object.keys(currentMealPlan);
+    const mealTypes = ['breakfast','lunch','dinner','snacks'];
+    days.forEach(day => {
+        mealTypes.forEach(mt => {
+            const meal = (currentMealPlan[day] || {})[mt];
+            if (!meal) return;
+            const titleSafe = (meal.title && typeof meal.title === 'string') ? meal.title.replace(/"/g,'""') : getMealTitle(meal).replace(/"/g,'""');
+            const row = [day, mt.charAt(0).toUpperCase()+mt.slice(1), `"${titleSafe}"`, `"${(meal.serving_size||'N/A').replace(/"/g,'""')}"`, safeNumber(meal.calories), safeNumber(meal.protein), safeNumber(meal.carbs), safeNumber(meal.fat), safeNumber(meal.fiber)].join(',');
+            csv += row + '\n';
+        });
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `meal-plan-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    console.log('✅ CSV downloaded');
+}
+
+function clearDietTrackerStorage() {
+    try {
+        const keys = [ INTEGRATION_STORAGE_KEY || 'dietplanner_integration_v3', 'planned_meals_v1', 'diettracker_import', 'meal_plan_transfer', 'meal_plan_sent' ];
+        keys.forEach(k => localStorage.removeItem(k));
+        console.log('✅ Cleared diet tracker integration keys from localStorage');
+    } catch (e) { console.warn('Failed clearing diet tracker storage:', e); }
+}
+
+// ---------------------------
+// PDF export (improved)
 async function loadHtml2Pdf() {
     if (Html2PdfLoaded || window.html2pdf) return Promise.resolve();
     return new Promise((resolve, reject) => {
@@ -1435,42 +1528,40 @@ async function downloadPDF() {
     const esc = s => (s===null||s===undefined) ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
     // build html
-    let html = `<div class="dp-pdf-root" style="font-family:Arial,Helvetica,sans-serif; padding:10px; font-size:11px; color:#222;">`;
-    html += `<h1 style="text-align:center; color:#007bff; margin-bottom:2px;">🍽️ The Diet Planner</h1>`;
-    html += `<p style="text-align:center; color:#6c757d; margin-top:0; margin-bottom:8px;">Personalized Meal Plan — ${new Date().toLocaleDateString()}</p>`;
-    html += `<h2 style="margin-bottom:6px;">Weekly Overview</h2>`;
-    html += `<p><strong>Average Calories:</strong> ${Math.round(weeklyStats.avgCalories)} kcal</p>`;
-    html += `<h2 style="margin-top:14px;">7-Day Meal Plan</h2>`;
+    let html = `<div class="dp-pdf-root" style="font-family:Arial,Helvetica,sans-serif; padding:8px; font-size:10px; color:#222;">`;
+    html += `<h1 style="text-align:center; color:#007bff; margin-bottom:2px; font-size:16px;">🍽️ The Diet Planner</h1>`;
+    html += `<p style="text-align:center; color:#6c757d; margin-top:0; margin-bottom:8px; font-size:11px;">Personalized Meal Plan — ${new Date().toLocaleDateString()}</p>`;
+    html += `<h2 style="margin-bottom:6px; font-size:12px;">Weekly Overview</h2>`;
+    html += `<p style="margin-top:0;margin-bottom:8px;"><strong>Average Calories:</strong> ${Math.round(weeklyStats.avgCalories)} kcal</p>`;
+    html += `<h2 style="margin-top:6px;font-size:12px;">7-Day Meal Plan</h2>`;
 
     days.forEach((day, idx) => {
-        html += `<h3 style="margin:12px 0 6px 0;">${esc(day)} (Day ${idx+1})</h3>`;
-        html += `<table style="width:100%; border-collapse:collapse; margin-bottom:10px; font-size:11px;">`;
-        html += `<thead><tr style="background:#f3f4f6;"><th style="padding:6px; border:1px solid #e6e7e9; text-align:left; width:40%;">Meal</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:left; width:45%;">Food</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:center; width:15%;">Cal</th></tr></thead><tbody>`;
+        html += `<h3 style="margin:8px 0 6px 0; font-size:12px;">${esc(day)} (Day ${idx+1})</h3>`;
+        html += `<table style="width:100%; border-collapse:collapse; margin-bottom:8px; font-size:10px;">`;
+        html += `<thead><tr style="background:#f3f4f6;"><th style="padding:5px; border:1px solid #e6e7e9; text-align:left; width:40%;">Meal</th><th style="padding:5px; border:1px solid #e6e7e9; text-align:left; width:45%;">Food</th><th style="padding:5px; border:1px solid #e6e7e9; text-align:center; width:15%;">Cal</th></tr></thead><tbody>`;
         ['breakfast','lunch','dinner','snacks'].forEach(mt => {
             const meal = (currentMealPlan[day]||{})[mt];
             if (!meal) return;
             const foods = Array.isArray(meal.foods) ? meal.foods.map(f => (typeof f === 'string' ? f : (f.name||f.title||'')).trim()).filter(Boolean).slice(0,6).join(', ') : '';
             const title = getMealTitle(meal);
             const calories = safeNumber(meal.calories);
-            html += `<tr style="page-break-inside:avoid; -webkit-column-break-inside:avoid;"><td style="padding:6px;border:1px solid #e6e7e9;"><strong>${esc(title)}</strong></td><td style="padding:6px;border:1px solid #e6e7e9;">${esc(foods)}</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center;">${calories}</td></tr>`;
+            html += `<tr style="page-break-inside:avoid; -webkit-column-break-inside:avoid;"><td style="padding:5px;border:1px solid #e6e7e9;"><strong>${esc(title)}</strong></td><td style="padding:5px;border:1px solid #e6e7e9;">${esc(foods)}</td><td style="padding:5px;border:1px solid #e6e7e9;text-align:center;">${calories}</td></tr>`;
         });
         html += `</tbody></table>`;
     });
 
     html += `</div>`;
 
-    // create a temporary container and inject print-friendly CSS
     const temp = document.createElement('div');
     temp.style.boxSizing = 'border-box';
-    temp.style.width = '800px'; // a reasonable width for html2canvas -> A4 scaling
+    temp.style.width = '800px';
     temp.style.padding = '6px';
     temp.innerHTML = html;
 
-    // inject extra styles to help html2pdf keep headers and rows intact
     const style = document.createElement('style');
     style.innerHTML = `
         .dp-pdf-root { color: #222; }
-        table { border-collapse: collapse; }
+        table { border-collapse: collapse; font-size:10px; }
         thead { display: table-header-group; }
         tr { page-break-inside: avoid; -webkit-column-break-inside: avoid; }
         td, th { word-break: break-word; }
@@ -1478,9 +1569,8 @@ async function downloadPDF() {
     temp.insertBefore(style, temp.firstChild);
     document.body.appendChild(temp);
 
-    // html2pdf options - use pagebreak css mode and smaller margin
     const opt = {
-        margin: [8, 8, 8, 8], // top/right/bottom/left (mm)
+        margin: [6, 6, 6, 6],
         filename: `TheDietPlanner-MealPlan-${new Date().toISOString().slice(0,10)}.pdf`,
         image: { type: 'jpeg', quality: 0.95 },
         html2canvas: { scale: 1.5, useCORS: true, logging: false },
@@ -1499,66 +1589,62 @@ async function downloadPDF() {
     }
 }
 
-    /* ---------------------------
-       Load existing saved plan
-    --------------------------- */
-    function loadExistingPlan() {
-        try {
-            const stored = localStorage.getItem('last_generated_plan_v1');
-            if (!stored) return;
-            const data = JSON.parse(stored);
-            const generated = new Date(data.generated);
-            const now = new Date();
-            const daysDiff = (now - generated) / (1000*60*60*24);
-            if (daysDiff <= 7 && data.plan && data.profile) {
-                currentMealPlan = data.plan;
-                currentUserProfile = data.profile;
-                if (currentUserProfile) {
-                    Object.keys(currentUserProfile).forEach(key => {
-                        const fld = document.getElementById(key);
-                        if (fld && currentUserProfile[key] !== undefined) fld.value = currentUserProfile[key];
-                    });
-                }
-                if (currentMealPlan) {
-                    displayMealPlan(currentMealPlan, currentUserProfile);
-                    createCharts(currentMealPlan, currentUserProfile);
-                }
-                console.log('✅ Loaded existing plan from localStorage');
+// ---------------------------
+// Load existing saved plan
+function loadExistingPlan() {
+    try {
+        const stored = localStorage.getItem('last_generated_plan_v1');
+        if (!stored) return;
+        const data = JSON.parse(stored);
+        const generated = new Date(data.generated);
+        const now = new Date();
+        const daysDiff = (now - generated) / (1000*60*60*24);
+        if (daysDiff <= 7 && data.plan && data.profile) {
+            currentMealPlan = data.plan;
+            currentUserProfile = data.profile;
+            if (currentUserProfile) {
+                Object.keys(currentUserProfile).forEach(key => {
+                    const fld = document.getElementById(key);
+                    if (fld && currentUserProfile[key] !== undefined) fld.value = currentUserProfile[key];
+                });
             }
-        } catch (err) { console.error('Failed to load existing plan:', err); }
-    }
+            if (currentMealPlan) {
+                displayMealPlan(currentMealPlan, currentUserProfile);
+                createCharts(currentMealPlan, currentUserProfile);
+            }
+            console.log('✅ Loaded existing plan from localStorage');
+        }
+    } catch (err) { console.error('Failed to load existing plan:', err); }
+}
 
-    /* ---------------------------
-       DOMContentLoaded setup
-    --------------------------- */
-    document.addEventListener('DOMContentLoaded', () => {
-        // ensure functions are wired
-        initializeTheme();
-        initializeNavigation();
-        initializeMobileMenu();
-        initializeIntersectionObserver();
-        initializeResultsToggle();
-        initializeForm();
+// ---------------------------
+// DOMContentLoaded wiring
+document.addEventListener('DOMContentLoaded', () => {
+    initializeTheme();
+    initializeNavigation();
+    initializeMobileMenu();
+    initializeIntersectionObserver();
+    initializeResultsToggle();
+    initializeForm();
 
-        // wire send/csv/pdf buttons (safety)
-        const sendBtn = document.getElementById('sendToTrackerBtn');
-        if (sendBtn) sendBtn.addEventListener('click', sendToTrackerAndRedirect);
-        const csvBtn = document.getElementById('downloadCsvBtn');
-        if (csvBtn) csvBtn.addEventListener('click', downloadCSV);
-        const pdfBtn = document.getElementById('downloadPdfBtn');
-        if (pdfBtn) pdfBtn.addEventListener('click', downloadPDF);
+    const sendBtn = document.getElementById('sendToTrackerBtn');
+    if (sendBtn) sendBtn.addEventListener('click', sendToTrackerAndRedirect);
+    const csvBtn = document.getElementById('downloadCsvBtn');
+    if (csvBtn) csvBtn.addEventListener('click', downloadCSV);
+    const pdfBtn = document.getElementById('downloadPdfBtn');
+    if (pdfBtn) pdfBtn.addEventListener('click', downloadPDF);
 
-        loadMealsDatabase().catch(()=>{});
-        loadExistingPlan();
-        console.log('🍽️ Diet Planner loaded (consolidated script).');
-    });
+    // pre-load meals (non-blocking)
+    loadMealsDatabase().catch(()=>{});
+    loadExistingPlan();
+    console.log('🍽️ Diet Planner loaded (part 2).');
+});
 
-    // Expose key functions globally (safe)
-    window.sendToTrackerAndRedirect = sendToTrackerAndRedirect;
-    window.downloadCSV = downloadCSV;
-    window.downloadPDF = downloadPDF;
-    window.generateMealPlan = generateMealPlan;
-
-    </script>
+// Expose key functions globally
+window.sendToTrackerAndRedirect = sendToTrackerAndRedirect;
+window.downloadCSV = downloadCSV;
+window.downloadPDF = downloadPDF;
+window.generateMealPlan = generateMealPlan;
+</script>
 </body>
 </html>

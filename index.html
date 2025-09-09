@@ -82,6 +82,11 @@
         .table th{ background:var(--surface-color); padding:.75rem .5rem; text-align:left; font-weight:600; color:var(--text-primary); border-bottom:2px solid var(--border-color); font-size:.75rem; text-transform:uppercase; letter-spacing:.5px; }
         .table td{ padding:.75rem .5rem; border-bottom:1px solid var(--border-color); vertical-align:top; }
         .table tbody tr:hover{ background:var(--surface-color); }
+        .meal-table{ width:100%; border-collapse:collapse; background:var(--card-bg); margin:1rem 0; font-size:.85rem; box-shadow:var(--shadow); border-radius:var(--border-radius); overflow:hidden; }
+        .meal-table th{ background:var(--surface-color); padding:.75rem .5rem; text-align:left; font-weight:600; color:var(--text-primary); border-bottom:2px solid var(--border-color); font-size:.75rem; text-transform:uppercase; letter-spacing:.5px; }
+        .meal-table td{ padding:.75rem .5rem; border-bottom:1px solid var(--border-color); vertical-align:top; }
+        .meal-table tbody tr:hover{ background:var(--surface-color); }
+        .day-title{ margin:2rem 0 1rem 0; color:var(--text-primary); font-size:1.25rem; font-weight:600; border-bottom:2px solid var(--primary-color); padding-bottom:.5rem; }
         .meal-item{ font-weight:500; color:var(--text-primary); margin-bottom:.25rem; font-size:.85rem; }
         .meal-serving{ font-size:.75rem; color:var(--text-muted); margin-bottom:.25rem; }
         .meal-nutrients{ font-size:.7rem; color:var(--text-secondary); }
@@ -307,7 +312,6 @@
             </div>
         </main>
     </div>
-
 
     <!-- Single consolidated script block: PART 1 -->
     <script>
@@ -1290,7 +1294,18 @@ function displayStatsCards(weeklyPlan, profile) {
     const stats = calculateWeeklyStats(weeklyPlan);
     const container = document.getElementById('statsGrid');
     if (!container) return;
-    const targetDiff = Math.round(((stats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
+    // Calculate target difference considering user's goal
+    let targetDiff;
+    if (profile.goal === 'lose') {
+        // For weight loss: negative when eating less (good), positive when eating more (bad)
+        targetDiff = Math.round(((stats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
+    } else if (profile.goal === 'gain') {
+        // For weight gain: positive when eating more (good), negative when eating less (bad)  
+        targetDiff = Math.round(((stats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
+    } else {
+        // For maintain: same as current logic
+        targetDiff = Math.round(((stats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
+    }
     container.innerHTML = `
         <div class="stat-card fade-in">
             <div class="stat-title">Calories</div>
@@ -1319,7 +1334,11 @@ function displayStatsCards(weeklyPlan, profile) {
         </div>
         <div class="stat-card fade-in">
             <div class="stat-title">Target Diff</div>
-            <div class="stat-value ${targetDiff >= 0 ? 'text-success' : 'text-warning'}">${targetDiff >= 0 ? '+' : ''}${targetDiff}%</div>
+            <div class="stat-value ${
+        (profile.goal === 'lose' && targetDiff <= 0) || 
+        (profile.goal === 'gain' && targetDiff >= 0) || 
+        (profile.goal === 'maintain' && Math.abs(targetDiff) <= 5) ? 'text-success' : 'text-warning'
+    }">${targetDiff >= 0 ? '+' : ''}${targetDiff}%</div>
         </div>
     `;
 }
@@ -1699,14 +1718,14 @@ async function downloadPDF() {
     days.forEach((day, idx) => {
         html += `<h3 style="margin:8px 0 6px 0; font-size:12px;">${esc(day)} (Day ${idx+1})</h3>`;
         html += `<table style="width:100%; border-collapse:collapse; margin-bottom:8px; font-size:10px;">`;
-        html += `<thead><tr style="background:#f3f4f6;"><th style="padding:5px; border:1px solid #e6e7e9; text-align:left; width:40%;">Meal</th><th style="padding:5px; border:1px solid #e6e7e9; text-align:left; width:45%;">Food</th><th style="padding:5px; border:1px solid #e6e7e9; text-align:center; width:15%;">Cal</th></tr></thead><tbody>`;
+        html += `<thead><tr style="background:#f3f4f6;"><th style="padding:6px; border:1px solid #e6e7e9; text-align:left; width:12%; font-size:11px;">Meal</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:left; width:40%; font-size:11px;">Food</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:center; width:8%; font-size:11px;">Cal</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:center; width:10%; font-size:11px;">Protein</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:center; width:10%; font-size:11px;">Carbs</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:center; width:10%; font-size:11px;">Fat</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:center; width:10%; font-size:11px;">Fiber</th></tr></thead><tbody>`;
         ['breakfast','lunch','dinner','snacks'].forEach(mt => {
             const meal = (currentMealPlan[day]||{})[mt];
             if (!meal) return;
             const foods = Array.isArray(meal.foods) ? meal.foods.map(f => (typeof f === 'string' ? f : (f.name||f.title||'')).trim()).filter(Boolean).slice(0,6).join(', ') : '';
             const title = getMealTitle(meal);
             const calories = safeNumber(meal.calories);
-            html += `<tr style="page-break-inside:avoid; -webkit-column-break-inside:avoid;"><td style="padding:5px;border:1px solid #e6e7e9;"><strong>${esc(title)}</strong></td><td style="padding:5px;border:1px solid #e6e7e9;">${esc(foods)}</td><td style="padding:5px;border:1px solid #e6e7e9;text-align:center;">${calories}</td></tr>`;
+            html += `<tr style="page-break-inside:avoid; -webkit-column-break-inside:avoid;"><td style="padding:6px;border:1px solid #e6e7e9; font-size:11px;"><strong>${esc(mt.charAt(0).toUpperCase() + mt.slice(1))}</strong></td><td style="padding:6px;border:1px solid #e6e7e9; font-size:11px;">${esc(title)}${foods ? ' — ' + esc(foods) : ''}</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center; font-size:11px;">${calories}</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center; font-size:11px;">${safeNumber(meal.protein)}g</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center; font-size:11px;">${safeNumber(meal.carbs)}g</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center; font-size:11px;">${safeNumber(meal.fat)}g</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center; font-size:11px;">${safeNumber(meal.fiber)}g</td></tr>`;
         });
         html += `</tbody></table>`;
     });
@@ -1715,7 +1734,7 @@ async function downloadPDF() {
 
     const temp = document.createElement('div');
     temp.style.boxSizing = 'border-box';
-    temp.style.width = '800px';
+    temp.style.width = '1200px';
     temp.style.padding = '6px';
     temp.innerHTML = html;
 
@@ -1735,7 +1754,7 @@ async function downloadPDF() {
         filename: `TheDietPlanner-MealPlan-${new Date().toISOString().slice(0,10)}.pdf`,
         image: { type: 'jpeg', quality: 0.95 },
         html2canvas: { scale: 1.5, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
         pagebreak: { mode: ['css', 'legacy'] }
     };
 

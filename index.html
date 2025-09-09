@@ -815,19 +815,26 @@
 
         let tdee = bmr * factor;
 
+        // Modified logic for 0.5-1kg per week weight change
+        // 1kg fat = ~7700 calories, so 0.5-1kg/week = 3850-7700 cal/week = 550-1100 cal/day
+        // Using 0.75kg/week target = 825 calories/day adjustment
+        const weeklyWeightTarget = 0.75; // kg per week (middle of 0.5-1kg range)
+        const dailyCalorieAdjustment = (weeklyWeightTarget * 7700) / 7; // ~825 calories/day
+
         switch ((profile.goal || '').toString().toLowerCase()) {
             case 'loss':
             case 'lose':
             case 'weight_loss':
-                tdee *= 0.8;
+                tdee -= dailyCalorieAdjustment; // Subtract for weight loss
                 break;
             case 'gain':
             case 'muscle':
             case 'weight_gain':
-                tdee *= 1.15;
+                tdee += dailyCalorieAdjustment; // Add for weight gain
                 break;
             case 'maintain':
             default:
+                // No adjustment for maintenance
                 break;
         }
 
@@ -1294,18 +1301,13 @@ function displayStatsCards(weeklyPlan, profile) {
     const stats = calculateWeeklyStats(weeklyPlan);
     const container = document.getElementById('statsGrid');
     if (!container) return;
-    // Calculate target difference considering user's goal
-    let targetDiff;
-    if (profile.goal === 'lose') {
-        // For weight loss: negative when eating less (good), positive when eating more (bad)
-        targetDiff = Math.round(((stats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
-    } else if (profile.goal === 'gain') {
-        // For weight gain: positive when eating more (good), negative when eating less (bad)  
-        targetDiff = Math.round(((stats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
-    } else {
-        // For maintain: same as current logic
-        targetDiff = Math.round(((stats.avgCalories - profile.targetCalories) / profile.targetCalories) * 100);
-    }
+    // Calculate target difference in kg/week instead of percentage
+    // 1kg fat = ~7700 calories, so calorie difference / 7700 * 7 = kg per week
+    const calorieDiff = stats.avgCalories - profile.targetCalories;
+    const targetDiffKgPerWeek = Math.round((calorieDiff / 7700 * 7) * 100) / 100; // Round to 2 decimal places
+
+    // For display: positive means gaining weight, negative means losing weight
+    const targetDiff = targetDiffKgPerWeek;
     container.innerHTML = `
         <div class="stat-card fade-in">
             <div class="stat-title">Calories</div>
@@ -1333,12 +1335,8 @@ function displayStatsCards(weeklyPlan, profile) {
             <div class="stat-target">/ 25g</div>
         </div>
         <div class="stat-card fade-in">
-            <div class="stat-title">Target Diff</div>
-            <div class="stat-value ${
-        (profile.goal === 'lose' && targetDiff <= 0) || 
-        (profile.goal === 'gain' && targetDiff >= 0) || 
-        (profile.goal === 'maintain' && Math.abs(targetDiff) <= 5) ? 'text-success' : 'text-warning'
-    }">${targetDiff >= 0 ? '+' : ''}${targetDiff}%</div>
+            <div class="stat-title">Weight Change</div>
+            <div class="stat-value ${Math.abs(targetDiff) <= 1.0 ? 'text-success' : 'text-warning'}">${targetDiff >= 0 ? '+' : ''}${targetDiff} kg/week</div>
         </div>
     `;
 }
@@ -1718,14 +1716,14 @@ async function downloadPDF() {
     days.forEach((day, idx) => {
         html += `<h3 style="margin:8px 0 6px 0; font-size:12px;">${esc(day)} (Day ${idx+1})</h3>`;
         html += `<table style="width:100%; border-collapse:collapse; margin-bottom:8px; font-size:10px;">`;
-        html += `<thead><tr style="background:#f3f4f6;"><th style="padding:6px; border:1px solid #e6e7e9; text-align:left; width:12%; font-size:11px;">Meal</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:left; width:40%; font-size:11px;">Food</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:center; width:8%; font-size:11px;">Cal</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:center; width:10%; font-size:11px;">Protein</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:center; width:10%; font-size:11px;">Carbs</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:center; width:10%; font-size:11px;">Fat</th><th style="padding:6px; border:1px solid #e6e7e9; text-align:center; width:10%; font-size:11px;">Fiber</th></tr></thead><tbody>`;
+        html += `<thead><tr style="background:#f3f4f6;"><th style="padding:4px; border:1px solid #e6e7e9; text-align:left; width:15%;">Meal</th><th style="padding:4px; border:1px solid #e6e7e9; text-align:left; width:35%;">Food</th><th style="padding:4px; border:1px solid #e6e7e9; text-align:center; width:10%;">Cal</th><th style="padding:4px; border:1px solid #e6e7e9; text-align:center; width:10%;">Protein</th><th style="padding:4px; border:1px solid #e6e7e9; text-align:center; width:10%;">Carbs</th><th style="padding:4px; border:1px solid #e6e7e9; text-align:center; width:10%;">Fat</th><th style="padding:4px; border:1px solid #e6e7e9; text-align:center; width:10%;">Fiber</th></tr></thead><tbody>`;
         ['breakfast','lunch','dinner','snacks'].forEach(mt => {
             const meal = (currentMealPlan[day]||{})[mt];
             if (!meal) return;
             const foods = Array.isArray(meal.foods) ? meal.foods.map(f => (typeof f === 'string' ? f : (f.name||f.title||'')).trim()).filter(Boolean).slice(0,6).join(', ') : '';
             const title = getMealTitle(meal);
             const calories = safeNumber(meal.calories);
-            html += `<tr style="page-break-inside:avoid; -webkit-column-break-inside:avoid;"><td style="padding:6px;border:1px solid #e6e7e9; font-size:11px;"><strong>${esc(mt.charAt(0).toUpperCase() + mt.slice(1))}</strong></td><td style="padding:6px;border:1px solid #e6e7e9; font-size:11px;">${esc(title)}${foods ? ' — ' + esc(foods) : ''}</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center; font-size:11px;">${calories}</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center; font-size:11px;">${safeNumber(meal.protein)}g</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center; font-size:11px;">${safeNumber(meal.carbs)}g</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center; font-size:11px;">${safeNumber(meal.fat)}g</td><td style="padding:6px;border:1px solid #e6e7e9;text-align:center; font-size:11px;">${safeNumber(meal.fiber)}g</td></tr>`;
+            html += `<tr style="page-break-inside:avoid; -webkit-column-break-inside:avoid;"><td style="padding:4px;border:1px solid #e6e7e9;"><strong>${esc(mt.charAt(0).toUpperCase() + mt.slice(1))}</strong></td><td style="padding:4px;border:1px solid #e6e7e9;">${esc(title)}${foods ? ' — ' + esc(foods) : ''}</td><td style="padding:4px;border:1px solid #e6e7e9;text-align:center;">${calories}</td><td style="padding:4px;border:1px solid #e6e7e9;text-align:center;">${safeNumber(meal.protein)}g</td><td style="padding:4px;border:1px solid #e6e7e9;text-align:center;">${safeNumber(meal.carbs)}g</td><td style="padding:4px;border:1px solid #e6e7e9;text-align:center;">${safeNumber(meal.fat)}g</td><td style="padding:4px;border:1px solid #e6e7e9;text-align:center;">${safeNumber(meal.fiber)}g</td></tr>`;
         });
         html += `</tbody></table>`;
     });

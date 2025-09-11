@@ -1046,7 +1046,9 @@ function pickMealCandidate(candidates, usedIds, targetForMeal, seed) {
     });
 
     // 1) unused & in-range (60%-140%)
-    let suitable = candList.filter(c => !usedIds.has(c.id) && (c.calories === 0 || (c.calories >= targetForMeal*0.6 && c.calories <= targetForMeal*1.4)));
+   const lowerFactor = targetForMeal > 800 ? 0.4 : 0.6;
+const upperFactor = targetForMeal > 800 ? 2.0 : 1.4;
+let suitable = candList.filter(c => !usedIds.has(c.id) && (c.calories === 0 || (c.calories >= targetForMeal*lowerFactor && c.calories <= targetForMeal*upperFactor)));
     // 2) in-range (any)
     if (suitable.length === 0) suitable = candList.filter(c => (c.calories === 0 || (c.calories >= targetForMeal*0.6 && c.calories <= targetForMeal*1.4)));
     // 3) unused
@@ -1094,6 +1096,28 @@ function selectMealsForWeek(meals, targetCalories, profile) {
                 availableMeals = [];
                 Object.keys(pools).forEach(k => { if (Array.isArray(pools[k])) availableMeals.push(...pools[k]); });
             }
+            // --- Bias selection based on goal (muscle/gain) and vegetarian preference ---
+            try {
+                const goal = (profile && (profile.goal || '')).toString().toLowerCase();
+                const dietType = (profile && (profile.dietType || '')).toString().toLowerCase();
+
+                // If user asked for vegetarian only, prefer vegetarian meals
+                if (dietType.includes('veget') && Array.isArray(availableMeals)) {
+                    const vegCandidates = availableMeals.filter(m => isMealVegetarian(m));
+                    if (vegCandidates.length) availableMeals = vegCandidates;
+                }
+
+                if (goal === 'muscle') {
+                    // prefer higher protein meals first (fall back to calories)
+                    availableMeals.sort((a,b) => (safeNumber(b.protein) - safeNumber(a.protein)) || (safeNumber(b.calories) - safeNumber(a.calories)));
+                } else if (goal === 'gain') {
+                    // prefer higher-calorie meals first
+                    availableMeals.sort((a,b) => safeNumber(b.calories) - safeNumber(a.calories));
+                }
+            } catch (e) {
+                // non-fatal: keep the original availableMeals if anything goes wrong
+                console.warn('[DietPlanner] goal-based bias failed:', e);
+            }
 
             if (!availableMeals || availableMeals.length === 0) {
                 // extreme fallback
@@ -1136,10 +1160,13 @@ function selectMealsForWeek(meals, targetCalories, profile) {
 // Generate & display plan (final)
 // ---------------------------
 
+// More robust normalizer: remove everything that's not a-z0-9 so
+// "Middle_East", "Middle East", "MiddleEast", "middle-east" all normalize to "middleeast".
 function normalizeKey(value) {
-    if (!value) return "";
-    return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+    if (!value && value !== 0) return "";
+    return String(value).toLowerCase().replace(/[^a-z0-9]/g, '');
 }
+
 
 // Replace existing generateMealPlan with this defensive version
 async function generateMealPlan() {

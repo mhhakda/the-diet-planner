@@ -1,123 +1,1130 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="description" content="Diet Planner — generate personalised daily & weekly meal plans, export PDFs, and track meals." />
-    <title>🍽️ Diet Planner - The Diet Planner</title>
-
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description" content="Diet Planner - generate personalised daily weekly meal plans, export PDFs, and track meals.">
+    <title>Diet Planner - The Diet Planner</title>
+    
+    <!-- Diet Tracker Consistent Styling -->
     <style>
-        /* === CSS (kept as provided) === */
-        :root{
-            --bg-color:#ffffff; --surface-color:#f8f9fa; --card-bg:#ffffff; --text-primary:#212529;
-            --text-secondary:#6c757d; --text-muted:#adb5bd; --border-color:#dee2e6; --primary-color:#007bff;
-            --success-color:#28a745; --warning-color:#ffc107; --danger-color:#dc3545; --shadow:0 0.125rem 0.25rem rgba(0,0,0,0.075);
-            --shadow-lg:0 0.5rem 1rem rgba(0,0,0,0.15); --border-radius:0.375rem; --border-radius-lg:0.5rem;
-            --font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --progress-bg:#e9ecef; --progress-height:8px;
+        /* Diet Tracker Design System - Applied to Diet Planner */
+        :root {
+            /* Color System from Diet Tracker */
+            --color-white: rgba(255, 255, 255, 1);
+            --color-black: rgba(0, 0, 0, 1);
+            --color-cream-50: rgba(252, 252, 249, 1);
+            --color-cream-100: rgba(255, 255, 253, 1);
+            --color-gray-200: rgba(245, 245, 245, 1);
+            --color-gray-300: rgba(167, 169, 169, 1);
+            --color-gray-400: rgba(119, 124, 124, 1);
+            --color-slate-500: rgba(98, 108, 113, 1);
+            --color-brown-600: rgba(94, 82, 64, 1);
+            --color-charcoal-700: rgba(31, 33, 33, 1);
+            --color-charcoal-800: rgba(38, 40, 40, 1);
+            --color-slate-900: rgba(19, 52, 59, 1);
+            --color-teal-300: rgba(50, 184, 198, 1);
+            --color-teal-400: rgba(45, 166, 178, 1);
+            --color-teal-500: rgba(33, 128, 141, 1);
+            --color-teal-600: rgba(29, 116, 128, 1);
+            --color-teal-700: rgba(26, 104, 115, 1);
+            --color-teal-800: rgba(41, 150, 161, 1);
+            --color-red-400: rgba(255, 84, 89, 1);
+            --color-red-500: rgba(192, 21, 47, 1);
+            --color-orange-400: rgba(230, 129, 97, 1);
+            --color-orange-500: rgba(168, 75, 47, 1);
+
+            /* RGB versions for opacity control */
+            --color-brown-600-rgb: 94, 82, 64;
+            --color-teal-500-rgb: 33, 128, 141;
+            --color-slate-900-rgb: 19, 52, 59;
+            --color-slate-500-rgb: 98, 108, 113;
+            --color-red-500-rgb: 192, 21, 47;
+            --color-red-400-rgb: 255, 84, 89;
+            --color-orange-500-rgb: 168, 75, 47;
+            --color-orange-400-rgb: 230, 129, 97;
+
+            /* Semantic Colors */
+            --color-background: var(--color-cream-50);
+            --color-surface: var(--color-cream-100);
+            --color-text: var(--color-slate-900);
+            --color-text-secondary: var(--color-slate-500);
+            --color-primary: var(--color-teal-500);
+            --color-primary-hover: var(--color-teal-600);
+            --color-primary-active: var(--color-teal-700);
+            --color-secondary: rgba(var(--color-brown-600-rgb), 0.12);
+            --color-secondary-hover: rgba(var(--color-brown-600-rgb), 0.2);
+            --color-secondary-active: rgba(var(--color-brown-600-rgb), 0.25);
+            --color-border: rgba(var(--color-brown-600-rgb), 0.2);
+            --color-btn-primary-text: var(--color-cream-50);
+            --color-card-border: rgba(var(--color-brown-600-rgb), 0.12);
+            --color-card-border-inner: rgba(var(--color-brown-600-rgb), 0.12);
+            --color-error: var(--color-red-500);
+            --color-success: var(--color-teal-500);
+            --color-warning: var(--color-orange-500);
+            --color-info: var(--color-slate-500);
+            --color-focus-ring: rgba(var(--color-teal-500-rgb), 0.4);
+
+            /* Typography - Diet Tracker Font System */
+            --font-family-base: 'FKGroteskNeue', 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-family-mono: 'Berkeley Mono', ui-monospace, 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace;
+            --font-size-xs: 11px;
+            --font-size-sm: 12px;
+            --font-size-base: 14px;
+            --font-size-md: 14px;
+            --font-size-lg: 16px;
+            --font-size-xl: 18px;
+            --font-size-2xl: 20px;
+            --font-size-3xl: 24px;
+            --font-size-4xl: 30px;
+            --font-weight-normal: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 550;
+            --font-weight-bold: 600;
+            --line-height-tight: 1.2;
+            --line-height-normal: 1.5;
+            --letter-spacing-tight: -0.01em;
+
+            /* Spacing */
+            --space-0: 0;
+            --space-1: 1px;
+            --space-2: 2px;
+            --space-4: 4px;
+            --space-6: 6px;
+            --space-8: 8px;
+            --space-10: 10px;
+            --space-12: 12px;
+            --space-16: 16px;
+            --space-20: 20px;
+            --space-24: 24px;
+            --space-32: 32px;
+
+            /* Border Radius */
+            --radius-sm: 6px;
+            --radius-base: 8px;
+            --radius-md: 10px;
+            --radius-lg: 12px;
+            --radius-full: 9999px;
+
+            /* Shadows */
+            --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.02);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+
+            /* Animation */
+            --duration-fast: 150ms;
+            --duration-normal: 250ms;
+            --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+
+            /* Layout */
+            --container-sm: 640px;
+            --container-md: 768px;
+            --container-lg: 1024px;
+            --container-xl: 1280px;
+
+            /* App-specific variables */
+            --app-max-width: var(--container-xl);
+            --header-height: 70px;
+            --sidebar-width: 280px;
         }
-        [data-theme="dark"]{
-            --bg-color:#1a1a1a; --surface-color:#2d2d2d; --card-bg:#2d2d2d; --text-primary:#fff; --text-secondary:#b3b3b3;
-            --text-muted:#6c6c6c; --border-color:#404040; --shadow:0 0.125rem 0.25rem rgba(0,0,0,0.3); --shadow-lg:0 0.5rem 1rem rgba(0,0,0,0.4);
-            --progress-bg:#404040;
+
+        /* Dark mode */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-background: var(--color-charcoal-700);
+                --color-surface: var(--color-charcoal-800);
+                --color-text: var(--color-gray-200);
+                --color-text-secondary: rgba(var(--color-gray-300-rgb), 0.7);
+                --color-primary: var(--color-teal-300);
+                --color-primary-hover: var(--color-teal-400);
+                --color-primary-active: var(--color-teal-800);
+                --color-secondary: rgba(var(--color-gray-400-rgb), 0.15);
+                --color-secondary-hover: rgba(var(--color-gray-400-rgb), 0.25);
+                --color-secondary-active: rgba(var(--color-gray-400-rgb), 0.3);
+                --color-border: rgba(var(--color-gray-400-rgb), 0.3);
+                --color-error: var(--color-red-400);
+                --color-success: var(--color-teal-300);
+                --color-warning: var(--color-orange-400);
+                --color-info: var(--color-gray-300);
+                --color-focus-ring: rgba(var(--color-teal-300-rgb), 0.4);
+                --color-btn-primary-text: var(--color-slate-900);
+                --color-card-border: rgba(var(--color-gray-400-rgb), 0.2);
+                --color-card-border-inner: rgba(var(--color-gray-400-rgb), 0.15);
+            }
         }
-        *{ margin:0; padding:0; box-sizing:border-box; }
-        html{ scroll-behavior:smooth; }
-        body{ font-family:var(--font-family); line-height:1.5; color:var(--text-primary); background-color:var(--bg-color); transition:background-color .3s ease, color .3s ease; }
-        .app-container{ display:flex; min-height:100vh; }
-        .sidebar{ width:280px; background:var(--card-bg); border-right:1px solid var(--border-color); position:fixed; height:100vh; left:0; top:0; z-index:1000; overflow-y:auto; transition:transform .3s ease; }
-        .sidebar-header{ padding:1.5rem; border-bottom:1px solid var(--border-color); text-align:center; }
-        .logo{ font-size:1.5rem; font-weight:bold; color:var(--text-primary); margin-bottom:.25rem; }
-        .tagline{ font-size:.875rem; color:var(--text-secondary); }
-        .nav-menu{ padding:1rem; }
-        .nav-item{ display:flex; align-items:center; padding:.75rem 1rem; margin-bottom:.25rem; border-radius:var(--border-radius); color:var(--text-secondary); text-decoration:none; transition:all .2s ease; cursor:pointer; border:none; background:none; width:100%; text-align:left; font-size:.95rem; font-family:inherit; }
-        .nav-item:hover{ background:var(--surface-color); color:var(--text-primary); }
-        .nav-item.active{ background:var(--surface-color); color:var(--primary-color); font-weight:500; }
-        .nav-icon{ margin-right:.75rem; font-size:1.1rem; }
-        .mobile-header{ display:none; background:var(--card-bg); border-bottom:1px solid var(--border-color); padding:1rem; position:fixed; top:0; left:0; right:0; z-index:1001; justify-content:space-between; align-items:center; }
-        .mobile-menu-button{ background:none; border:none; font-size:1.5rem; color:var(--text-primary); cursor:pointer; padding:.25rem; }
-        .mobile-logo{ font-size:1.25rem; font-weight:bold; color:var(--text-primary); }
-        .theme-toggle{ background:none; border:none; font-size:1.25rem; cursor:pointer; padding:.25rem; color:var(--text-primary); }
-        .main-content{ flex:1; margin-left:280px; background:var(--surface-color); min-height:100vh; position:relative; overflow:hidden; }
-        .content-wrapper{ padding:2rem; height:100vh; display:flex; flex-direction:column; }
-        .section-header{ margin-bottom:2rem; text-align:center; flex-shrink:0; }
-        .section-title{ font-size:2rem; font-weight:600; color:var(--text-primary); margin-bottom:.5rem; }
-        .section-subtitle{ color:var(--text-secondary); font-size:1rem; }
-        .form-section{ opacity:1; transition:opacity .4s ease, transform .4s ease; flex:1; overflow-y:auto; }
-        .form-section.hidden{ opacity:0; transform:translateY(-20px); pointer-events:none; position:absolute; width:100%; }
-        .results-container{ opacity:0; transform:translateY(30px); transition:opacity .5s ease, transform .5s ease; pointer-events:none; position:absolute; top:2rem; left:2rem; right:2rem; bottom:2rem; display:flex; flex-direction:column; }
-        .results-container.visible{ opacity:1; transform:translateY(0); pointer-events:all; }
-        .results-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-shrink:0; }
-        .results-title{ font-size:1.75rem; font-weight:600; color:var(--text-primary); margin:0; }
-        .edit-profile-btn{ display:flex; align-items:center; gap:.5rem; padding:.625rem 1.25rem; background:var(--surface-color); border:1px solid var(--border-color); border-radius:var(--border-radius); color:var(--text-secondary); text-decoration:none; font-size:.9rem; font-weight:500; cursor:pointer; transition:all .2s ease; }
-        .edit-profile-btn:hover{ background:var(--border-color); color:var(--text-primary); }
-        .results-content{ background:var(--card-bg); border:1px solid var(--border-color); border-radius:var(--border-radius-lg); box-shadow:var(--shadow-lg); flex:1; overflow:hidden; display:flex; flex-direction:column; }
-        .results-scroll{ flex:1; overflow-y:auto; scroll-behavior:smooth; padding:1rem; }
-        .card{ background:var(--card-bg); border:1px solid var(--border-color); border-radius:var(--border-radius-lg); box-shadow:var(--shadow); margin-bottom:1rem; overflow:hidden; }
-        .card-header{ padding:1rem 1.25rem; border-bottom:1px solid var(--border-color); background:var(--surface-color); }
-        .card-title{ font-size:1rem; font-weight:600; color:var(--text-primary); margin:0; }
-        .card-body{ padding:1.25rem; }
-        .form-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.25rem; margin-bottom:1.5rem; }
-        .form-group{ margin-bottom:1rem; }
-        .form-label{ display:block; margin-bottom:.5rem; font-weight:500; color:var(--text-primary); font-size:.9rem; }
-        .form-control{ width:100%; padding:.75rem; font-size:.9rem; border:1px solid var(--border-color); border-radius:var(--border-radius); background:var(--card-bg); color:var(--text-primary); font-family:inherit; transition:border-color .2s ease, box-shadow .2s ease; }
-        .form-control:focus{ outline:none; border-color:var(--primary-color); box-shadow:0 0 0 2px rgba(0,123,255,0.25); }
-        .form-control.is-invalid{ border-color:var(--danger-color); }
-        .invalid-feedback{ display:block; margin-top:.25rem; font-size:.8rem; color:var(--danger-color); }
-        .btn{ display:inline-block; padding:.75rem 1.5rem; margin:.25rem; font-size:.9rem; font-weight:500; text-align:center; text-decoration:none; border:1px solid transparent; border-radius:var(--border-radius); cursor:pointer; transition:all .2s ease; font-family:inherit; }
-        .btn-primary{ color:#fff; background-color:var(--primary-color); border-color:var(--primary-color); }
-        .btn-primary:hover{ background-color:#0056b3; border-color:#004085; transform:translateY(-1px); }
-        .btn-success{ color:#fff; background-color:var(--success-color); border-color:var(--success-color); }
-        .btn-success:hover{ background-color:#1e7e34; border-color:#1c7430; }
-        .btn:disabled{ opacity:.65; cursor:not-allowed; transform:none !important; }
-        .btn-group{ display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; margin:1rem 0; }
-        .stats-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:.75rem; margin-bottom:1.5rem; }
-        .stat-card{ background:var(--card-bg); border:1px solid var(--border-color); border-radius:var(--border-radius); padding:1rem .75rem; text-align:center; box-shadow:var(--shadow); }
-        .stat-title{ font-size:.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:.5rem; text-transform:uppercase; letter-spacing:.5px; }
-        .stat-value{ font-size:1.5rem; font-weight:bold; color:var(--text-primary); line-height:1.2; }
-        .stat-unit{ font-size:.75rem; color:var(--text-muted); }
-        .stat-target{ font-size:.75rem; color:var(--text-secondary); margin-top:.25rem; }
-        .table-responsive{ overflow-x:auto; border-radius:var(--border-radius-lg); border:1px solid var(--border-color); box-shadow:var(--shadow); margin-bottom:1.5rem; }
-        .table{ width:100%; border-collapse:collapse; background:var(--card-bg); margin:0; font-size:.85rem; }
-        .table th{ background:var(--surface-color); padding:.75rem .5rem; text-align:left; font-weight:600; color:var(--text-primary); border-bottom:2px solid var(--border-color); font-size:.75rem; text-transform:uppercase; letter-spacing:.5px; }
-        .table td{ padding:.75rem .5rem; border-bottom:1px solid var(--border-color); vertical-align:top; }
-        .table tbody tr:hover{ background:var(--surface-color); }
-        .meal-table{ width:100%; border-collapse:collapse; background:var(--card-bg); margin:1rem 0; font-size:.85rem; box-shadow:var(--shadow); border-radius:var(--border-radius); overflow:hidden; }
-        .meal-table th{ background:var(--surface-color); padding:.75rem .5rem; text-align:left; font-weight:600; color:var(--text-primary); border-bottom:2px solid var(--border-color); font-size:.75rem; text-transform:uppercase; letter-spacing:.5px; }
-        .meal-table td{ padding:.75rem .5rem; border-bottom:1px solid var(--border-color); vertical-align:top; }
-        .meal-table tbody tr:hover{ background:var(--surface-color); }
-        .day-title{ margin:2rem 0 1rem 0; color:var(--text-primary); font-size:1.25rem; font-weight:600; border-bottom:2px solid var(--primary-color); padding-bottom:.5rem; }
-        .meal-item{ font-weight:500; color:var(--text-primary); margin-bottom:.25rem; font-size:.85rem; }
-        .meal-serving{ font-size:.75rem; color:var(--text-muted); margin-bottom:.25rem; }
-        .meal-nutrients{ font-size:.7rem; color:var(--text-secondary); }
-        .day-header{ font-weight:600; color:var(--primary-color); }
-        .charts-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1rem; margin-bottom:1.5rem; }
-        .chart-container{ background:var(--card-bg); border:1px solid var(--border-color); border-radius:var(--border-radius-lg); padding:1rem; box-shadow:var(--shadow); }
-        .chart-title{ font-size:.95rem; font-weight:600; color:var(--text-primary); margin-bottom:.75rem; text-align:center; }
-        .chart-container canvas{ max-height:200px; }
-        .export-section{ background:var(--card-bg); border:1px solid var(--border-color); border-radius:var(--border-radius-lg); padding:1rem; margin-bottom:1rem; }
-        .export-title{ font-size:1rem; font-weight:600; color:var(--text-primary); margin-bottom:1rem; text-align:center; }
-        .loading{ display:none; text-align:center; padding:2rem; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--card-bg); border-radius:var(--border-radius-lg); box-shadow:var(--shadow-lg); z-index:1002; }
-        .spinner{ border:4px solid var(--progress-bg); border-top:4px solid var(--primary-color); border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; margin:0 auto 1rem; }
-        @keyframes spin{ 0%{ transform:rotate(0deg);} 100%{ transform:rotate(360deg);} }
-        .loading-text{ color:var(--text-secondary); font-size:.9rem; }
-        .redirect-overlay{ position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:none; justify-content:center; align-items:center; z-index:9999; color:white; text-align:center; }
-        .redirect-content{ background:var(--card-bg); padding:2rem; border-radius:var(--border-radius-lg); box-shadow:var(--shadow-lg); max-width:400px; color:var(--text-primary); }
-        .redirect-spinner{ border:4px solid var(--progress-bg); border-top:4px solid var(--primary-color); border-radius:50%; width:50px; height:50px; animation:spin 1s linear infinite; margin:0 auto 1rem; }
-        @media (max-width:768px){ .sidebar{ transform:translateX(-100%);} .sidebar.mobile-open{ transform:translateX(0);} .mobile-header{ display:flex;} .main-content{ margin-left:0;} .content-wrapper{ padding:1rem; padding-top:5rem;} .results-container{ left:1rem; right:1rem; top:5rem; bottom:1rem;} .results-content{ max-height:85vh;} .form-grid{ grid-template-columns:1fr; gap:1rem;} .stats-grid{ grid-template-columns:repeat(2,1fr); gap:.5rem;} .charts-grid{ grid-template-columns:1fr; gap:.75rem;} .btn-group{ flex-direction:column; align-items:center;} .btn{ width:100%; max-width:300px;} .section-title{ font-size:1.5rem;} .results-header{ flex-direction:column; gap:1rem; align-items:stretch;} .edit-profile-btn{ justify-content:center;} }
-        @media (max-width:480px){ .stats-grid{ grid-template-columns:1fr; } .stat-card{ padding:.75rem .5rem; } .table th, .table td{ padding:.5rem .25rem; font-size:.75rem; } .chart-container canvas{ max-height:150px; } }
-        .text-center{ text-align:center; } .text-muted{ color:var(--text-muted); } .text-primary{ color:var(--primary-color); } .text-success{ color:var(--success-color); } .text-warning{ color:var(--warning-color); } .text-danger{ color:var(--danger-color); } .d-none{ display:none; } .d-block{ display:block; } .mobile-overlay{ display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:999; } .mobile-overlay.active{ display:block; } .fade-in{ animation:fadeIn .6s ease-out; } @keyframes fadeIn{ from{ opacity:0; transform:translateY(20px);} to{ opacity:1; transform:translateY(0);} } .results-scroll::-webkit-scrollbar{ width:8px;} .results-scroll::-webkit-scrollbar-track{ background:var(--surface-color); border-radius:4px; } .results-scroll::-webkit-scrollbar-thumb{ background:var(--border-color); border-radius:4px; } .results-scroll::-webkit-scrollbar-thumb:hover{ background:var(--text-muted); }
+
+        [data-theme="dark"] {
+            --color-background: var(--color-charcoal-700);
+            --color-surface: var(--color-charcoal-800);
+            --color-text: var(--color-gray-200);
+            --color-text-secondary: rgba(var(--color-gray-300-rgb), 0.7);
+            --color-primary: var(--color-teal-300);
+            --color-primary-hover: var(--color-teal-400);
+            --color-primary-active: var(--color-teal-800);
+            --color-secondary: rgba(var(--color-gray-400-rgb), 0.15);
+            --color-secondary-hover: rgba(var(--color-gray-400-rgb), 0.25);
+            --color-secondary-active: rgba(var(--color-gray-400-rgb), 0.3);
+            --color-border: rgba(var(--color-gray-400-rgb), 0.3);
+            --color-error: var(--color-red-400);
+            --color-success: var(--color-teal-300);
+            --color-warning: var(--color-orange-400);
+            --color-info: var(--color-gray-300);
+            --color-focus-ring: rgba(var(--color-teal-300-rgb), 0.4);
+            --color-btn-primary-text: var(--color-slate-900);
+            --color-card-border: rgba(var(--color-gray-400-rgb), 0.2);
+            --color-card-border-inner: rgba(var(--color-gray-400-rgb), 0.15);
+        }
+
+        /* Base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: var(--font-size-base);
+            font-family: var(--font-family-base);
+            line-height: var(--line-height-normal);
+            color: var(--color-text);
+            background-color: var(--color-background);
+            -webkit-font-smoothing: antialiased;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-family-base);
+            background-color: var(--color-background);
+            color: var(--color-text);
+            line-height: var(--line-height-normal);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            margin: 0;
+            font-weight: var(--font-weight-semibold);
+            line-height: var(--line-height-tight);
+            color: var(--color-text);
+            letter-spacing: var(--letter-spacing-tight);
+        }
+
+        h1 { font-size: var(--font-size-4xl); }
+        h2 { font-size: var(--font-size-3xl); }
+        h3 { font-size: var(--font-size-2xl); }
+        h4 { font-size: var(--font-size-xl); }
+        h5 { font-size: var(--font-size-lg); }
+        h6 { font-size: var(--font-size-md); }
+
+        p {
+            margin: 0 0 var(--space-16) 0;
+        }
+
+        a {
+            color: var(--color-primary);
+            text-decoration: none;
+            transition: color var(--duration-fast) var(--ease-standard);
+        }
+
+        a:hover {
+            color: var(--color-primary-hover);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-8) var(--space-16);
+            border-radius: var(--radius-base);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-medium);
+            line-height: var(--line-height-normal);
+            cursor: pointer;
+            transition: all var(--duration-normal) var(--ease-standard);
+            border: none;
+            text-decoration: none;
+            position: relative;
+            font-family: inherit;
+        }
+
+        .btn:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px var(--color-focus-ring);
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: var(--color-btn-primary-text);
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+            background: var(--color-primary-active);
+            transform: translateY(0);
+        }
+
+        .btn-success {
+            background: var(--color-success);
+            color: var(--color-btn-primary-text);
+        }
+
+        .btn-success:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--color-secondary);
+            color: var(--color-text);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-secondary-hover);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+        }
+
+        .btn-outline:hover {
+            background: var(--color-secondary);
+        }
+
+        .btn-sm {
+            padding: var(--space-4) var(--space-12);
+            font-size: var(--font-size-sm);
+            border-radius: var(--radius-sm);
+        }
+
+        .btn-lg {
+            padding: var(--space-10) var(--space-20);
+            font-size: var(--font-size-lg);
+            border-radius: var(--radius-md);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Form elements */
+        .form-control {
+            display: block;
+            width: 100%;
+            padding: var(--space-8) var(--space-12);
+            font-size: var(--font-size-md);
+            line-height: var(--line-height-normal);
+            color: var(--color-text);
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            transition: border-color var(--duration-fast) var(--ease-standard), 
+                       box-shadow var(--duration-fast) var(--ease-standard),
+                       transform var(--duration-fast) var(--ease-standard);
+            font-family: var(--font-family-base);
+        }
+
+        .form-control:focus {
+            border-color: var(--color-primary);
+            outline: 2px solid var(--color-primary);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(var(--color-teal-500-rgb), 0.15);
+        }
+
+        .form-control.is-invalid {
+            border-color: var(--color-error);
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: var(--space-8);
+            font-weight: var(--font-weight-medium);
+            font-size: var(--font-size-sm);
+            color: var(--color-text);
+        }
+
+        .form-group {
+            margin-bottom: var(--space-16);
+        }
+
+        .invalid-feedback {
+            display: block;
+            margin-top: var(--space-4);
+            font-size: var(--font-size-xs);
+            color: var(--color-error);
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-card-border);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: box-shadow var(--duration-normal) var(--ease-standard);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            padding: var(--space-16) var(--space-20);
+            border-bottom: 1px solid var(--color-card-border-inner);
+            background: var(--color-secondary);
+        }
+
+        .card-title {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text);
+            margin: 0;
+        }
+
+        .card-body {
+            padding: var(--space-20);
+        }
+
+        /* Layout */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--color-surface);
+            border-right: 1px solid var(--color-border);
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: var(--space-24);
+            border-bottom: 1px solid var(--color-border);
+            text-align: center;
+        }
+
+        .logo {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-primary);
+            margin-bottom: var(--space-4);
+            background: linear-gradient(135deg, var(--color-primary), var(--color-teal-400));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            font-weight: var(--font-weight-normal);
+            margin-top: var(--space-2);
+        }
+
+        .nav-menu {
+            padding: var(--space-16);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: var(--space-12) var(--space-16);
+            margin-bottom: var(--space-4);
+            border-radius: var(--radius-base);
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-size: var(--font-size-base);
+            font-family: inherit;
+            position: relative;
+        }
+
+        .nav-item:before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--color-primary);
+            transform: scaleX(0);
+            transition: transform var(--duration-normal) var(--ease-standard);
+            transform-origin: left;
+            border-radius: var(--radius-base);
+        }
+
+        .nav-item:hover {
+            color: var(--color-text);
+            background: var(--color-secondary);
+        }
+
+        .nav-item.active {
+            color: var(--color-primary);
+            background: var(--color-secondary);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .nav-item.active:before {
+            transform: scaleX(1);
+        }
+
+        .nav-icon {
+            margin-right: var(--space-12);
+            font-size: var(--font-size-lg);
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            background: var(--color-background);
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .content-wrapper {
+            padding: var(--space-32);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-header {
+            margin-bottom: var(--space-32);
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .section-title {
+            font-size: var(--font-size-4xl);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text);
+            margin-bottom: var(--space-8);
+        }
+
+        .section-subtitle {
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-lg);
+        }
+
+        /* Form section */
+        .form-section {
+            opacity: 1;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .form-section.hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
+            position: absolute;
+            width: 100%;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--space-20);
+            margin-bottom: var(--space-24);
+        }
+
+        /* Results section */
+        .results-container {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            pointer-events: none;
+            position: absolute;
+            top: var(--space-32);
+            left: var(--space-32);
+            right: var(--space-32);
+            bottom: var(--space-32);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .results-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-24);
+            flex-shrink: 0;
+        }
+
+        .results-title {
+            font-size: var(--font-size-3xl);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text);
+            margin: 0;
+        }
+
+        .edit-profile-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--space-8);
+            padding: var(--space-10) var(--space-20);
+            background: var(--color-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            color: var(--color-text);
+            text-decoration: none;
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-medium);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .edit-profile-btn:hover {
+            background: var(--color-secondary-hover);
+            color: var(--color-text);
+            transform: translateY(-1px);
+        }
+
+        .results-content {
+            background: var(--color-surface);
+            border: 1px solid var(--color-card-border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .results-scroll {
+            flex: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            padding: var(--space-24);
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--space-12);
+            margin-bottom: var(--space-24);
+        }
+
+        .stat-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-card-border);
+            border-radius: var(--radius-base);
+            padding: var(--space-16);
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            transition: all var(--duration-fast) var(--ease-standard);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-teal-400));
+            transform: scaleX(0);
+            transition: transform var(--duration-normal) var(--ease-standard);
+            transform-origin: left;
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .stat-card:hover:before {
+            transform: scaleX(1);
+        }
+
+        .stat-title {
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-8);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--space-8);
+            line-height: var(--line-height-tight);
+            color: var(--color-text);
+        }
+
+        .stat-unit {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+        }
+
+        .stat-target {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+            margin-top: var(--space-4);
+        }
+
+        /* Tables */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-card-border);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: var(--space-24);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--color-surface);
+            margin: 0;
+            font-size: var(--font-size-sm);
+        }
+
+        .table th {
+            background: var(--color-secondary);
+            padding: var(--space-12) var(--space-8);
+            text-align: left;
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text);
+            border-bottom: 2px solid var(--color-border);
+            font-size: var(--font-size-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .table td {
+            padding: var(--space-12) var(--space-8);
+            border-bottom: 1px solid var(--color-border);
+            vertical-align: top;
+        }
+
+        .table tbody tr:hover {
+            background: var(--color-secondary);
+        }
+
+        .meal-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--color-surface);
+            margin: var(--space-16) 0;
+            font-size: var(--font-size-sm);
+            box-shadow: var(--shadow-sm);
+            border-radius: var(--radius-base);
+            overflow: hidden;
+        }
+
+        .meal-table th {
+            background: var(--color-secondary);
+            padding: var(--space-12) var(--space-8);
+            text-align: left;
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text);
+            border-bottom: 2px solid var(--color-border);
+            font-size: var(--font-size-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .meal-table td {
+            padding: var(--space-12) var(--space-8);
+            border-bottom: 1px solid var(--color-border);
+            vertical-align: top;
+        }
+
+        .meal-table tbody tr:hover {
+            background: var(--color-secondary);
+        }
+
+        .day-title {
+            margin: var(--space-32) 0 var(--space-16) 0;
+            color: var(--color-text);
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-semibold);
+            border-bottom: 2px solid var(--color-primary);
+            padding-bottom: var(--space-8);
+        }
+
+        .meal-item {
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text);
+            margin-bottom: var(--space-4);
+            font-size: var(--font-size-sm);
+        }
+
+        .meal-serving {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-4);
+        }
+
+        .meal-nutrients {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+        }
+
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--space-16);
+            margin-bottom: var(--space-24);
+        }
+
+        .chart-container {
+            background: var(--color-surface);
+            border: 1px solid var(--color-card-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-20);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .chart-title {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text);
+            margin-bottom: var(--space-12);
+            text-align: center;
+        }
+
+        .chart-container canvas {
+            max-height: 200px;
+        }
+
+        /* Export section */
+        .export-section {
+            background: var(--color-surface);
+            border: 1px solid var(--color-card-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-24);
+            margin-bottom: var(--space-16);
+        }
+
+        .export-title {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text);
+            margin-bottom: var(--space-16);
+            text-align: center;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: var(--space-8);
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: var(--space-16) 0;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: var(--space-32);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            z-index: 1002;
+        }
+
+        .spinner {
+            border: 4px solid var(--color-secondary);
+            border-top: 4px solid var(--color-primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto var(--space-16);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-base);
+        }
+
+        /* Mobile Header */
+        .mobile-header {
+            display: none;
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            padding: var(--space-16);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1001;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-menu-button {
+            background: none;
+            border: none;
+            font-size: var(--font-size-xl);
+            color: var(--color-text);
+            cursor: pointer;
+            padding: var(--space-4);
+        }
+
+        .mobile-logo {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-primary);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: var(--font-size-xl);
+            cursor: pointer;
+            padding: var(--space-4);
+            color: var(--color-text);
+        }
+
+        /* Mobile overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .mobile-overlay.active {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .mobile-header {
+                display: flex;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .content-wrapper {
+                padding: var(--space-16);
+                padding-top: 80px;
+            }
+
+            .results-container {
+                left: var(--space-16);
+                right: var(--space-16);
+                top: 80px;
+                bottom: var(--space-16);
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: var(--space-16);
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--space-8);
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+                gap: var(--space-12);
+            }
+
+            .btn-group {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .section-title {
+                font-size: var(--font-size-3xl);
+            }
+
+            .results-header {
+                flex-direction: column;
+                gap: var(--space-16);
+                align-items: stretch;
+            }
+
+            .edit-profile-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                padding: var(--space-12) var(--space-8);
+            }
+
+            .table th,
+            .table td {
+                padding: var(--space-8) var(--space-4);
+                font-size: var(--font-size-xs);
+            }
+
+            .chart-container canvas {
+                max-height: 150px;
+            }
+        }
+
+        /* Utility classes */
+        .text-center { text-align: center; }
+        .text-primary { color: var(--color-primary); }
+        .text-success { color: var(--color-success); }
+        .text-warning { color: var(--color-warning); }
+        .text-danger { color: var(--color-error); }
+        .d-none { display: none; }
+        .d-block { display: block; }
+
+        /* Redirect overlay */
+        .redirect-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            text-align: center;
+        }
+
+        .redirect-content {
+            background: var(--color-surface);
+            padding: var(--space-32);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            max-width: 400px;
+            color: var(--color-text);
+        }
+
+        .redirect-spinner {
+            border: 4px solid var(--color-secondary);
+            border-top: 4px solid var(--color-primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto var(--space-16);
+        }
+
+        /* Custom scrollbar */
+        .results-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .results-scroll::-webkit-scrollbar-track {
+            background: var(--color-secondary);
+            border-radius: 4px;
+        }
+
+        .results-scroll::-webkit-scrollbar-thumb {
+            background: var(--color-border);
+            border-radius: 4px;
+        }
+
+        .results-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--color-text-secondary);
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Font loading */
+        @font-face {
+            font-family: 'FKGroteskNeue';
+            src: url('https://r2cdn.perplexity.ai/fonts/FKGroteskNeue.woff2') format('woff2');
+        }
     </style>
 </head>
 
 <body data-theme="light" data-diet-tracker-url="https://thedietplanner.com/diet-tracker">
     <!-- Accessibility skip link -->
-    <a class="sr-only" href="#mainContent" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">Skip to content</a>
+    <a class="sr-only" href="#mainContent" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden">Skip to content</a>
 
     <!-- Mobile Header -->
     <div class="mobile-header" role="banner">
         <button class="mobile-menu-button" id="mobileMenuButton" aria-expanded="false" aria-controls="sidebar">☰</button>
-        <div class="mobile-logo" aria-hidden="true">🍽️ Diet Planner</div>
+        <div class="mobile-logo" aria-hidden="true">Diet Planner</div>
         <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
     </div>
 
@@ -127,36 +1134,43 @@
     <div class="redirect-overlay" id="redirectOverlay" role="status" aria-hidden="true">
         <div class="redirect-content">
             <div class="redirect-spinner" aria-hidden="true"></div>
-            <h3 style="margin-bottom: 1rem;">🔄 Sending to Diet Tracker</h3>
+            <h3 style="margin-bottom: 1rem">Sending to Diet Tracker</h3>
             <p>Preparing your personalized meal plan...</p>
-            <p style="font-size: 0.9em; color: var(--text-secondary); margin-top: 1rem;">
-                You'll be redirected automatically in a few seconds (after confirmation).
+            <p style="font-size: 0.9em; color: var(--color-text-secondary); margin-top: 1rem">
+                You'll be redirected automatically in a few seconds after confirmation.
             </p>
         </div>
     </div>
 
     <div class="app-container">
+        <!-- Sidebar -->
         <nav class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
             <div class="sidebar-header">
-                <div class="logo">🍽️ Diet Planner</div>
+                <div class="logo">Diet Planner</div>
                 <div class="tagline">The Diet Planner</div>
             </div>
+            
             <div class="nav-menu" role="menu">
                 <button class="nav-item active" data-section="profile" role="menuitem" aria-current="page">
-                    <span class="nav-icon" aria-hidden="true">👤</span> Profile Setup
+                    <span class="nav-icon" aria-hidden="true">👤</span>
+                    Profile Setup
                 </button>
                 <button class="nav-item" data-section="plan" role="menuitem">
-                    <span class="nav-icon" aria-hidden="true">📋</span> Weekly Plan
+                    <span class="nav-icon" aria-hidden="true">📋</span>
+                    Weekly Plan
                 </button>
                 <button class="nav-item" data-section="analytics" role="menuitem">
-                    <span class="nav-icon" aria-hidden="true">📊</span> Analytics
+                    <span class="nav-icon" aria-hidden="true">📊</span>
+                    Analytics
                 </button>
                 <button class="nav-item" data-section="exports" role="menuitem">
-                    <span class="nav-icon" aria-hidden="true">📤</span> Export & Share
+                    <span class="nav-icon" aria-hidden="true">📤</span>
+                    Export & Share
                 </button>
             </div>
         </nav>
 
+        <!-- Main Content -->
         <main id="mainContent" class="main-content" role="main" aria-live="polite">
             <div class="content-wrapper">
                 <div class="loading" id="loading">
@@ -167,23 +1181,25 @@
                 <!-- Form Section -->
                 <div class="form-section" id="formSection">
                     <div class="section-header">
-                        <h1 class="section-title">👤 Complete Your Profile</h1>
+                        <h1 class="section-title">Complete Your Profile</h1>
                         <p class="section-subtitle">Tell us about yourself to create your personalized meal plan</p>
                     </div>
 
                     <div class="card">
-                        <div class="card-header"><h3 class="card-title">Health Profile</h3></div>
+                        <div class="card-header">
+                            <h3 class="card-title">Health Profile</h3>
+                        </div>
                         <div class="card-body">
                             <form id="profile-form" aria-describedby="profile-help">
                                 <div class="form-grid">
                                     <div class="form-group">
-                                        <label for="age" class="form-label">Age *</label>
+                                        <label for="age" class="form-label">Age</label>
                                         <input type="number" id="age" class="form-control" min="13" max="120" required placeholder="Enter your age">
                                         <div class="invalid-feedback" id="age-error"></div>
                                     </div>
 
                                     <div class="form-group">
-                                        <label for="gender" class="form-label">Gender *</label>
+                                        <label for="gender" class="form-label">Gender</label>
                                         <select id="gender" class="form-control" required>
                                             <option value="">Select Gender</option>
                                             <option value="male">Male</option>
@@ -194,19 +1210,19 @@
                                     </div>
 
                                     <div class="form-group">
-                                        <label for="height" class="form-label">Height (cm) *</label>
+                                        <label for="height" class="form-label">Height (cm)</label>
                                         <input type="number" id="height" class="form-control" min="100" max="250" required placeholder="e.g., 175">
                                         <div class="invalid-feedback" id="height-error"></div>
                                     </div>
 
                                     <div class="form-group">
-                                        <label for="weight" class="form-label">Weight (kg) *</label>
+                                        <label for="weight" class="form-label">Weight (kg)</label>
                                         <input type="number" id="weight" class="form-control" min="30" max="300" step="0.1" required placeholder="e.g., 70.5">
                                         <div class="invalid-feedback" id="weight-error"></div>
                                     </div>
 
                                     <div class="form-group">
-                                        <label for="goal" class="form-label">Health Goal *</label>
+                                        <label for="goal" class="form-label">Health Goal</label>
                                         <select id="goal" class="form-control" required>
                                             <option value="">Select Goal</option>
                                             <option value="loss">Weight Loss</option>
@@ -218,7 +1234,7 @@
                                     </div>
 
                                     <div class="form-group">
-                                        <label for="dietType" class="form-label">Dietary Preference *</label>
+                                        <label for="dietType" class="form-label">Dietary Preference</label>
                                         <select id="dietType" class="form-control" required>
                                             <option value="Mixed">Mixed (Veg & Non-Veg)</option>
                                             <option value="Vegetarian">Vegetarian</option>
@@ -228,18 +1244,18 @@
                                     </div>
 
                                     <div class="form-group">
-                                        <label for="region" class="form-label">Region *</label>
+                                        <label for="region" class="form-label">Region</label>
                                         <select id="region" class="form-control" required>
                                             <option value="India">India</option>
                                             <option value="USA">USA</option>
                                             <option value="Europe">Europe</option>
-                                            <option value="Middle_East">Middle East</option>
+                                            <option value="MiddleEast">Middle East</option>
                                         </select>
                                         <div class="invalid-feedback" id="region-error"></div>
                                     </div>
 
                                     <div class="form-group">
-                                        <label for="activityLevel" class="form-label">Activity Level *</label>
+                                        <label for="activityLevel" class="form-label">Activity Level</label>
                                         <select id="activityLevel" class="form-control" required>
                                             <option value="">Select Activity Level</option>
                                             <option value="low">Low (Sedentary)</option>
@@ -270,9 +1286,9 @@
                 <!-- Results Container -->
                 <div class="results-container" id="resultsContainer" aria-hidden="true">
                     <div class="results-header">
-                        <h1 class="results-title">🍽️ Your Meal Plan</h1>
+                        <h1 class="results-title">Your Meal Plan</h1>
                         <button class="edit-profile-btn" id="editProfileBtn" aria-label="Edit profile">
-                            <span>←</span>
+                            <span>✏️</span>
                             <span>Edit My Profile</span>
                         </button>
                     </div>
@@ -280,9 +1296,9 @@
                     <div class="results-content">
                         <div class="results-scroll" id="resultsScroll">
                             <div class="stats-grid" id="statsGrid"></div>
-
+                            
                             <div class="table-responsive">
-                                <!-- FIXED: container name changed to mealPlanContainer -->
+                                <!-- FIXED container name changed to mealPlanContainer -->
                                 <div id="mealPlanContainer"></div>
                             </div>
 
@@ -291,6 +1307,7 @@
                                     <h3 class="chart-title">Daily Calorie Distribution</h3>
                                     <canvas id="calorieChart" width="400" height="200"></canvas>
                                 </div>
+                                
                                 <div class="chart-container">
                                     <h3 class="chart-title">Weekly Macros Breakdown</h3>
                                     <canvas id="macrosChart" width="400" height="200"></canvas>
@@ -298,1611 +1315,26 @@
                             </div>
 
                             <div class="export-section">
-                                <h3 class="export-title">📤 Export & Share</h3>
+                                <h3 class="export-title">Export & Share</h3>
                                 <div class="btn-group">
-                                    <button class="btn btn-primary btn-lg" id="sendToTrackerBtn" aria-label="Send to diet tracker">🔄 Send to Diet Tracker</button>
-                                    <button class="btn btn-success" id="downloadCsvBtn" aria-label="Download CSV">📊 Download CSV</button>
-                                    <button class="btn btn-success" id="downloadPdfBtn" aria-label="Download PDF">📄 Download PDF</button>
+                                    <button class="btn btn-primary btn-lg" id="sendToTrackerBtn" aria-label="Send to diet tracker">
+                                        📱 Send to Diet Tracker
+                                    </button>
+                                    <button class="btn btn-success" id="downloadCsvBtn" aria-label="Download CSV">
+                                        📊 Download CSV
+                                    </button>
+                                    <button class="btn btn-success" id="downloadPdfBtn" aria-label="Download PDF">
+                                        📄 Download PDF
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-
             </div>
         </main>
     </div>
 
-    <!-- Single consolidated script block: PART 1 -->
-    <script>
-    /*************************************************************************
-     * PART 1 - Core utilities, initialization, and meals loader
-     *************************************************************************/
-
-    // Globals
-    let currentMealPlan = null;
-    let currentUserProfile = null;
-    let mealDatabase = null;
-    let mealDbLoadPromise = null;
-    let ChartsLoaded = false;
-    let Html2PdfLoaded = false;
-    let currentActiveSection = 'profile';
-    let sectionObserver;
-    let currentTheme = localStorage.getItem('theme') || 'light';
-
-    const INTEGRATION_STORAGE_KEY = 'dietplanner_integration_v3';
-
-    // --- Render stubs + handoff (place near top, after globals) ---
-    // These provide no-op/queue behavior if renderers are called before the real functions are defined.
-
-    window.__dp_pending_restore = null;
-
-    // stub for displayMealPlan: queue the plan if real impl not present
-    if (typeof window.displayMealPlan !== 'function') {
-      window.displayMealPlan = function(weeklyPlan, profile) {
-        // If real implementation registered, forward immediately
-        if (typeof window.__real_displayMealPlan === 'function') {
-          return window.__real_displayMealPlan(weeklyPlan, profile);
-        }
-        // otherwise store pending plan and log; will be rendered when real function registers
-        window.__dp_pending_restore = { plan: weeklyPlan, profile: profile, ts: Date.now() };
-        console.warn('[DietPlanner] displayMealPlan called before real renderer registered — queued for later render.');
-      };
-    }
-
-    // stub for createCharts: queue if real impl not present
-    if (typeof window.createCharts !== 'function') {
-      window.createCharts = async function(weeklyPlan, profile) {
-        if (typeof window.__real_createCharts === 'function') {
-          return window.__real_createCharts(weeklyPlan, profile);
-        }
-        // queue request (only last request kept)
-        window.__dp_pending_charts = { plan: weeklyPlan, profile: profile, ts: Date.now() };
-        console.warn('[DietPlanner] createCharts called before real renderer registered — queued for later render.');
-        return Promise.resolve(); // keep callers happy
-      };
-    }
-
-    // safe number parser
-    function safeNumber(v) {
-        if (v === null || v === undefined || v === '') return 0;
-        if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
-        const n = parseFloat(String(v).replace(/[^\d.-]/g, ''));
-        return Number.isFinite(n) ? n : 0;
-    }
-
-    /* ---------------------------
-       Initialization helpers
-    --------------------------- */
-    function initializeTheme() {
-        document.body.setAttribute('data-theme', currentTheme);
-        updateThemeToggle();
-        const themeToggle = document.getElementById('themeToggle');
-        if (themeToggle) themeToggle.addEventListener('click', () => {
-            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-            document.body.setAttribute('data-theme', currentTheme);
-            localStorage.setItem('theme', currentTheme);
-            updateThemeToggle();
-        });
-    }
-    function updateThemeToggle() {
-        const themeToggle = document.getElementById('themeToggle');
-        if (!themeToggle) return;
-        themeToggle.textContent = currentTheme === 'light' ? '🌙' : '☀️';
-    }
-
-    function initializeNavigation() {
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(item => {
-            item.addEventListener('click', function() {
-                const section = this.getAttribute('data-section');
-                if (!section) return;
-                updateActiveNavItem(section);
-                if (section === 'profile') showForm();
-                else { showResults(); scrollToResultsSection(section); }
-                closeMobileMenu();
-            });
-        });
-    }
-
-    function updateActiveNavItem(activeSection) {
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(item => {
-            const section = item.getAttribute('data-section');
-            if (section === activeSection) item.classList.add('active');
-            else item.classList.remove('active');
-        });
-    }
-
-    function initializeMobileMenu() {
-        const btn = document.getElementById('mobileMenuButton');
-        const overlay = document.getElementById('mobileOverlay');
-        if (btn) btn.addEventListener('click', toggleMobileMenu);
-        if (overlay) overlay.addEventListener('click', closeMobileMenu);
-        window.addEventListener('resize', () => { if (window.innerWidth > 768) closeMobileMenu(); });
-    }
-    function toggleMobileMenu() {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('mobileOverlay');
-        if (!sidebar) return;
-        sidebar.classList.toggle('mobile-open');
-        if (overlay) overlay.classList.toggle('active');
-        const btn = document.getElementById('mobileMenuButton');
-        if (btn) btn.setAttribute('aria-expanded', sidebar.classList.contains('mobile-open') ? 'true' : 'false');
-    }
-    function closeMobileMenu() {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('mobileOverlay');
-        if (!sidebar) return;
-        sidebar.classList.remove('mobile-open');
-        if (overlay) overlay.classList.remove('active');
-        const btn = document.getElementById('mobileMenuButton');
-        if (btn) btn.setAttribute('aria-expanded','false');
-    }
-
-    function initializeIntersectionObserver() {
-        if ('IntersectionObserver' in window) {
-            sectionObserver = new IntersectionObserver(entries => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        updateActiveNavItem(entry.target.id);
-                    }
-                });
-            }, { threshold: 0.5 });
-            const sections = document.querySelectorAll('section, .form-section, .results-container');
-            sections.forEach(s => sectionObserver.observe(s));
-        }
-    }
-
-    function initializeResultsToggle() {
-        const editBtn = document.getElementById('editProfileBtn');
-        if (editBtn) editBtn.addEventListener('click', showForm);
-    }
-
-    function showForm() {
-        const formSection = document.getElementById('formSection');
-        const resultsContainer = document.getElementById('resultsContainer');
-        if (resultsContainer) {
-            resultsContainer.classList.remove('visible');
-            resultsContainer.setAttribute('aria-hidden','true');
-        }
-        if (formSection) formSection.classList.remove('hidden');
-        updateActiveNavItem('profile');
-        currentActiveSection = 'profile';
-    }
-
-    function showResults() {
-        if (!currentMealPlan) { console.warn('No meal plan available to show results'); return; }
-        const formSection = document.getElementById('formSection');
-        const resultsContainer = document.getElementById('resultsContainer');
-        if (formSection) formSection.classList.add('hidden');
-        if (resultsContainer) {
-            setTimeout(() => {
-                resultsContainer.classList.add('visible');
-                resultsContainer.setAttribute('aria-hidden','false');
-                const resultsScroll = document.getElementById('resultsScroll');
-                if (resultsScroll) resultsScroll.scrollTop = 0;
-            }, 200);
-        }
-    }
-
-    function scrollToResultsSection(sectionId) {
-        const resultsScroll = document.getElementById('resultsScroll');
-        if (!resultsScroll) return;
-        let top = 0;
-        if (sectionId === 'analytics') {
-            const el = resultsScroll.querySelector('.charts-grid');
-            if (el) top = el.offsetTop - 20;
-        } else if (sectionId === 'exports') {
-            const el = resultsScroll.querySelector('.export-section');
-            if (el) top = el.offsetTop - 20;
-        }
-        resultsScroll.scrollTo({ top, behavior: 'smooth' });
-    }
-
-    /* ---------------------------
-       Form handling
-    --------------------------- */
-    function initializeForm() {
-        const gen = document.getElementById('generateBtn');
-        if (gen) gen.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await handleFormSubmit();
-        });
-    }
-
-    async function handleFormSubmit() {
-        if (!validateForm()) return;
-        const generateBtn = document.getElementById('generateBtn');
-        const genText = document.getElementById('generateBtnText');
-        if (generateBtn) { generateBtn.disabled = true; if (genText) genText.textContent = 'Generating...'; }
-        const loading = document.getElementById('loading');
-        if (loading) loading.style.display = 'block';
-        try {
-            await generateMealPlan();
-            setTimeout(() => {
-                if (loading) loading.style.display = 'none';
-                showResults();
-                updateActiveNavItem('plan');
-            }, 300);
-        } catch (err) {
-            console.error('Error generating meal plan:', err);
-            alert('Failed to generate meal plan. See console.');
-            if (loading) loading.style.display = 'none';
-        } finally {
-            if (generateBtn) { generateBtn.disabled = false; if (genText) genText.textContent = 'Generate My Meal Plan'; }
-        }
-    }
-
-    function validateForm() {
-        const fields = ['age','gender','height','weight','goal','dietType','region','activityLevel'];
-        let ok = true;
-        fields.forEach(id => {
-            const el = document.getElementById(id);
-            const err = document.getElementById(id + '-error');
-            if (!el) return;
-            el.classList.remove('is-invalid');
-            if (err) err.textContent = '';
-            if (!String(el.value || '').trim()) {
-                el.classList.add('is-invalid');
-                if (err) err.textContent = 'This field is required';
-                ok = false;
-            } else {
-                if (id === 'age') {
-                    const a = safeNumber(el.value);
-                    if (a < 13 || a > 120) { el.classList.add('is-invalid'); if (err) err.textContent = 'Age must be 13-120'; ok = false; }
-                }
-                if (id === 'height') {
-                    const h = safeNumber(el.value);
-                    if (h < 100 || h > 250) { el.classList.add('is-invalid'); if (err) err.textContent = 'Height must be 100-250 cm'; ok=false; }
-                }
-                if (id === 'weight') {
-                    const w = safeNumber(el.value);
-                    if (w < 30 || w > 300) { el.classList.add('is-invalid'); if (err) err.textContent = 'Weight must be 30-300 kg'; ok=false; }
-                }
-            }
-        });
-        const tc = document.getElementById('targetCalories');
-        if (tc && String(tc.value || '').trim()) {
-            const cal = safeNumber(tc.value);
-            if (cal < 800 || cal > 5000) { tc.classList.add('is-invalid'); const e = document.getElementById('targetCalories-error'); if (e) e.textContent = 'Target calories must be 800-5000'; ok = false; }
-        }
-        return ok;
-    }
-
-    /* ---------------------------
-       Robust meals.json loader + normalizer
-    --------------------------- */
-    async function loadMealsDatabase(force = false) {
-        if (mealDatabase && !force) return mealDatabase;
-        if (mealDbLoadPromise && !force) return mealDbLoadPromise;
-
-        mealDbLoadPromise = (async () => {
-            const candidates = ['meals.json','/meals.json','data/meals.json', location.origin + '/meals.json'];
-            let raw = null;
-            for (const url of candidates) {
-                try {
-                    const res = await fetch(url, { cache: 'no-store' });
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    raw = await res.json();
-                    console.log('✅ Loaded meals.json from', url);
-                    break;
-                } catch (err) {
-                    console.warn('Could not load meals from', url, err && err.message ? err.message : err);
-                }
-            }
-            if (!raw) {
-                console.warn('⚠️ meals.json not found — using fallback data.');
-                mealDatabase = createFallbackMeals();
-                return mealDatabase;
-            }
-
-            // support wrapper shapes like { meals: [...] } or { data: { meals: [...] } }
-            if (raw && raw.meals && Array.isArray(raw.meals)) raw = raw.meals;
-            else if (raw && raw.data && raw.data.meals && Array.isArray(raw.data.meals)) raw = raw.data.meals;
-
-            // If raw is an array of meals (flat array) convert to normalized structure
-            if (Array.isArray(raw)) {
-                const normalized = {};
-                for (let i = 0; i < raw.length; i++) {
-                    const m = raw[i];
-                    if (!m || typeof m !== 'object') continue;
-
-                    const regionKey = (m.region || 'Global').toString();
-                    const diets = Array.isArray(m.diets) && m.diets.length ? m.diets : [m.diet || 'Regular'];
-                    const mealType = (m.mealType || m.type || m.category || 'lunch').toString().toLowerCase();
-
-                    if (!normalized[regionKey]) normalized[regionKey] = {};
-                    for (const diet of diets) {
-                        const dietKey = diet || 'Regular';
-                        if (!normalized[regionKey][dietKey]) normalized[regionKey][dietKey] = { breakfast: [], lunch: [], dinner: [], snacks: [] };
-                        const bucket = normalized[regionKey][dietKey];
-
-                        const norm = (typeof normalizeMealObject === 'function')
-                            ? normalizeMealObject(m, i, regionKey, dietKey, mealType)
-                            : {
-                                id: m.id ?? `${regionKey}_${dietKey}_${mealType}_${i}`,
-                                title: m.title || m.name || `Meal ${i+1}`,
-                                serving_size: m.serving_size || m.serving || '',
-                                calories: safeNumber(m.calories ?? m.kcal ?? 0),
-                                protein: safeNumber(m.protein ?? 0),
-                                carbs: safeNumber(m.carbs ?? 0),
-                                fat: safeNumber(m.fat ?? 0),
-                                fiber: safeNumber(m.fiber ?? 0),
-                                foods: Array.isArray(m.foods) ? m.foods : (m.ingredients ? String(m.ingredients).split(',').map(s=>({name:s.trim()})) : [])
-                              };
-
-                        // normalize mealType to one of breakfast|lunch|dinner|snacks
-                        let key = mealType;
-                        if (!['breakfast','lunch','dinner','snacks'].includes(key)) {
-                            if (key.endsWith('s')) key = key;
-                            else if (key === 'snack') key = 'snacks';
-                            else key = 'lunch';
-                        }
-                        const targetKey = ['breakfast','lunch','dinner','snacks'].includes(key) ? key : 'lunch';
-                        bucket[targetKey].push(norm);
-                    }
-                }
-
-                mealDatabase = normalized;
-                console.log('✅ meals.json was a flat array — converted to normalized structure.');
-                return mealDatabase;
-            }
-
-            // If raw looks like nested region -> diet -> { breakfast:[], lunch:[] ... }
-            try {
-                const normalized = {};
-                const regionKeys = Object.keys(raw || {});
-                const types = ['breakfast','lunch','dinner','snacks'];
-
-                regionKeys.forEach(regionKey => {
-                    const regionObj = raw[regionKey];
-                    if (!regionObj || typeof regionObj !== 'object') return;
-                    normalized[regionKey] = {};
-
-                    Object.keys(regionObj).forEach(dietKey => {
-                        const dietObj = regionObj[dietKey];
-                        if (!dietObj || typeof dietObj !== 'object') return;
-
-                        const out = {};
-                        types.forEach(t => {
-                            let arr = dietObj[t] || dietObj[t.charAt(0).toUpperCase() + t.slice(1)] || dietObj[t.replace('_',' ')] || [];
-                            if (!Array.isArray(arr)) arr = [];
-                            out[t] = arr.map((m, i) => (typeof normalizeMealObject === 'function') ? normalizeMealObject(m, i, regionKey, dietKey, t) : m);
-                        });
-
-                        normalized[regionKey][dietKey] = out;
-                    });
-                });
-
-                mealDatabase = Object.keys(normalized).length ? normalized : createFallbackMeals();
-                console.log('✅ meals.json normalized and loaded.');
-                // small diagnostics
-                Object.keys(mealDatabase).forEach(r => {
-                    Object.keys(mealDatabase[r] || {}).forEach(d => {
-                        const obj = mealDatabase[r][d] || {};
-                        console.log(`[DietPlanner] ${r}/${d} -> breakfast:${(obj.breakfast||[]).length} lunch:${(obj.lunch||[]).length} dinner:${(obj.dinner||[]).length} snacks:${(obj.snacks||[]).length}`);
-                    });
-                });
-                return mealDatabase;
-            } catch (err) {
-                console.warn('⚠️ Unexpected meals.json structure — using fallback.', err && err.message ? err.message : err);
-                mealDatabase = createFallbackMeals();
-                return mealDatabase;
-            }
-        })();
-
-        return mealDbLoadPromise;
-    }
-
-    function normalizeMealObject(meal, idx, region, diet, mealType) {
-        // If invalid meal object, return a safe placeholder
-        if (!meal || typeof meal !== 'object') {
-            return {
-                id: `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
-                title: `Option ${idx+1}`,
-                serving_size: '1 serving',
-                calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, foods: []
-            };
-        }
-
-        // Support many possible field names
-        const rawTitle = (meal.title || meal.name || meal.label || meal.dish_name || meal.display_name || '').toString().trim();
-        const serving_size = meal.serving_size || meal.servingSize || meal.serving || '';
-        const calories = safeNumber(meal.calories ?? meal.kcal ?? meal.cal ?? 0);
-        const protein = safeNumber(meal.protein ?? meal.prot ?? 0);
-        const carbs = safeNumber(meal.carbs ?? meal.carbohydrates ?? meal.carb ?? 0);
-        const fat = safeNumber(meal.fat ?? meal.fats ?? 0);
-        const fiber = safeNumber(meal.fiber ?? meal.fib ?? 0);
-
-        // Build foods array consistently
-        let foods = [];
-        if (Array.isArray(meal.foods) && meal.foods.length) {
-            foods = meal.foods.map(f => (typeof f === 'string') ? { name: f } : (typeof f === 'object' ? f : { name: String(f) }));
-        } else if (meal.ingredients && typeof meal.ingredients === 'string') {
-            foods = meal.ingredients.split(',').map(s => ({ name: s.trim() })).filter(Boolean);
-        } else if (meal.components && Array.isArray(meal.components)) {
-            foods = meal.components.map(c => (typeof c === 'string') ? { name: c } : (c || {}));
-        }
-
-        // If no explicit title, derive from foods (first up to 3 names)
-        let title = rawTitle;
-        if (!title) {
-            const foodNames = foods.map(f => (typeof f === 'string') ? f : (f.name || f.title || '')).filter(Boolean);
-            if (foodNames.length) title = foodNames.slice(0, 3).join(', ');
-        }
-        if (!title) title = `Meal ${idx + 1}`;
-
-        return {
-            id: meal.id ?? `${region}_${diet}_${mealType}_${idx}_${Date.now()}`,
-            title,
-            serving_size,
-            calories, protein, carbs, fat, fiber,
-            foods
-        };
-    }
-
-    function createFallbackMeals() {
-        return {
-            "India": {
-                "Regular": {
-                    breakfast: [
-                        { id: 'fb1', title: "Oatmeal with Fruits", serving_size: "1 serving", calories: 250, protein: 8, carbs: 45, fat: 4, fiber: 5 },
-                        { id: 'fb2', title: "Boiled Eggs", serving_size: "2 eggs", calories: 150, protein: 12, carbs: 1, fat: 10, fiber: 0 }
-                    ],
-                    lunch: [
-                        { id: 'fl1', title: "Grilled Chicken Salad", serving_size: "1 bowl", calories: 350, protein: 30, carbs: 15, fat: 12, fiber: 6 },
-                        { id: 'fl2', title: "Veggie Wrap", serving_size: "1 wrap", calories: 300, protein: 10, carbs: 40, fat: 8, fiber: 5 }
-                    ],
-                    dinner: [
-                        { id: 'fd1', title: "Paneer Curry with Rice", serving_size: "1 plate", calories: 400, protein: 20, carbs: 50, fat: 15, fiber: 5 },
-                        { id: 'fd2', title: "Fish with Quinoa", serving_size: "1 plate", calories: 450, protein: 35, carbs: 40, fat: 14, fiber: 4 }
-                    ],
-                    snacks: [
-                        { id: 'fs1', title: "Fruit and Nuts", serving_size: "1 small bowl", calories: 150, protein: 4, carbs: 20, fat: 6, fiber: 3 }
-                    ]
-                }
-            },
-            "USA": {
-                "Regular": {
-                    breakfast: [{ id: 'us_b1', title: "Scrambled Eggs with Toast", serving_size: "1 serving", calories: 320, protein: 18, carbs: 28, fat: 14, fiber: 3 }],
-                    lunch: [{ id: 'us_l1', title: "Turkey Sandwich", serving_size: "1", calories: 420, protein: 30, carbs: 45, fat: 12, fiber: 4 }],
-                    dinner: [{ id: 'us_d1', title: "Grilled Salmon", serving_size: "1", calories: 500, protein: 35, carbs: 30, fat: 22, fiber: 3 }],
-                    snacks: [{ id: 'us_s1', title: "Greek Yogurt & Berries", serving_size: "1 cup", calories: 160, protein: 12, carbs: 18, fat: 4, fiber: 2 }]
-                }
-            },
-            "Europe": {
-                "Regular": {
-                    breakfast: [{ id: 'eu_b1', title: "Yogurt & Granola", serving_size: "1 bowl", calories: 300, protein: 10, carbs: 45, fat: 8, fiber: 4 }],
-                    lunch: [{ id: 'eu_l1', title: "Caprese Salad with Bread", serving_size: "1", calories: 420, protein: 18, carbs: 32, fat: 18, fiber: 3 }],
-                    dinner: [{ id: 'eu_d1', title: "Grilled Veg & Lentils", serving_size: "1 plate", calories: 480, protein: 20, carbs: 60, fat: 12, fiber: 8 }],
-                    snacks: [{ id: 'eu_s1', title: "Apple & Almonds", serving_size: "1", calories: 150, protein: 4, carbs: 20, fat: 7, fiber: 3 }]
-                }
-            },
-            "Middle_East": {
-                "Regular": {
-                    breakfast: [{ id: 'me_b1', title: "Labneh & Za'atar with Pita", serving_size: "1", calories: 320, protein: 12, carbs: 30, fat: 15, fiber: 3 }],
-                    lunch: [{ id: 'me_l1', title: "Grilled Chicken Shawarma Bowl", serving_size: "1", calories: 520, protein: 34, carbs: 45, fat: 18, fiber: 4 }],
-                    dinner: [{ id: 'me_d1', title: "Falafel with Salad & Hummus", serving_size: "1", calories: 450, protein: 16, carbs: 50, fat: 18, fiber: 8 }],
-                    snacks: [{ id: 'me_s1', title: "Dates & Walnuts", serving_size: "1 small plate", calories: 180, protein: 3, carbs: 28, fat: 7, fiber: 3 }]
-                }
-            }
-        };
-    }
-
-    /* ---------------------------
-       Calculation: BMR & calories (robust)
-    --------------------------- */
-    function calculateTargetCalories(profile) {
-        const age = safeNumber(profile.age);
-        const weight = safeNumber(profile.weight); // kg
-        const height = safeNumber(profile.height); // cm
-
-        // default guard
-        const gender = (profile.gender || '').toString().toLowerCase();
-
-        // Mifflin-St Jeor formula
-        let bmr;
-        if (gender === 'male' || gender === 'm') {
-            bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-        } else {
-            bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-        }
-
-        const activityFactors = { low: 1.2, moderate: 1.375, high: 1.55, 'very-high': 1.725 };
-        const activity = (profile.activityLevel || 'low').toString();
-        const factor = activityFactors[activity] || 1.2;
-
-        let tdee = bmr * factor;
-
-        // Modified logic for 0.5-1kg per week weight change
-        // 1kg fat = ~7700 calories, so 0.5-1kg/week = 3850-7700 cal/week = 550-1100 cal/day
-        // Using 0.75kg/week target = 825 calories/day adjustment
-        const weeklyWeightTarget = 0.75; // kg per week (middle of 0.5-1kg range)
-        const dailyCalorieAdjustment = (weeklyWeightTarget * 7700) / 7; // ~825 calories/day
-
-        switch ((profile.goal || '').toString().toLowerCase()) {
-            case 'loss':
-            case 'lose':
-            case 'weight_loss':
-                tdee -= dailyCalorieAdjustment; // Subtract for weight loss
-                break;
-            case 'gain':
-            case 'muscle':
-            case 'weight_gain':
-                tdee += dailyCalorieAdjustment; // Add for weight gain
-                break;
-            case 'maintain':
-            default:
-                // No adjustment for maintenance
-                break;
-        }
-
-        // clamp to sensible range
-        tdee = Math.round(Math.max(800, Math.min(4200, tdee)));
-        return tdee;
-    }
-
-    // Expose some init functions (Part 2 will reuse init functions too)
-    window.initializeTheme = initializeTheme;
-    window.initializeNavigation = initializeNavigation;
-    window.initializeMobileMenu = initializeMobileMenu;
-    window.initializeIntersectionObserver = initializeIntersectionObserver;
-    window.initializeResultsToggle = initializeResultsToggle;
-    window.initializeForm = initializeForm;
-    window.loadMealsDatabase = loadMealsDatabase;
-    window.calculateTargetCalories = calculateTargetCalories;
-        
-/* ---------------------------
-   Robust meal selection + fallback logging + PDF/export + UI wiring
---------------------------- */
-
-// small helper: check arrays/strings
-function asString(v){ return v===null||v===undefined ? '' : String(v); }
-
-// ---------------------------
-// Vegetarian detection helpers
-// ---------------------------
-// Non-veg keywords (tunable). Remove 'egg' if you want eggs treated vegetarian.
-const NON_VEG_KEYWORDS = [
-  'chicken','chiken','chickn','beef','pork','mutton','lamb','goat','fish','tuna','salmon','shrimp','prawn',
-  'crab','lobster','anchovy','anchovies','bacon','ham','sausage','pepperoni','anchov','seafood','octopus','squid',
-  'egg','eggs'  // remove 'egg' here if you want ovo-vegetarian accepted as Vegetarian
-];
-
-// return true if meal clearly veg; false if contains non-veg
-function isMealVegetarian(meal) {
-    if (!meal) return false;
-    // prefer explicit flag
-    if (meal.isVegetarian === true) return true;
-    if (meal.isVegetarian === false) return false;
-    // tags
-    const tags = (meal.tags || meal.tagsList || meal.type || '').toString().toLowerCase();
-    if (/\b(veg|vegetarian|vegan|plant)\b/.test(tags)) return true;
-    if (/\b(non-veg|nonveg|non vegetarian|meat|seafood|pescatarian|fish|chicken|beef|pork)\b/.test(tags)) return false;
-
-    // check title + foods + ingredients
-    const txt = [
-        asString(meal.title),
-        asString(meal.name),
-        asString(meal.label),
-        asString(meal.display_name),
-        asString(meal.ingredients),
-        asString(meal.description)
-    ].join(' ').toLowerCase();
-
-    // check foods array too
-    const foodsList = [];
-    if (Array.isArray(meal.foods)) {
-        meal.foods.forEach(f => {
-            if (!f) return;
-            if (typeof f === 'string') foodsList.push(f.toLowerCase());
-            else if (typeof f === 'object') foodsList.push((f.name || f.title || '').toString().toLowerCase());
-        });
-    }
-
-    // check for non-veg keywords
-    for (const kw of NON_VEG_KEYWORDS) {
-        if (!kw) continue;
-        if (txt.includes(kw)) return false;
-        for (const f of foodsList) { if (f.includes(kw)) return false; }
-    }
-
-    // otherwise assume vegetarian (conservative)
-    return true;
-}
-
-// ---------------------------
-// Meal database flattening & diet resolution
-// ---------------------------
-
-// Flatten regionMeals into { breakfast:[], lunch:[], dinner:[], snacks:[] }
-function flattenRegionMeals(regionMeals) {
-    const out = { breakfast:[], lunch:[], dinner:[], snacks:[] };
-    if (!regionMeals || typeof regionMeals !== 'object') return out;
-
-    // If regionMeals is already shape { breakfast:[], ... }
-    const hasTypes = ['breakfast','lunch','dinner','snacks'].every(t => Array.isArray(regionMeals[t]));
-    if (hasTypes) {
-        return {
-            breakfast: (regionMeals.breakfast || []).slice(),
-            lunch: (regionMeals.lunch || []).slice(),
-            dinner: (regionMeals.dinner || []).slice(),
-            snacks: (regionMeals.snacks || []).slice()
-        };
-    }
-
-    // Otherwise iterate diet buckets and merge arrays
-    for (const dietKey of Object.keys(regionMeals || {})) {
-        const dietObj = regionMeals[dietKey];
-        if (!dietObj || typeof dietObj !== 'object') continue;
-        ['breakfast','lunch','dinner','snacks'].forEach(t => {
-            let arr = dietObj[t] || dietObj[t.charAt(0).toUpperCase() + t.slice(1)] || dietObj[t.replace('_',' ')] || [];
-            if (!Array.isArray(arr)) arr = [];
-            out[t].push(...arr);
-        });
-    }
-
-    // remove duplicates by id/title
-    ['breakfast','lunch','dinner','snacks'].forEach(t => {
-        const seen = new Set();
-        out[t] = out[t].filter(m => {
-            const id = m && (m.id ?? m.title ?? JSON.stringify(m));
-            if (!id) return false;
-            if (seen.has(String(id))) return false;
-            seen.add(String(id));
-            return true;
-        });
-    });
-
-    return out;
-}
-
-// Given regionMeals and requested dietType ('Vegetarian'|'Non-Vegetarian'|'Mixed'),
-// return a dietMeals object with arrays for each meal type
-function resolveDietMealsFromRegion(regionMeals, selectedDietType) {
-    const flat = flattenRegionMeals(regionMeals); // all meals in region
-    if (!flat) return { breakfast:[], lunch:[], dinner:[], snacks:[] };
-
-    const sel = (selectedDietType || '').toString().trim().toLowerCase();
-    if (sel === 'vegetarian' || sel === 'veg') {
-        // filter to vegetarian items only
-        return {
-            breakfast: flat.breakfast.filter(isMealVegetarian),
-            lunch: flat.lunch.filter(isMealVegetarian),
-            dinner: flat.dinner.filter(isMealVegetarian),
-            snacks: flat.snacks.filter(isMealVegetarian)
-        };
-    } else if (sel === 'non-vegetarian' || sel === 'non_vegetarian' || sel === 'non-veg' || sel === 'nonveg' || sel === 'nonveg') {
-        // prefer items that are non-veg (not vegetarian)
-        return {
-            breakfast: flat.breakfast.filter(m => !isMealVegetarian(m)),
-            lunch: flat.lunch.filter(m => !isMealVegetarian(m)),
-            dinner: flat.dinner.filter(m => !isMealVegetarian(m)),
-            snacks: flat.snacks.filter(m => !isMealVegetarian(m))
-        };
-    } else {
-        // Mixed: keep everything (both veg & non-veg)
-        return flat;
-    }
-}
-
-// ---------------------------
-// Fallback meal creator
-// ---------------------------
-function createDefaultMeal(mealType, targetCalories) {
-    const defaults = {
-        breakfast: { title: "Mixed Breakfast", serving_size: "1 serving", calories: Math.round(targetCalories) },
-        lunch:     { title: "Balanced Lunch", serving_size: "1 serving", calories: Math.round(targetCalories) },
-        dinner:    { title: "Nutritious Dinner", serving_size: "1 serving", calories: Math.round(targetCalories) },
-        snacks:    { title: "Healthy Snack", serving_size: "1 serving", calories: Math.round(targetCalories) }
-    };
-    const base = defaults[mealType] || defaults.lunch;
-    return {
-        id: `fallback_${mealType}_${Date.now()}_${Math.round(Math.random()*10000)}`,
-        ...base,
-        protein: Math.round(targetCalories * 0.15 / 4),
-        carbs:   Math.round(targetCalories * 0.50 / 4),
-        fat:     Math.round(targetCalories * 0.35 / 9),
-        fiber:   5,
-        _isFallback: true
-    };
-}
-
-// ---------------------------
-// Helpers: pick suitable meals and ensure variety
-// ---------------------------
-function getMealsArrayForType(dietMeals, mealType) {
-    if (!dietMeals) return [];
-    // accept many variants
-    const variants = [
-        mealType, mealType.toLowerCase(),
-        mealType.charAt(0).toUpperCase()+mealType.slice(1),
-        mealType + 's', mealType.replace('_',' '), mealType.replace('_',' ').toLowerCase()
-    ];
-    for (const k of variants) {
-        if (k && Array.isArray(dietMeals[k]) && dietMeals[k].length) return dietMeals[k].slice();
-    }
-    // if dietMeals itself is array
-    if (Array.isArray(dietMeals) && dietMeals.length) return dietMeals.slice();
-    // else find any array inside
-    for (const k of Object.keys(dietMeals || {})) {
-        if (Array.isArray(dietMeals[k]) && dietMeals[k].length) return dietMeals[k].slice();
-    }
-    return [];
-}
-
-// choose from candidates attempting to avoid reuse and prefer in-range calories
-function pickMealCandidate(candidates, usedIds, targetForMeal, seed) {
-    if (!candidates || candidates.length === 0) return null;
-    // normalize candidates
-    const candList = candidates.filter(Boolean).map(m => {
-        return {
-            raw: m,
-            id: m.id ?? (m.title ? String(m.title) : JSON.stringify(m)),
-            calories: safeNumber(m.calories ?? m.kcal ?? 0),
-            title: asString(m.title || m.name || m.label || '')
-        };
-    });
-
-    // 1) unused & in-range (60%-140%)
-   const lowerFactor = targetForMeal > 800 ? 0.4 : 0.6;
-const upperFactor = targetForMeal > 800 ? 2.0 : 1.4;
-let suitable = candList.filter(c => !usedIds.has(c.id) && (c.calories === 0 || (c.calories >= targetForMeal*lowerFactor && c.calories <= targetForMeal*upperFactor)));
-    // 2) in-range (any)
-    if (suitable.length === 0) suitable = candList.filter(c => (c.calories === 0 || (c.calories >= targetForMeal*0.6 && c.calories <= targetForMeal*1.4)));
-    // 3) unused
-    if (suitable.length === 0) suitable = candList.filter(c => !usedIds.has(c.id));
-    // 4) fallback all
-    if (suitable.length === 0) suitable = candList;
-
-    // deterministic-ish pick using seed
-    const idx = (Math.abs(seed) % suitable.length);
-    return suitable[idx] ? suitable[idx].raw : null;
-}
-
-// ---------------------------
-// selectMealsForWeek: main selection logic
-// ---------------------------
-function selectMealsForWeek(meals, targetCalories, profile) {
-    const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-    const mealTypes = ['breakfast','lunch','dinner','snacks'];
-    const weeklyPlan = {};
-    const usedMealIds = new Set();
-    const calorieDistribution = { breakfast:0.25, lunch:0.35, dinner:0.35, snacks:0.05 };
-
-    // If meals is a flat object with keys breakfast/lunch/dinner/snacks use directly
-    const isFlat = meals && (Array.isArray(meals.breakfast) || Array.isArray(meals.lunch) || Array.isArray(meals.dinner) || Array.isArray(meals.snacks));
-
-    // Pre-flatten if the caller passed a regionMeals object, ensure arrays
-    const pools = isFlat ? {
-        breakfast: getMealsArrayForType(meals, 'breakfast'),
-        lunch: getMealsArrayForType(meals, 'lunch'),
-        dinner: getMealsArrayForType(meals, 'dinner'),
-        snacks: getMealsArrayForType(meals, 'snacks')
-    } : { breakfast:[], lunch:[], dinner:[], snacks:[] };
-
-    // If regions provided a single array in any bucket, it's already handled in getMealsArrayForType
-
-    days.forEach((day, dayIndex) => {
-        weeklyPlan[day] = {};
-        mealTypes.forEach((mealType, mtIndex) => {
-            const targetForMeal = Math.max(0, Math.round(targetCalories * (calorieDistribution[mealType] || 0.25)));
-
-            // availableMeals: prefer pool for that mealType; if empty, take from other pools
-            let availableMeals = (pools[mealType] && pools[mealType].slice()) || [];
-            if (!availableMeals || availableMeals.length === 0) {
-                // collect across other types
-                availableMeals = [];
-                Object.keys(pools).forEach(k => { if (Array.isArray(pools[k])) availableMeals.push(...pools[k]); });
-            }
-            // --- Bias selection based on goal (muscle/gain) and vegetarian preference ---
-            try {
-                const goal = (profile && (profile.goal || '')).toString().toLowerCase();
-                const dietType = (profile && (profile.dietType || '')).toString().toLowerCase();
-
-                // If user asked for vegetarian only, prefer vegetarian meals
-                if (dietType.includes('veget') && Array.isArray(availableMeals)) {
-                    const vegCandidates = availableMeals.filter(m => isMealVegetarian(m));
-                    if (vegCandidates.length) availableMeals = vegCandidates;
-                }
-
-                if (goal === 'muscle') {
-                    // prefer higher protein meals first (fall back to calories)
-                    availableMeals.sort((a,b) => (safeNumber(b.protein) - safeNumber(a.protein)) || (safeNumber(b.calories) - safeNumber(a.calories)));
-                } else if (goal === 'gain') {
-                    // prefer higher-calorie meals first
-                    availableMeals.sort((a,b) => safeNumber(b.calories) - safeNumber(a.calories));
-                }
-            } catch (e) {
-                // non-fatal: keep the original availableMeals if anything goes wrong
-                console.warn('[DietPlanner] goal-based bias failed:', e);
-            }
-
-            if (!availableMeals || availableMeals.length === 0) {
-                // extreme fallback
-                weeklyPlan[day][mealType] = createDefaultMeal(mealType, targetForMeal);
-                return;
-            }
-
-            const seed = dayIndex * 13 + mtIndex * 7 + (profile.age || 0);
-            const chosen = pickMealCandidate(availableMeals, usedMealIds, targetForMeal, seed);
-
-            // normalize chosen into required shape
-            let normalized;
-            if (!chosen) {
-                normalized = createDefaultMeal(mealType, targetForMeal);
-            } else if (typeof chosen !== 'object') {
-                normalized = { id: String(chosen), title: String(chosen), serving_size:'', calories:0, protein:0, carbs:0, fat:0, fiber:0, foods:[] };
-            } else {
-                normalized = {
-                    id: chosen.id ?? (chosen.title ? String(chosen.title) : `meal_${Math.random().toString(36).slice(2)}`),
-                    title: chosen.title || chosen.name || chosen.label || '',
-                    serving_size: chosen.serving_size || chosen.serving || chosen.servingSize || '',
-                    calories: safeNumber(chosen.calories ?? chosen.kcal ?? 0),
-                    protein: safeNumber(chosen.protein ?? chosen.prot ?? 0),
-                    carbs: safeNumber(chosen.carbs ?? chosen.carbohydrates ?? 0),
-                    fat: safeNumber(chosen.fat ?? chosen.fats ?? 0),
-                    fiber: safeNumber(chosen.fiber ?? 0),
-                    foods: Array.isArray(chosen.foods) ? chosen.foods : (chosen.ingredients ? String(chosen.ingredients).split(',').map(s=>({name:s.trim()})) : [])
-                };
-            }
-
-            weeklyPlan[day][mealType] = normalized;
-            usedMealIds.add(normalized.id);
-        });
-    });
-
-    return weeklyPlan;
-}
-
-// ---------------------------
-// Generate & display plan (final)
-// ---------------------------
-
-// More robust normalizer: remove everything that's not a-z0-9 so
-// "Middle_East", "Middle East", "MiddleEast", "middle-east" all normalize to "middleeast".
-function normalizeKey(value) {
-    if (!value && value !== 0) return "";
-    return String(value).toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-
-// Replace existing generateMealPlan with this defensive version
-async function generateMealPlan() {
-    try {
-        // Ensure DB loaded
-        await loadMealsDatabase();
-
-        const profile = {
-            age: safeNumber(document.getElementById("age")?.value),
-            gender: document.getElementById("gender")?.value,
-            height: safeNumber(document.getElementById("height")?.value),
-            weight: safeNumber(document.getElementById("weight")?.value),
-            goal: document.getElementById("goal")?.value,
-            dietType: document.getElementById("dietType")?.value,
-            region: document.getElementById("region")?.value,
-            activityLevel: document.getElementById("activityLevel")?.value,
-            targetCalories: safeNumber(document.getElementById("targetCalories")?.value)
-        };
-
-        if (!profile.targetCalories || profile.targetCalories === 0) {
-            profile.targetCalories = calculateTargetCalories(profile);
-        }
-
-        // Resolve region key (normalized)
-        const normRegion = normalizeKey(profile.region);
-        let regionKey = Object.keys(mealDatabase || {}).find(k => normalizeKey(k) === normRegion)
-            || Object.keys(mealDatabase || {}).find(k => normalizeKey(k).includes(normRegion) || normRegion.includes(normalizeKey(k)));
-
-        if (!regionKey) {
-            console.error("❌ Region not found:", profile.region, "Available regions:", Object.keys(mealDatabase || {}));
-            throw new Error(`No meals available for region: ${profile.region}`);
-        }
-
-        const regionMeals = mealDatabase[regionKey] || {};
-        // Resolve diet
-        const normDiet = normalizeKey(profile.dietType);
-        let dietKey = Object.keys(regionMeals).find(k => normalizeKey(k) === normDiet)
-            || Object.keys(regionMeals).find(k => normalizeKey(k).includes(normDiet) || normDiet.includes(normalizeKey(k)));
-
-        const dietMeals = regionMeals[dietKey] || regionMeals["Regular"] || Object.values(regionMeals)[0];
-
-        if (!dietMeals) {
-            console.error("❌ Diet not found:", profile.dietType, "Available diets:", Object.keys(regionMeals));
-            throw new Error(`No meals available for diet: ${profile.dietType} in region: ${profile.region}`);
-        }
-
-        console.log("✅ Using region:", regionKey, "| diet:", dietKey || "Regular");
-        // diagnostic: print sizes and a sample of first few meals for each type
-        try {
-            const sample = {};
-            ['breakfast','lunch','dinner','snacks'].forEach(mt => {
-                const arr = getMealsArrayForType(dietMeals, mt) || [];
-                sample[mt] = { count: arr.length, sample: arr.slice(0,3).map(m => (m && (m.title || m.name)) || m) };
-            });
-            console.log('[DietPlanner] dietMeals counts:', sample);
-        } catch (e) {
-            console.warn('[DietPlanner] failed to inspect dietMeals:', e);
-        }
-
-        // Build weekly plan (this can still throw if something inside selectMealsForWeek is broken)
-        const weeklyPlan = selectMealsForWeek(dietMeals, profile.targetCalories, profile);
-
-        // Try to improve placeholder/fallback titles (keep this non-throwing)
-        try {
-            const mealTypes = ['breakfast','lunch','dinner','snacks'];
-            for (const day of Object.keys(weeklyPlan || {})) {
-                for (const mt of mealTypes) {
-                    const meal = weeklyPlan[day][mt];
-                    if (meal && (!meal.title || /^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(String(meal.title)))) {
-                        const pool = getMealsArrayForType(dietMeals, mt) || [];
-                        const candidate = pool.find(m => m && (m.title || m.name) && !/^Option|Mixed|Balanced|Nutritious|Healthy|Meal\s#/i.test(String(m.title || m.name)));
-                        if (candidate) {
-                            weeklyPlan[day][mt] = {
-                                id: candidate.id ?? candidate.title ?? (`meal_${Math.random()}`),
-                                title: candidate.title || candidate.name || candidate.label || 'Meal',
-                                serving_size: candidate.serving_size || candidate.serving || candidate.servingSize || '',
-                                calories: safeNumber(candidate.calories ?? candidate.kcal ?? 0),
-                                protein: safeNumber(candidate.protein ?? candidate.prot ?? 0),
-                                carbs: safeNumber(candidate.carbs ?? candidate.carbohydrates ?? 0),
-                                fat: safeNumber(candidate.fat ?? candidate.fats ?? 0),
-                                fiber: safeNumber(candidate.fiber ?? 0),
-                                foods: Array.isArray(candidate.foods) ? candidate.foods : []
-                            };
-                        }
-                    }
-                }
-            }
-        } catch (e) {
-            console.warn('[DietPlanner] placeholder replacement failed (non-fatal):', e);
-        }
-
-        // persist & set globals
-        currentMealPlan = weeklyPlan;
-        currentUserProfile = profile;
-        try {
-            localStorage.setItem('last_generated_plan_v1', JSON.stringify({ plan: weeklyPlan, profile: profile, generated: new Date().toISOString() }));
-        } catch (e) { /* ignore storage errors */ }
-
-        // render - be defensive: if displayMealPlan/createCharts fail, log but do not abort
-        try {
-            if (typeof displayMealPlan === 'function') {
-                try { displayMealPlan(weeklyPlan, profile); }
-                catch (e) { console.warn('[DietPlanner] displayMealPlan threw (non-fatal):', e); }
-            } else {
-                console.warn('[DietPlanner] displayMealPlan not defined yet.');
-            }
-
-            if (typeof createCharts === 'function') {
-                try {
-                    // call and await, but guard exceptions separately
-                    await createCharts(weeklyPlan, profile);
-                } catch (e) {
-                    console.warn('[DietPlanner] createCharts threw (non-fatal):', e);
-                }
-            } else {
-                console.warn('[DietPlanner] createCharts not defined yet.');
-            }
-        } catch (e) {
-            console.warn('[DietPlanner] render stage caught unexpected error (non-fatal):', e);
-        }
-
-        console.log('✅ Weekly plan generated for', regionKey, profile.dietType);
-        return weeklyPlan;
-
-    } catch (error) {
-        // Print full error (stack) for debugging
-        console.error('❌ Error generating meal plan:', error, error && error.stack ? error.stack : '');
-        // show an informative alert to the user
-        alert('Failed to generate meal plan. See console for details.');
-        // rethrow so callers receive a rejected promise just like before
-        throw error;
-    }
-}
-
-// ---------------------------
-// Display helpers (table/stats)
-function getMealTitle(meal) {
-    if (!meal) return 'No meal';
-    if (typeof meal === 'string') return meal;
-    const candidates = [meal.title, meal.name, meal.display_name, meal.dish_name, meal.label];
-    for (const c of candidates) if (c && String(c).trim()) return String(c).trim();
-    if (Array.isArray(meal.foods) && meal.foods.length) {
-        const parts = meal.foods.map(f => {
-            if (!f) return '';
-            if (typeof f === 'string') return f;
-            return f.name || f.title || '';
-        }).filter(Boolean);
-        if (parts.length) return parts.slice(0,4).join(', ');
-    }
-    if (meal.ingredients && typeof meal.ingredients === 'string') {
-        const parts = meal.ingredients.split(',').map(s => s.trim()).filter(Boolean);
-        if (parts.length) return parts.slice(0,4).join(', ');
-    }
-    if (meal.id) return `Meal #${meal.id}`;
-    return 'Custom Meal';
-}
-
-function displayStatsCards(weeklyPlan, profile) {
-    const stats = calculateWeeklyStats(weeklyPlan);
-    const container = document.getElementById('statsGrid');
-    if (!container) return;
-    // Calculate target difference in kg/week instead of percentage
-    // 1kg fat = ~7700 calories, so calorie difference / 7700 * 7 = kg per week
-    const calorieDiff = stats.avgCalories - profile.targetCalories;
-    const targetDiffKgPerWeek = Math.round((calorieDiff / 7700 * 7) * 100) / 100; // Round to 2 decimal places
-
-    // For display: positive means gaining weight, negative means losing weight
-    const targetDiff = targetDiffKgPerWeek;
-    container.innerHTML = `
-        <div class="stat-card fade-in">
-            <div class="stat-title">Calories</div>
-            <div class="stat-value">${Math.round(stats.avgCalories)}</div>
-            <div class="stat-target">/ ${profile.targetCalories}</div>
-        </div>
-        <div class="stat-card fade-in">
-            <div class="stat-title">Protein</div>
-            <div class="stat-value">${Math.round(stats.avgProtein)}<span class="stat-unit">g</span></div>
-            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.15 / 4)}g</div>
-        </div>
-        <div class="stat-card fade-in">
-            <div class="stat-title">Carbs</div>
-            <div class="stat-value">${Math.round(stats.avgCarbs)}<span class="stat-unit">g</span></div>
-            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.5 / 4)}g</div>
-        </div>
-        <div class="stat-card fade-in">
-            <div class="stat-title">Fat</div>
-            <div class="stat-value">${Math.round(stats.avgFat)}<span class="stat-unit">g</span></div>
-            <div class="stat-target">/ ${Math.round(profile.targetCalories * 0.35 / 9)}g</div>
-        </div>
-        <div class="stat-card fade-in">
-            <div class="stat-title">Fiber</div>
-            <div class="stat-value">${Math.round(stats.avgFiber)}<span class="stat-unit">g</span></div>
-            <div class="stat-target">/ 25g</div>
-        </div>
-        <div class="stat-card fade-in">
-            <div class="stat-title">Weight Change</div>
-            <div class="stat-value ${Math.abs(targetDiff) <= 1.0 ? 'text-success' : 'text-warning'}">${targetDiff >= 0 ? '+' : ''}${targetDiff} kg/week</div>
-        </div>
-    `;
-}
-
-function displayMealTable(weeklyPlan) {
-    const container = document.getElementById('mealPlanTable');
-    if (!container) return;
-    const days = Object.keys(weeklyPlan || {});
-    const mealTypes = [
-        { key: 'breakfast', name: '🌅 Breakfast' },
-        { key: 'lunch', name: '🍽️ Lunch' },
-        { key: 'dinner', name: '🌙 Dinner' },
-        { key: 'snacks', name: '🍎 Snack' }
-    ];
-
-    function escapeHtml(s){ if (s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-    function num(v){ return safeNumber(v); }
-
-    let html = '<table class="table"><thead><tr><th>Day</th>';
-    mealTypes.forEach(mt => html += `<th>${escapeHtml(mt.name)}</th>`);
-    html += '<th>Daily Total</th></tr></thead><tbody>';
-
-    days.forEach(day => {
-        html += '<tr>';
-        html += `<td class="day-header">${escapeHtml(day)}</td>`;
-        let totalCalories = 0;
-        mealTypes.forEach(mt => {
-            const meal = (weeklyPlan[day] || {})[mt.key];
-            if (meal) {
-                const titleText = getMealTitle(meal);
-                const calories = num(meal.calories || meal.kcal || 0);
-                totalCalories += calories;
-                const serving = meal.serving_size || meal.servingSize || '';
-                const protein = num(meal.protein || meal.prot || 0);
-                const carbs = num(meal.carbs || meal.carbohydrates || 0);
-                const fat = num(meal.fat || meal.fats || 0);
-                const fiber = num(meal.fiber || 0);
-
-                html += `<td>
-                            <div class="meal-item">${escapeHtml(titleText)}</div>
-                            <div class="meal-serving text-primary">${escapeHtml(String(calories))} kcal</div>`;
-                if (serving) html += `<div class="meal-serving">${escapeHtml(serving)}</div>`;
-                if (protein || carbs || fat || fiber) {
-                    html += `<div class="meal-nutrients">P: ${escapeHtml(String(protein))}g • C: ${escapeHtml(String(carbs))}g • F: ${escapeHtml(String(fat))}g${(typeof fiber!=='undefined'? ' • Fib: '+escapeHtml(String(fiber))+'g':'')}</div>`;
-                }
-                html += `</td>`;
-            } else {
-                html += '<td><div class="text-muted">No meal</div></td>';
-            }
-        });
-        html += `<td><strong class="text-success">${Math.round(totalCalories)} kcal</strong></td>`;
-        html += '</tr>';
-    });
-
-    html += '</tbody></table>';
-    container.innerHTML = html;
-}
-
-function calculateWeeklyStats(weeklyPlan) {
-    let totalCalories=0, totalProtein=0, totalCarbs=0, totalFat=0, totalFiber=0, mealCount=0;
-    Object.keys(weeklyPlan || {}).forEach(day => {
-        Object.keys(weeklyPlan[day] || {}).forEach(mt => {
-            const meal = weeklyPlan[day][mt];
-            if (meal) {
-                totalCalories += safeNumber(meal.calories);
-                totalProtein += safeNumber(meal.protein);
-                totalCarbs += safeNumber(meal.carbs);
-                totalFat += safeNumber(meal.fat);
-                totalFiber += safeNumber(meal.fiber);
-                mealCount++;
-            }
-        });
-    });
-    return {
-        totalCalories,
-        avgCalories: totalCalories / 7,
-        totalProtein,
-        avgProtein: totalProtein / 7,
-        totalCarbs,
-        avgCarbs: totalCarbs / 7,
-        totalFat,
-        avgFat: totalFat / 7,
-        totalFiber,
-        avgFiber: totalFiber / 7,
-        mealCount
-    };
-}
-// ---------------------------
-// Display meal plan (table + stats)
-// ---------------------------
-function displayMealPlan(weeklyPlan, profile) {
-    const container = document.getElementById('mealPlanContainer');
-    if (!container) {
-        console.warn("⚠️ mealPlanContainer not found in DOM.");
-        return;
-    }
-
-    const days = Object.keys(weeklyPlan || {});
-    if (!days.length) {
-        container.innerHTML = `<p>No meal plan available.</p>`;
-        return;
-    }
-
-    // Build HTML table
-    let html = '';
-    days.forEach((day, idx) => {
-        html += `<h3 class="day-title">Day ${idx + 1} — ${day}</h3>`;
-        html += `<table class="meal-table"><thead>
-                    <tr>
-                      <th>Meal</th>
-                      <th>Food</th>
-                      <th>Calories</th>
-                      <th>Protein</th>
-                      <th>Carbs</th>
-                      <th>Fat</th>
-                      <th>Fiber</th>
-                    </tr>
-                 </thead><tbody>`;
-
-        ['breakfast','lunch','dinner','snacks'].forEach(mt => {
-            const meal = (weeklyPlan[day] || {})[mt];
-            if (!meal) return;
-
-            const title = getMealTitle(meal);
-            const foods = Array.isArray(meal.foods) ? meal.foods.map(f => (typeof f === 'string' ? f : f.name)).join(', ') : '';
-            html += `<tr>
-                       <td>${mt.charAt(0).toUpperCase() + mt.slice(1)}</td>
-                       <td>${title}${foods ? ' — ' + foods : ''}</td>
-                       <td>${safeNumber(meal.calories)}</td>
-                       <td>${safeNumber(meal.protein)}g</td>
-                       <td>${safeNumber(meal.carbs)}g</td>
-                       <td>${safeNumber(meal.fat)}g</td>
-                       <td>${safeNumber(meal.fiber)}g</td>
-                     </tr>`;
-        });
-
-        html += `</tbody></table>`;
-    });
-
-    container.innerHTML = html;
-
-    // Update stats summary
-    displayStatsCards(weeklyPlan, profile);
-}
-// Register real renderers (handoff from stubs)
-window.__real_displayMealPlan = displayMealPlan;
-window.__real_createCharts = createCharts;
-
-// If something was queued earlier, flush it now
-if (window.__dp_pending_restore) {
-  try {
-    displayMealPlan(window.__dp_pending_restore.plan, window.__dp_pending_restore.profile);
-    console.log('[DietPlanner] Flushed queued displayMealPlan render.');
-  } catch (e) { console.warn('[DietPlanner] queued displayMealPlan failed:', e); }
-  window.__dp_pending_restore = null;
-}
-if (window.__dp_pending_charts) {
-  try {
-    createCharts(window.__dp_pending_charts.plan, window.__dp_pending_charts.profile);
-    console.log('[DietPlanner] Flushed queued createCharts render.');
-  } catch (e) { console.warn('[DietPlanner] queued createCharts failed:', e); }
-  window.__dp_pending_charts = null;
-}
-
-// ---------------------------
-// Charts - lazy load Chart.js
-// ---------------------------
-async function loadChartJS() {
-    if (ChartsLoaded || window.Chart) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
-        s.onload = () => { ChartsLoaded = true; resolve(); };
-        s.onerror = () => reject(new Error('Failed to load Chart.js'));
-        document.head.appendChild(s);
-    });
-}
-
-async function createCharts(weeklyPlan, profile) {
-    try {
-        await loadChartJS();
-    } catch (err) {
-        console.warn('Chart.js not loaded:', err);
-        return;
-    }
-
-    const days = Object.keys(weeklyPlan || {});
-    const dailyCalories = days.map(d => {
-        let tot = 0;
-        Object.keys(weeklyPlan[d] || {}).forEach(mt => tot += safeNumber(weeklyPlan[d][mt]?.calories));
-        return tot;
-    });
-    const weeklyStats = calculateWeeklyStats(weeklyPlan);
-    const isDark = currentTheme === 'dark';
-    const textColor = isDark ? '#ffffff' : '#212529';
-    const gridColor = isDark ? '#404040' : '#dee2e6';
-
-    const calorieCtx = document.getElementById('calorieChart');
-    try {
-        if (calorieCtx) {
-            if (window.calorieChartInstance && typeof window.calorieChartInstance.destroy === 'function') window.calorieChartInstance.destroy();
-            window.calorieChartInstance = new Chart(calorieCtx, {
-                type: 'bar',
-                data: {
-                    labels: days.map(d => d.substr(0,3)),
-                    datasets: [
-                        { label:'Daily Calories', data: dailyCalories, backgroundColor:'rgba(0,123,255,0.8)', borderColor:'rgba(0,123,255,1)', borderWidth:1, borderRadius:2 },
-                        { label:'Target', data:Array(days.length).fill(profile.targetCalories), type:'line', borderColor:'rgba(40,167,69,1)', backgroundColor:'rgba(40,167,69,0.1)', borderWidth:2, fill:false, pointBackgroundColor:'rgba(40,167,69,1)', pointBorderColor:'#fff', pointBorderWidth:1, pointRadius:3 }
-                    ]
-                },
-                options: {
-                    responsive:true, maintainAspectRatio:false,
-                    plugins:{ legend:{ position:'top', labels:{ usePointStyle:true, padding:12, color:textColor, font:{ size:11 } } } },
-                    scales:{ x:{ grid:{ color:gridColor }, ticks:{ color:textColor, font:{ size:10 } } }, y:{ beginAtZero:true, title:{ display:true, text:'Calories', color:textColor, font:{ size:11 } }, grid:{ color:gridColor }, ticks:{ color:textColor, font:{ size:10 } } } }
-                }
-            });
-        }
-    } catch (err) { console.error('Failed to create calorie chart:', err); }
-
-    try {
-        if (window.macrosChartInstance && typeof window.macrosChartInstance.destroy === 'function') window.macrosChartInstance.destroy();
-        const macrosCtx = document.getElementById('macrosChart');
-        if (macrosCtx) {
-            const proteinCals = weeklyStats.totalProtein * 4;
-            const carbsCals = weeklyStats.totalCarbs * 4;
-            const fatCals = weeklyStats.totalFat * 9;
-            window.macrosChartInstance = new Chart(macrosCtx, {
-                type: 'doughnut',
-                data: { labels:['Protein','Carbs','Fat'], datasets:[{ data:[proteinCals,carbsCals,fatCals], backgroundColor:['rgba(0,123,255,0.8)','rgba(40,167,69,0.8)','rgba(255,193,7,0.8)'], borderColor:['rgba(0,123,255,1)','rgba(40,167,69,1)','rgba(255,193,7,1)'], borderWidth:1 }] },
-                options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ usePointStyle:true, padding:10, color:textColor, font:{ size:10 } }, tooltip:{ callbacks:{ label:function(context){ const label = context.label; const value = context.raw; const total = context.dataset.data.reduce((a,b)=>a+b,0); const percentage = Math.round((value/total)*100); return `${label}: ${percentage}% (${Math.round(value)} cal)`; } } } } }, cutout:'60%' }
-            });
-        }
-    } catch (err) { console.error('Failed to create macros chart:', err); }
-}
-// Register real renderers (handoff from stubs)
-window.__real_displayMealPlan = displayMealPlan;
-window.__real_createCharts = createCharts;
-
-// If something was queued earlier, flush it now
-if (window.__dp_pending_restore) {
-  try {
-    displayMealPlan(window.__dp_pending_restore.plan, window.__dp_pending_restore.profile);
-    console.log('[DietPlanner] Flushed queued displayMealPlan render.');
-  } catch (e) { console.warn('[DietPlanner] queued displayMealPlan failed:', e); }
-  window.__dp_pending_restore = null;
-}
-if (window.__dp_pending_charts) {
-  try {
-    createCharts(window.__dp_pending_charts.plan, window.__dp_pending_charts.profile);
-    console.log('[DietPlanner] Flushed queued createCharts render.');
-  } catch (e) { console.warn('[DietPlanner] queued createCharts failed:', e); }
-  window.__dp_pending_charts = null;
-}
-
-// ---------------------------
-// Send to Tracker & Export
-// ---------------------------
-function sendToTrackerAndRedirect() {
-    if (!currentMealPlan || !currentUserProfile) {
-        alert('❌ No meal plan available to send to tracker.\nPlease generate a meal plan first.');
-        return;
-    }
-    const overlay = document.getElementById('redirectOverlay');
-    if (overlay) overlay.style.display = 'flex';
-
-    const integrationData = {
-        version: '3.0',
-        timestamp: new Date().toISOString(),
-        source: 'thedietplanner-diet-planner',
-        userProfile: currentUserProfile,
-        mealPlan: currentMealPlan,
-        dailyTargets: {
-            calories: currentUserProfile.targetCalories,
-            protein: Math.round(currentUserProfile.targetCalories * 0.15 / 4),
-            carbs: Math.round(currentUserProfile.targetCalories * 0.5 / 4),
-            fat: Math.round(currentUserProfile.targetCalories * 0.35 / 9),
-            fiber: 25,
-            water: 2000
-        }
-    };
-
-    try {
-        const payloadStr = JSON.stringify(integrationData);
-        localStorage.setItem(INTEGRATION_STORAGE_KEY, payloadStr);
-        localStorage.setItem('planned_meals_v1', payloadStr);
-        localStorage.setItem('diettracker_import', payloadStr);
-        localStorage.setItem('meal_plan_transfer', payloadStr);
-        localStorage.setItem('meal_plan_sent', 'true');
-        console.log('✅ Meal plan data stored for Diet Tracker');
-    } catch (err) {
-        console.error('❌ Failed to store meal plan for tracker:', err);
-        if (overlay) overlay.style.display = 'none';
-        return;
-    }
-
-    // Ask user before opening tracker
-    const want = confirm('Meal plan is ready to send.\nDo you want to open the Diet Tracker now?');
-    if (want) {
-        // Use data-diet-tracker-url attribute on body (set in part1)
-        const redirectUrl = document.body.getAttribute('data-diet-tracker-url') || `${location.protocol}//${location.host}/diet-tracker`;
-        try {
-            const newWin = window.open(redirectUrl, '_blank');
-            if (!newWin) alert('Popup blocked. Please allow popups or open the tracker manually.');
-        } catch (err) { console.warn('Failed to open tracker:', err); alert('Failed to open tracker. Please open it manually.'); }
-    }
-    if (overlay) overlay.style.display = 'none';
-}
-
-function downloadCSV() {
-    if (!currentMealPlan || !currentUserProfile) { alert('❌ No meal plan available to export\nPlease generate a meal plan first.'); return; }
-    let csv = '\uFEFF';
-    csv += 'Date,Meal Time,Food Name,Serving Size,Calories,Protein,Carbs,Fat,Fiber\n';
-    const days = Object.keys(currentMealPlan);
-    const mealTypes = ['breakfast','lunch','dinner','snacks'];
-    days.forEach(day => {
-        mealTypes.forEach(mt => {
-            const meal = (currentMealPlan[day] || {})[mt];
-            if (!meal) return;
-            const titleSafe = (meal.title && typeof meal.title === 'string') ? meal.title.replace(/"/g,'""') : getMealTitle(meal).replace(/"/g,'""');
-            const row = [day, mt.charAt(0).toUpperCase()+mt.slice(1), `"${titleSafe}"`, `"${(meal.serving_size||'N/A').replace(/"/g,'""')}"`, safeNumber(meal.calories), safeNumber(meal.protein), safeNumber(meal.carbs), safeNumber(meal.fat), safeNumber(meal.fiber)].join(',');
-            csv += row + '\n';
-        });
-    });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `meal-plan-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    console.log('✅ CSV downloaded');
-}
-
-function clearDietTrackerStorage() {
-    try {
-        const keys = [ INTEGRATION_STORAGE_KEY || 'dietplanner_integration_v3', 'planned_meals_v1', 'diettracker_import', 'meal_plan_transfer', 'meal_plan_sent' ];
-        keys.forEach(k => localStorage.removeItem(k));
-        console.log('✅ Cleared diet tracker integration keys from localStorage');
-    } catch (e) { console.warn('Failed clearing diet tracker storage:', e); }
-}
-
-// ---------------------------
-// PDF export (improved)
-async function loadHtml2Pdf() {
-    if (Html2PdfLoaded || window.html2pdf) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-        s.onload = () => { Html2PdfLoaded = true; resolve(); };
-        s.onerror = () => reject(new Error('Failed to load html2pdf'));
-        document.head.appendChild(s);
-    });
-}
-
-async function downloadPDF() {
-    if (!currentMealPlan || !currentUserProfile) { alert('Please generate a meal plan first!'); return; }
-    try { await loadHtml2Pdf(); } catch (err) { console.error('PDF lib load failed', err); alert('Failed to load PDF library.'); return; }
-    const html2pdfLib = window.html2pdf;
-    if (!html2pdfLib) { alert('PDF library unavailable'); return; }
-
-    const days = Object.keys(currentMealPlan || {});
-    const weeklyStats = calculateWeeklyStats(currentMealPlan);
-
-    const esc = s => (s===null||s===undefined) ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-    // build html
-    let html = `<div class="dp-pdf-root" style="font-family:Arial,Helvetica,sans-serif; padding:8px; font-size:10px; color:#222;">`;
-    html += `<h1 style="text-align:center; color:#007bff; margin-bottom:2px; font-size:16px;">🍽️ The Diet Planner</h1>`;
-    html += `<p style="text-align:center; color:#6c757d; margin-top:0; margin-bottom:8px; font-size:11px;">Personalized Meal Plan — ${new Date().toLocaleDateString()}</p>`;
-    html += `<h2 style="margin-bottom:6px; font-size:12px;">Weekly Overview</h2>`;
-    html += `<p style="margin-top:0;margin-bottom:8px;"><strong>Average Calories:</strong> ${Math.round(weeklyStats.avgCalories)} kcal</p>`;
-    html += `<h2 style="margin-top:6px;font-size:12px;">7-Day Meal Plan</h2>`;
-
-    days.forEach((day, idx) => {
-        html += `<h3 style="margin:8px 0 6px 0; font-size:12px;">${esc(day)} (Day ${idx+1})</h3>`;
-        html += `<table style="width:100%; border-collapse:collapse; margin-bottom:8px; font-size:10px;">`;
-        html += `<thead><tr style="background:#f3f4f6;"><th style="padding:4px; border:1px solid #e6e7e9; text-align:left; width:15%;">Meal</th><th style="padding:4px; border:1px solid #e6e7e9; text-align:left; width:35%;">Food</th><th style="padding:4px; border:1px solid #e6e7e9; text-align:center; width:10%;">Cal</th><th style="padding:4px; border:1px solid #e6e7e9; text-align:center; width:10%;">Protein</th><th style="padding:4px; border:1px solid #e6e7e9; text-align:center; width:10%;">Carbs</th><th style="padding:4px; border:1px solid #e6e7e9; text-align:center; width:10%;">Fat</th><th style="padding:4px; border:1px solid #e6e7e9; text-align:center; width:10%;">Fiber</th></tr></thead><tbody>`;
-        ['breakfast','lunch','dinner','snacks'].forEach(mt => {
-            const meal = (currentMealPlan[day]||{})[mt];
-            if (!meal) return;
-            const foods = Array.isArray(meal.foods) ? meal.foods.map(f => (typeof f === 'string' ? f : (f.name||f.title||'')).trim()).filter(Boolean).slice(0,6).join(', ') : '';
-            const title = getMealTitle(meal);
-            const calories = safeNumber(meal.calories);
-            html += `<tr style="page-break-inside:avoid; -webkit-column-break-inside:avoid;"><td style="padding:4px;border:1px solid #e6e7e9;"><strong>${esc(mt.charAt(0).toUpperCase() + mt.slice(1))}</strong></td><td style="padding:4px;border:1px solid #e6e7e9;">${esc(title)}${foods ? ' — ' + esc(foods) : ''}</td><td style="padding:4px;border:1px solid #e6e7e9;text-align:center;">${calories}</td><td style="padding:4px;border:1px solid #e6e7e9;text-align:center;">${safeNumber(meal.protein)}g</td><td style="padding:4px;border:1px solid #e6e7e9;text-align:center;">${safeNumber(meal.carbs)}g</td><td style="padding:4px;border:1px solid #e6e7e9;text-align:center;">${safeNumber(meal.fat)}g</td><td style="padding:4px;border:1px solid #e6e7e9;text-align:center;">${safeNumber(meal.fiber)}g</td></tr>`;
-        });
-        html += `</tbody></table>`;
-    });
-
-    html += `</div>`;
-
-    const temp = document.createElement('div');
-    temp.style.boxSizing = 'border-box';
-    temp.style.width = '1200px';
-    temp.style.padding = '6px';
-    temp.innerHTML = html;
-
-    const style = document.createElement('style');
-    style.innerHTML = `
-        .dp-pdf-root { color: #222; }
-        table { border-collapse: collapse; font-size:10px; }
-        thead { display: table-header-group; }
-        tr { page-break-inside: avoid; -webkit-column-break-inside: avoid; }
-        td, th { word-break: break-word; }
-    `;
-    temp.insertBefore(style, temp.firstChild);
-    document.body.appendChild(temp);
-
-    const opt = {
-        margin: [6, 6, 6, 6],
-        filename: `TheDietPlanner-MealPlan-${new Date().toISOString().slice(0,10)}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 1.5, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-        pagebreak: { mode: ['css', 'legacy'] }
-    };
-
-    try {
-        await html2pdfLib().set(opt).from(temp).save();
-        clearDietTrackerStorage();
-    } catch (err) {
-        console.error('[DietPlanner] PDF generation failed:', err);
-        alert('PDF generation failed. See console.');
-    } finally {
-        if (temp && temp.parentNode) temp.parentNode.removeChild(temp);
-    }
-}
-
-// ---------------------------
-// Load existing saved plan (defensive: waits for renderers)
-// ---------------------------
-function loadExistingPlan() {
-    try {
-        const stored = localStorage.getItem('last_generated_plan_v1');
-        if (!stored) return;
-        const data = JSON.parse(stored);
-        const generated = new Date(data.generated);
-        const now = new Date();
-        const daysDiff = (now - generated) / (1000 * 60 * 60 * 24);
-
-        if (daysDiff <= 7 && data.plan && data.profile) {
-            currentMealPlan = data.plan;
-            currentUserProfile = data.profile;
-
-            // populate form fields if present
-            if (currentUserProfile) {
-                Object.keys(currentUserProfile).forEach(key => {
-                    const fld = document.getElementById(key);
-                    if (fld && currentUserProfile[key] !== undefined) fld.value = currentUserProfile[key];
-                });
-            }
-
-            // Helper that attempts render when renderer functions exist
-            const attemptRender = () => {
-                const canDisplay = (typeof displayMealPlan === 'function');
-                const canChart = (typeof createCharts === 'function');
-                if (canDisplay) {
-                    try {
-                        displayMealPlan(currentMealPlan, currentUserProfile);
-                        console.log('[DietPlanner] Restored plan rendered to table.');
-                    } catch (err) {
-                        console.warn('[DietPlanner] displayMealPlan threw while restoring plan:', err);
-                    }
-                } else {
-                    console.warn('[DietPlanner] displayMealPlan not defined yet. Will retry soon.');
-                }
-
-                if (canChart) {
-                    try {
-                        // do not await here to keep UI responsive
-                        createCharts(currentMealPlan, currentUserProfile).catch(e => console.warn('[DietPlanner] createCharts error while restoring plan:', e));
-                        console.log('[DietPlanner] Restored plan charts attempted.');
-                    } catch (err) {
-                        console.warn('[DietPlanner] createCharts threw while restoring plan:', err);
-                    }
-                } else {
-                    console.warn('[DietPlanner] createCharts not defined yet. Will retry soon.');
-                }
-
-                // If neither renderer was available, the caller will rely on retry mechanism below
-                if (canDisplay || canChart) return true;
-                return false;
-            };
-
-            // Try immediate render once
-            if (attemptRender()) {
-                console.log('✅ Loaded plan from localStorage and rendered immediately.');
-                return;
-            }
-
-            // Otherwise set up a short polling loop (non-blocking) to retry rendering a few times
-            let attempts = 0;
-            const maxAttempts = 12; // retry for up to ~12 * 500ms = 6 seconds
-            const iv = setInterval(() => {
-                attempts++;
-                const done = attemptRender();
-                if (done || attempts >= maxAttempts) {
-                    clearInterval(iv);
-                    if (!done) {
-                        console.warn('[DietPlanner] Loaded plan from storage but renderer functions not available yet. Plan kept in memory and will render when you generate next plan.');
-                    }
-                }
-            }, 500);
-        }
-    } catch (err) {
-        console.error('Failed to load existing plan:', err);
-    }
-}
-
-// ---------------------------
-// DOMContentLoaded wiring
-document.addEventListener('DOMContentLoaded', () => {
-    initializeTheme();
-    initializeNavigation();
-    initializeMobileMenu();
-    initializeIntersectionObserver();
-    initializeResultsToggle();
-    initializeForm();
-
-    const sendBtn = document.getElementById('sendToTrackerBtn');
-    if (sendBtn) sendBtn.addEventListener('click', sendToTrackerAndRedirect);
-    const csvBtn = document.getElementById('downloadCsvBtn');
-    if (csvBtn) csvBtn.addEventListener('click', downloadCSV);
-    const pdfBtn = document.getElementById('downloadPdfBtn');
-    if (pdfBtn) pdfBtn.addEventListener('click', downloadPDF);
-
-    // pre-load meals (non-blocking)
-    loadMealsDatabase().catch(()=>{});
-    loadExistingPlan();
-    console.log('🍽️ Diet Planner loaded (part 2).');
-});
-
-// Expose key functions globally
-window.sendToTrackerAndRedirect = sendToTrackerAndRedirect;
-window.downloadCSV = downloadCSV;
-window.downloadPDF = downloadPDF;
-window.generateMealPlan = generateMealPlan;
-</script>
+    <script src="planner-diet-planner.js"></script>
 </body>
 </html>

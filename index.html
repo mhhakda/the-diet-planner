@@ -1334,6 +1334,8 @@
             </div>
         </main>
     </div>
+
+    <!-- --------- Loader + preview + safe stubs (placed BEFORE planner-diet-planner.js) --------- -->
     <script>
 /* ---------- START: loadExistingPlan + inline preview ---------- */
 function loadExistingPlan() {
@@ -1468,7 +1470,138 @@ function capitalize(s) {
     s = String(s);
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
-        </script>
+/* ---------- END: loadExistingPlan + inline preview ---------- */
+
+/* ---------- START: Safe stubs for missing init functions ----------
+   These create minimal, non-destructive implementations only if the
+   real implementations are not already present. They are intentionally
+   simple and log activity so you can see what's being used.
+*/
+(function defineSafeStubs() {
+    if (typeof window.initializeTheme !== 'function') {
+        window.initializeTheme = function() {
+            console.info('stub: initializeTheme() called (no-op).');
+            // minimal theme application if page has data-theme attribute
+            try {
+                const theme = document.body.getAttribute('data-theme') || localStorage.getItem('theme');
+                if (theme) document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {}
+        };
+    }
+
+    if (typeof window.initializeNavigation !== 'function') {
+        window.initializeNavigation = function() {
+            console.info('stub: initializeNavigation() called (no-op).');
+            // basic nav behaviour so UI isn't broken if real function missing
+            try {
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                        btn.classList.add('active');
+                        const section = btn.getAttribute('data-section');
+                        // show/hide sections by data-section if present
+                        document.querySelectorAll('.form-section, .results-container').forEach(el => el.classList.add('hidden'));
+                        if (section === 'profile') {
+                            const fs = document.getElementById('formSection');
+                            if (fs) fs.classList.remove('hidden');
+                        } else {
+                            const rc = document.getElementById('resultsContainer');
+                            if (rc) rc.classList.remove('hidden');
+                        }
+                    });
+                });
+            } catch (e) {}
+        };
+    }
+
+    if (typeof window.initializeMobileMenu !== 'function') {
+        window.initializeMobileMenu = function() {
+            console.info('stub: initializeMobileMenu() called (no-op).');
+            try {
+                const btn = document.getElementById('mobileMenuButton');
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('mobileOverlay');
+                if (!btn || !sidebar) return;
+                btn.addEventListener('click', () => {
+                    sidebar.classList.toggle('mobile-open');
+                    overlay.classList.toggle('active');
+                });
+                if (overlay) overlay.addEventListener('click', () => {
+                    sidebar.classList.remove('mobile-open');
+                    overlay.classList.remove('active');
+                });
+            } catch (e) {}
+        };
+    }
+
+    if (typeof window.initializeIntersectionObserver !== 'function') {
+        window.initializeIntersectionObserver = function() {
+            console.info('stub: initializeIntersectionObserver() called (no-op).');
+            // no-op: real implementation may update active sidebar state
+        };
+    }
+
+    if (typeof window.loadMealsDatabase !== 'function') {
+        // likely expected to return a Promise that resolves when meals loaded
+        window.loadMealsDatabase = function(forceReload) {
+            console.info('stub: loadMealsDatabase(' + (forceReload ? 'true' : 'false') + ') called (no-op).');
+            return Promise.resolve();
+        };
+    }
+
+    if (typeof window.initializeForm !== 'function') {
+        window.initializeForm = function() {
+            console.info('stub: initializeForm() called (no-op).');
+            // basic binding so generate button doesn't fail if real init missing
+            try {
+                const genBtn = document.getElementById('generateBtn');
+                if (genBtn && !genBtn._stubbound) {
+                    genBtn.addEventListener('click', function() {
+                        alert('Generate button clicked — planner initialization is not fully loaded.');
+                    });
+                    genBtn._stubbound = true;
+                }
+            } catch (e) {}
+        };
+    }
+
+    if (typeof window.initializePdfExport !== 'function') {
+        window.initializePdfExport = function() {
+            console.info('stub: initializePdfExport() called (no-op).');
+            // wire basic buttons so UI won't break
+            try {
+                const csvBtn = document.getElementById('downloadCsvBtn');
+                if (csvBtn && !csvBtn._stubbound) {
+                    csvBtn.addEventListener('click', () => alert('CSV download is not available (stub).'));
+                    csvBtn._stubbound = true;
+                }
+                const pdfBtn = document.getElementById('downloadPdfBtn');
+                if (pdfBtn && !pdfBtn._stubbound) {
+                    pdfBtn.addEventListener('click', () => alert('PDF download is not available (stub).'));
+                    pdfBtn._stubbound = true;
+                }
+                const sendBtn = document.getElementById('sendToTrackerBtn');
+                if (sendBtn && !sendBtn._stubbound) {
+                    sendBtn.addEventListener('click', () => alert('Send to Tracker is not available (stub).'));
+                    sendBtn._stubbound = true;
+                }
+            } catch (e) {}
+        };
+    }
+
+    if (typeof window.renderMealPlanPreview !== 'function') {
+        // let the earlier inlineMealPlanPreview be used if available
+        window.renderMealPlanPreview = function() {
+            if (typeof inlineMealPlanPreview === 'function') return inlineMealPlanPreview();
+            console.info('stub: renderMealPlanPreview() called (no preview available).');
+        };
+    }
+
+})();
+    </script>
+
+    <!-- Your planner script (keeps unchanged) -->
     <script src="planner-diet-planner.js"></script>
 </body>
 </html>

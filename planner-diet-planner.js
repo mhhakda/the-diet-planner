@@ -369,13 +369,13 @@ async function loadMealsDatabase(forceReload = false) {
 
     mealDbLoadPromise = (async () => {
         const candidates = [
-            'enhanced_meals.json',
             'meals.json',
-            './enhanced_meals.json',
+            'meals.json',
             './meals.json',
-            'data/enhanced_meals.json',
+            './meals.json',
             'data/meals.json',
-            location.origin + '/enhanced_meals.json',
+            'data/meals.json',
+            location.origin + '/meals.json',
             location.origin + '/meals.json'
         ];
 

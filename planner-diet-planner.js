@@ -225,15 +225,62 @@ function scrollToResultsSection(sectionId) {
     resultsScroll.scrollTo({ top, behavior: 'smooth' });
 }
 
-// Form handling
+// Form handling (robust / idempotent)
 function initializeForm() {
     const generateBtn = document.getElementById('generateBtn');
-    if (generateBtn) {
-        generateBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await handleFormSubmit();
-        });
+    if (!generateBtn) return;
+
+    // If an old stub placed a named callback reference, remove it
+    try {
+        if (generateBtn._stubCallback && typeof generateBtn._stubCallback === 'function') {
+            try { generateBtn.removeEventListener('click', generateBtn._stubCallback); } catch (e) {}
+            try { delete generateBtn._stubCallback; } catch (e) {}
+        }
+
+        // If a marker _stubPresent exists (from older safe stubs), clear it
+        if (generateBtn._stubPresent) {
+            try { delete generateBtn._stubPresent; } catch (e) {}
+        }
+    } catch (e) {
+        console.warn('initializeForm: failed to remove stub handlers (non-fatal)', e);
     }
+
+    // Remove previously bound real handler to avoid double-binding on hot reloads
+    try {
+        if (generateBtn._realCallback && typeof generateBtn._realCallback === 'function') {
+            try { generateBtn.removeEventListener('click', generateBtn._realCallback); } catch (e) {}
+        }
+    } catch (e) {
+        // non-fatal
+    }
+
+    // Bind the real handler and keep a reference for future removal
+    generateBtn._realCallback = async function (e) {
+        e.preventDefault();
+        // small defensive guard
+        try {
+            await handleFormSubmit();
+        } catch (err) {
+            console.error('generateBtn._realCallback error:', err);
+        }
+    };
+
+    generateBtn.addEventListener('click', generateBtn._realCallback);
+    generateBtn._realBound = true;
+
+    // Also wire edit profile button if present (idempotent)
+    try {
+        const editBtn = document.getElementById('editProfileBtn');
+        if (editBtn) {
+            if (editBtn._realCallback && typeof editBtn._realCallback === 'function') {
+                try { editBtn.removeEventListener('click', editBtn._realCallback); } catch (e) {}
+            }
+            editBtn._realCallback = function (e) { e.preventDefault(); showForm(); };
+            editBtn.addEventListener('click', editBtn._realCallback);
+        }
+    } catch (e) {}
+
+    console.info('initializeForm: real handlers bound.');
 }
 
 async function handleFormSubmit() {

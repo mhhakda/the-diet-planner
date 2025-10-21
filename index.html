@@ -659,6 +659,7 @@
             transform: scaleX(0);
             transition: transform var(--duration-normal) var(--ease-standard);
             transform-origin: left;
+            border-radius: var(--radius-base);
         }
 
         .stat-card:hover {
@@ -1551,41 +1552,37 @@ function capitalize(s) {
     }
 
     if (typeof window.initializeForm !== 'function') {
+        // Safe no-op stub: do NOT attach UI click alerts here.
+        // The real planner script will call initializeForm() again on DOMContentLoaded
+        // and attach the real handlers; keeping this stub a pure no-op prevents
+        // fake alert popups when the stub executes early.
         window.initializeForm = function() {
             console.info('stub: initializeForm() called (no-op).');
-            // basic binding so generate button doesn't fail if real init missing
+            // intentionally minimal — do not bind UI handlers here
+            // if some very old stub bound a handler, mark that (but we won't create any)
             try {
                 const genBtn = document.getElementById('generateBtn');
-                if (genBtn && !genBtn._stubbound) {
-                    genBtn.addEventListener('click', function() {
-                        alert('Generate button clicked — planner initialization is not fully loaded.');
-                    });
-                    genBtn._stubbound = true;
+                if (genBtn) {
+                    // mark that a stub existed (non-binding), so real init may remove older stub handlers
+                    genBtn._stubPresent = true;
                 }
-            } catch (e) {}
+            } catch (e) {
+                // swallow
+            }
         };
     }
 
     if (typeof window.initializePdfExport !== 'function') {
         window.initializePdfExport = function() {
             console.info('stub: initializePdfExport() called (no-op).');
-            // wire basic buttons so UI won't break
+            // do not bind alerting handlers in stub — mark buttons if present
             try {
                 const csvBtn = document.getElementById('downloadCsvBtn');
-                if (csvBtn && !csvBtn._stubbound) {
-                    csvBtn.addEventListener('click', () => alert('CSV download is not available (stub).'));
-                    csvBtn._stubbound = true;
-                }
+                if (csvBtn) csvBtn._stubPresent = true;
                 const pdfBtn = document.getElementById('downloadPdfBtn');
-                if (pdfBtn && !pdfBtn._stubbound) {
-                    pdfBtn.addEventListener('click', () => alert('PDF download is not available (stub).'));
-                    pdfBtn._stubbound = true;
-                }
+                if (pdfBtn) pdfBtn._stubPresent = true;
                 const sendBtn = document.getElementById('sendToTrackerBtn');
-                if (sendBtn && !sendBtn._stubbound) {
-                    sendBtn.addEventListener('click', () => alert('Send to Tracker is not available (stub).'));
-                    sendBtn._stubbound = true;
-                }
+                if (sendBtn) sendBtn._stubPresent = true;
             } catch (e) {}
         };
     }

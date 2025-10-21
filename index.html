@@ -6,8 +6,9 @@
     <meta name="description" content="Diet Planner - generate personalised daily weekly meal plans, export PDFs, and track meals.">
     <title>Diet Planner - The Diet Planner</title>
     
+    <!-- Diet Tracker Consistent Styling -->
     <style>
-        /* Diet Tracker Design System - Complete CSS Embedded */
+        /* Diet Tracker Design System - Applied to Diet Planner */
         :root {
             /* Color System from Diet Tracker */
             --color-white: rgba(255, 255, 255, 1);
@@ -256,43 +257,36 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--color-primary), var(--color-teal-400));
+            background: var(--color-primary);
             color: var(--color-btn-primary-text);
-            box-shadow: var(--shadow-sm);
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, var(--color-primary-hover), var(--color-teal-600));
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
+            background: var(--color-primary-hover);
+            transform: translateY(-1px);
         }
 
         .btn-primary:active {
-            background: linear-gradient(135deg, var(--color-primary-active), var(--color-teal-700));
+            background: var(--color-primary-active);
             transform: translateY(0);
         }
 
         .btn-success {
-            background: linear-gradient(135deg, var(--color-success), var(--color-teal-400));
+            background: var(--color-success);
             color: var(--color-btn-primary-text);
-            box-shadow: var(--shadow-sm);
         }
 
         .btn-success:hover {
-            background: linear-gradient(135deg, var(--color-primary-hover), var(--color-teal-600));
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
+            background: var(--color-primary-hover);
         }
 
         .btn-secondary {
             background: var(--color-secondary);
             color: var(--color-text);
-            border: 1px solid var(--color-border);
         }
 
         .btn-secondary:hover {
             background: var(--color-secondary-hover);
-            transform: translateY(-1px);
         }
 
         .btn-outline {
@@ -303,7 +297,6 @@
 
         .btn-outline:hover {
             background: var(--color-secondary);
-            transform: translateY(-1px);
         }
 
         .btn-sm {
@@ -313,10 +306,9 @@
         }
 
         .btn-lg {
-            padding: var(--space-12) var(--space-24);
+            padding: var(--space-10) var(--space-20);
             font-size: var(--font-size-lg);
             border-radius: var(--radius-md);
-            box-shadow: var(--shadow-md);
         }
 
         .btn:disabled {
@@ -329,7 +321,7 @@
         .form-control {
             display: block;
             width: 100%;
-            padding: var(--space-10) var(--space-12);
+            padding: var(--space-8) var(--space-12);
             font-size: var(--font-size-md);
             line-height: var(--line-height-normal);
             color: var(--color-text);
@@ -346,7 +338,7 @@
             border-color: var(--color-primary);
             outline: 2px solid var(--color-primary);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(var(--color-teal-500-rgb), 0.15);
+            box-shadow: 0 4px 8px rgba(var(--color-teal-500-rgb), 0.15);
         }
 
         .form-control.is-invalid {
@@ -362,7 +354,7 @@
         }
 
         .form-group {
-            margin-bottom: var(--space-20);
+            margin-bottom: var(--space-16);
         }
 
         .invalid-feedback {
@@ -377,31 +369,30 @@
             background-color: var(--color-surface);
             border-radius: var(--radius-lg);
             border: 1px solid var(--color-card-border);
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-sm);
             overflow: hidden;
-            transition: all var(--duration-normal) var(--ease-standard);
+            transition: box-shadow var(--duration-normal) var(--ease-standard);
         }
 
         .card:hover {
-            box-shadow: var(--shadow-lg);
-            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
         .card-header {
-            padding: var(--space-20) var(--space-24);
+            padding: var(--space-16) var(--space-20);
             border-bottom: 1px solid var(--color-card-border-inner);
-            background: linear-gradient(135deg, var(--color-secondary), rgba(var(--color-brown-600-rgb), 0.08));
+            background: var(--color-secondary);
         }
 
         .card-title {
-            font-size: var(--font-size-xl);
+            font-size: var(--font-size-lg);
             font-weight: var(--font-weight-semibold);
             color: var(--color-text);
             margin: 0;
         }
 
         .card-body {
-            padding: var(--space-24);
+            padding: var(--space-20);
         }
 
         /* Layout */
@@ -412,7 +403,7 @@
 
         .sidebar {
             width: var(--sidebar-width);
-            background: linear-gradient(180deg, var(--color-surface) 0%, rgba(var(--color-brown-600-rgb), 0.05) 100%);
+            background: var(--color-surface);
             border-right: 1px solid var(--color-border);
             position: fixed;
             height: 100vh;
@@ -421,43 +412,45 @@
             z-index: 1000;
             overflow-y: auto;
             transition: transform 0.3s ease;
-            box-shadow: var(--shadow-lg);
         }
 
         .sidebar-header {
-            padding: var(--space-32) var(--space-24);
+            padding: var(--space-24);
             border-bottom: 1px solid var(--color-border);
             text-align: center;
-            background: linear-gradient(135deg, var(--color-primary), var(--color-teal-400));
-            color: var(--color-btn-primary-text);
         }
 
         .logo {
-            font-size: var(--font-size-3xl);
+            font-size: var(--font-size-2xl);
             font-weight: var(--font-weight-bold);
+            color: var(--color-primary);
             margin-bottom: var(--space-4);
+            background: linear-gradient(135deg, var(--color-primary), var(--color-teal-400));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .tagline {
             font-size: var(--font-size-sm);
-            opacity: 0.9;
+            color: var(--color-text-secondary);
             font-weight: var(--font-weight-normal);
-            margin-top: var(--space-4);
+            margin-top: var(--space-2);
         }
 
         .nav-menu {
-            padding: var(--space-20);
+            padding: var(--space-16);
         }
 
         .nav-item {
             display: flex;
             align-items: center;
             padding: var(--space-12) var(--space-16);
-            margin-bottom: var(--space-8);
+            margin-bottom: var(--space-4);
             border-radius: var(--radius-base);
             color: var(--color-text-secondary);
             text-decoration: none;
-            transition: all var(--duration-normal) var(--ease-standard);
+            transition: all 0.2s ease;
             cursor: pointer;
             border: none;
             background: none;
@@ -466,26 +459,25 @@
             font-size: var(--font-size-base);
             font-family: inherit;
             position: relative;
-            overflow: hidden;
         }
 
         .nav-item:before {
             content: '';
             position: absolute;
+            bottom: 0;
             left: 0;
-            top: 0;
-            width: 4px;
-            height: 100%;
+            width: 100%;
+            height: 3px;
             background: var(--color-primary);
-            transform: scaleY(0);
+            transform: scaleX(0);
             transition: transform var(--duration-normal) var(--ease-standard);
-            transform-origin: top;
+            transform-origin: left;
+            border-radius: var(--radius-base);
         }
 
         .nav-item:hover {
             color: var(--color-text);
             background: var(--color-secondary);
-            transform: translateX(4px);
         }
 
         .nav-item.active {
@@ -495,7 +487,7 @@
         }
 
         .nav-item.active:before {
-            transform: scaleY(1);
+            transform: scaleX(1);
         }
 
         .nav-icon {
@@ -527,13 +519,9 @@
 
         .section-title {
             font-size: var(--font-size-4xl);
-            font-weight: var(--font-weight-bold);
+            font-weight: var(--font-weight-semibold);
             color: var(--color-text);
             margin-bottom: var(--space-8);
-            background: linear-gradient(135deg, var(--color-primary), var(--color-teal-400));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .section-subtitle {
@@ -544,7 +532,7 @@
         /* Form section */
         .form-section {
             opacity: 1;
-            transition: all var(--duration-normal) var(--ease-standard);
+            transition: opacity 0.4s ease, transform 0.4s ease;
             flex: 1;
             overflow-y: auto;
         }
@@ -568,7 +556,7 @@
         .results-container {
             opacity: 0;
             transform: translateY(30px);
-            transition: all var(--duration-normal) var(--ease-standard);
+            transition: opacity 0.5s ease, transform 0.5s ease;
             pointer-events: none;
             position: absolute;
             top: var(--space-32);
@@ -595,13 +583,9 @@
 
         .results-title {
             font-size: var(--font-size-3xl);
-            font-weight: var(--font-weight-bold);
+            font-weight: var(--font-weight-semibold);
             color: var(--color-text);
             margin: 0;
-            background: linear-gradient(135deg, var(--color-primary), var(--color-teal-400));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .edit-profile-btn {
@@ -617,14 +601,13 @@
             font-size: var(--font-size-base);
             font-weight: var(--font-weight-medium);
             cursor: pointer;
-            transition: all var(--duration-normal) var(--ease-standard);
+            transition: all 0.2s ease;
         }
 
         .edit-profile-btn:hover {
             background: var(--color-secondary-hover);
             color: var(--color-text);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-sm);
+            transform: translateY(-1px);
         }
 
         .results-content {
@@ -642,25 +625,25 @@
             flex: 1;
             overflow-y: auto;
             scroll-behavior: smooth;
-            padding: var(--space-32);
+            padding: var(--space-24);
         }
 
         /* Stats grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: var(--space-16);
-            margin-bottom: var(--space-32);
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--space-12);
+            margin-bottom: var(--space-24);
         }
 
         .stat-card {
-            background: linear-gradient(135deg, var(--color-surface) 0%, rgba(var(--color-teal-500-rgb), 0.05) 100%);
+            background: var(--color-surface);
             border: 1px solid var(--color-card-border);
-            border-radius: var(--radius-lg);
-            padding: var(--space-20);
+            border-radius: var(--radius-base);
+            padding: var(--space-16);
             text-align: center;
             box-shadow: var(--shadow-sm);
-            transition: all var(--duration-normal) var(--ease-standard);
+            transition: all var(--duration-fast) var(--ease-standard);
             position: relative;
             overflow: hidden;
         }
@@ -680,7 +663,7 @@
 
         .stat-card:hover {
             box-shadow: var(--shadow-md);
-            transform: translateY(-4px);
+            transform: translateY(-2px);
         }
 
         .stat-card:hover:before {
@@ -689,31 +672,30 @@
 
         .stat-title {
             font-size: var(--font-size-xs);
-            font-weight: var(--font-weight-bold);
+            font-weight: var(--font-weight-semibold);
             color: var(--color-text-secondary);
-            margin-bottom: var(--space-12);
+            margin-bottom: var(--space-8);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
 
         .stat-value {
-            font-size: var(--font-size-3xl);
+            font-size: var(--font-size-2xl);
             font-weight: var(--font-weight-bold);
             margin-bottom: var(--space-8);
             line-height: var(--line-height-tight);
-            color: var(--color-primary);
+            color: var(--color-text);
         }
 
         .stat-unit {
-            font-size: var(--font-size-sm);
+            font-size: var(--font-size-xs);
             color: var(--color-text-secondary);
-            font-weight: var(--font-weight-medium);
         }
 
         .stat-target {
             font-size: var(--font-size-xs);
             color: var(--color-text-secondary);
-            margin-top: var(--space-8);
+            margin-top: var(--space-4);
         }
 
         /* Tables */
@@ -721,8 +703,8 @@
             overflow-x: auto;
             border-radius: var(--radius-lg);
             border: 1px solid var(--color-card-border);
-            box-shadow: var(--shadow-md);
-            margin-bottom: var(--space-32);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: var(--space-24);
         }
 
         .table {
@@ -734,10 +716,10 @@
         }
 
         .table th {
-            background: linear-gradient(135deg, var(--color-secondary), rgba(var(--color-brown-600-rgb), 0.08));
-            padding: var(--space-16) var(--space-12);
+            background: var(--color-secondary);
+            padding: var(--space-12) var(--space-8);
             text-align: left;
-            font-weight: var(--font-weight-bold);
+            font-weight: var(--font-weight-semibold);
             color: var(--color-text);
             border-bottom: 2px solid var(--color-border);
             font-size: var(--font-size-xs);
@@ -746,7 +728,7 @@
         }
 
         .table td {
-            padding: var(--space-16) var(--space-12);
+            padding: var(--space-12) var(--space-8);
             border-bottom: 1px solid var(--color-border);
             vertical-align: top;
         }
@@ -759,18 +741,18 @@
             width: 100%;
             border-collapse: collapse;
             background: var(--color-surface);
-            margin: var(--space-20) 0;
+            margin: var(--space-16) 0;
             font-size: var(--font-size-sm);
-            box-shadow: var(--shadow-md);
-            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            border-radius: var(--radius-base);
             overflow: hidden;
         }
 
         .meal-table th {
-            background: linear-gradient(135deg, var(--color-secondary), rgba(var(--color-brown-600-rgb), 0.08));
-            padding: var(--space-16) var(--space-12);
+            background: var(--color-secondary);
+            padding: var(--space-12) var(--space-8);
             text-align: left;
-            font-weight: var(--font-weight-bold);
+            font-weight: var(--font-weight-semibold);
             color: var(--color-text);
             border-bottom: 2px solid var(--color-border);
             font-size: var(--font-size-xs);
@@ -779,7 +761,7 @@
         }
 
         .meal-table td {
-            padding: var(--space-16) var(--space-12);
+            padding: var(--space-12) var(--space-8);
             border-bottom: 1px solid var(--color-border);
             vertical-align: top;
         }
@@ -789,29 +771,25 @@
         }
 
         .day-title {
-            margin: var(--space-32) 0 var(--space-20) 0;
+            margin: var(--space-32) 0 var(--space-16) 0;
             color: var(--color-text);
-            font-size: var(--font-size-2xl);
-            font-weight: var(--font-weight-bold);
-            border-bottom: 3px solid var(--color-primary);
-            padding-bottom: var(--space-12);
-            background: linear-gradient(135deg, var(--color-primary), var(--color-teal-400));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-semibold);
+            border-bottom: 2px solid var(--color-primary);
+            padding-bottom: var(--space-8);
         }
 
         .meal-item {
             font-weight: var(--font-weight-medium);
             color: var(--color-text);
-            margin-bottom: var(--space-8);
-            font-size: var(--font-size-base);
+            margin-bottom: var(--space-4);
+            font-size: var(--font-size-sm);
         }
 
         .meal-serving {
-            font-size: var(--font-size-sm);
+            font-size: var(--font-size-xs);
             color: var(--color-text-secondary);
-            margin-bottom: var(--space-8);
+            margin-bottom: var(--space-4);
         }
 
         .meal-nutrients {
@@ -822,65 +800,54 @@
         /* Charts */
         .charts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: var(--space-24);
-            margin-bottom: var(--space-32);
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--space-16);
+            margin-bottom: var(--space-24);
         }
 
         .chart-container {
-            background: linear-gradient(135deg, var(--color-surface) 0%, rgba(var(--color-teal-500-rgb), 0.03) 100%);
+            background: var(--color-surface);
             border: 1px solid var(--color-card-border);
             border-radius: var(--radius-lg);
-            padding: var(--space-24);
-            box-shadow: var(--shadow-md);
-            transition: all var(--duration-normal) var(--ease-standard);
-        }
-
-        .chart-container:hover {
-            box-shadow: var(--shadow-lg);
-            transform: translateY(-2px);
+            padding: var(--space-20);
+            box-shadow: var(--shadow-sm);
         }
 
         .chart-title {
-            font-size: var(--font-size-xl);
-            font-weight: var(--font-weight-bold);
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
             color: var(--color-text);
-            margin-bottom: var(--space-20);
+            margin-bottom: var(--space-12);
             text-align: center;
         }
 
         .chart-container canvas {
-            max-height: 250px;
+            max-height: 200px;
         }
 
         /* Export section */
         .export-section {
-            background: linear-gradient(135deg, var(--color-surface) 0%, rgba(var(--color-teal-500-rgb), 0.05) 100%);
+            background: var(--color-surface);
             border: 1px solid var(--color-card-border);
             border-radius: var(--radius-lg);
-            padding: var(--space-32);
+            padding: var(--space-24);
             margin-bottom: var(--space-16);
-            box-shadow: var(--shadow-md);
         }
 
         .export-title {
-            font-size: var(--font-size-2xl);
-            font-weight: var(--font-weight-bold);
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-semibold);
             color: var(--color-text);
-            margin-bottom: var(--space-24);
+            margin-bottom: var(--space-16);
             text-align: center;
-            background: linear-gradient(135deg, var(--color-primary), var(--color-teal-400));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .btn-group {
             display: flex;
-            gap: var(--space-16);
+            gap: var(--space-8);
             justify-content: center;
             flex-wrap: wrap;
-            margin: var(--space-24) 0;
+            margin: var(--space-16) 0;
         }
 
         /* Loading */
@@ -902,10 +869,10 @@
             border: 4px solid var(--color-secondary);
             border-top: 4px solid var(--color-primary);
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             animation: spin 1s linear infinite;
-            margin: 0 auto var(--space-20);
+            margin: 0 auto var(--space-16);
         }
 
         @keyframes spin {
@@ -915,8 +882,7 @@
 
         .loading-text {
             color: var(--color-text-secondary);
-            font-size: var(--font-size-lg);
-            font-weight: var(--font-weight-medium);
+            font-size: var(--font-size-base);
         }
 
         /* Mobile Header */
@@ -932,7 +898,6 @@
             z-index: 1001;
             justify-content: space-between;
             align-items: center;
-            box-shadow: var(--shadow-sm);
         }
 
         .mobile-menu-button {
@@ -941,13 +906,7 @@
             font-size: var(--font-size-xl);
             color: var(--color-text);
             cursor: pointer;
-            padding: var(--space-8);
-            border-radius: var(--radius-base);
-            transition: background var(--duration-fast) var(--ease-standard);
-        }
-
-        .mobile-menu-button:hover {
-            background: var(--color-secondary);
+            padding: var(--space-4);
         }
 
         .mobile-logo {
@@ -961,14 +920,8 @@
             border: none;
             font-size: var(--font-size-xl);
             cursor: pointer;
-            padding: var(--space-8);
+            padding: var(--space-4);
             color: var(--color-text);
-            border-radius: var(--radius-base);
-            transition: background var(--duration-fast) var(--ease-standard);
-        }
-
-        .theme-toggle:hover {
-            background: var(--color-secondary);
         }
 
         /* Mobile overlay */
@@ -985,61 +938,6 @@
 
         .mobile-overlay.active {
             display: block;
-        }
-
-        /* Redirect overlay */
-        .redirect-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            color: white;
-            text-align: center;
-        }
-
-        .redirect-content {
-            background: var(--color-surface);
-            padding: var(--space-32);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg);
-            max-width: 400px;
-            color: var(--color-text);
-        }
-
-        .redirect-spinner {
-            border: 4px solid var(--color-secondary);
-            border-top: 4px solid var(--color-primary);
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto var(--space-20);
-        }
-
-        /* Custom scrollbar */
-        .results-scroll::-webkit-scrollbar {
-            width: 12px;
-        }
-
-        .results-scroll::-webkit-scrollbar-track {
-            background: var(--color-secondary);
-            border-radius: var(--radius-base);
-        }
-
-        .results-scroll::-webkit-scrollbar-thumb {
-            background: var(--color-border);
-            border-radius: var(--radius-base);
-            transition: background var(--duration-fast) var(--ease-standard);
-        }
-
-        .results-scroll::-webkit-scrollbar-thumb:hover {
-            background: var(--color-text-secondary);
         }
 
         /* Responsive */
@@ -1079,12 +977,12 @@
 
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
-                gap: var(--space-12);
+                gap: var(--space-8);
             }
 
             .charts-grid {
                 grid-template-columns: 1fr;
-                gap: var(--space-16);
+                gap: var(--space-12);
             }
 
             .btn-group {
@@ -1094,7 +992,7 @@
 
             .btn {
                 width: 100%;
-                max-width: 320px;
+                max-width: 300px;
             }
 
             .section-title {
@@ -1118,18 +1016,81 @@
             }
 
             .stat-card {
-                padding: var(--space-16) var(--space-12);
+                padding: var(--space-12) var(--space-8);
             }
 
             .table th,
             .table td {
-                padding: var(--space-12) var(--space-8);
+                padding: var(--space-8) var(--space-4);
                 font-size: var(--font-size-xs);
             }
 
             .chart-container canvas {
-                max-height: 180px;
+                max-height: 150px;
             }
+        }
+
+        /* Utility classes */
+        .text-center { text-align: center; }
+        .text-primary { color: var(--color-primary); }
+        .text-success { color: var(--color-success); }
+        .text-warning { color: var(--color-warning); }
+        .text-danger { color: var(--color-error); }
+        .d-none { display: none; }
+        .d-block { display: block; }
+
+        /* Redirect overlay */
+        .redirect-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            text-align: center;
+        }
+
+        .redirect-content {
+            background: var(--color-surface);
+            padding: var(--space-32);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            max-width: 400px;
+            color: var(--color-text);
+        }
+
+        .redirect-spinner {
+            border: 4px solid var(--color-secondary);
+            border-top: 4px solid var(--color-primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto var(--space-16);
+        }
+
+        /* Custom scrollbar */
+        .results-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .results-scroll::-webkit-scrollbar-track {
+            background: var(--color-secondary);
+            border-radius: 4px;
+        }
+
+        .results-scroll::-webkit-scrollbar-thumb {
+            background: var(--color-border);
+            border-radius: 4px;
+        }
+
+        .results-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--color-text-secondary);
         }
 
         /* Animations */
@@ -1148,15 +1109,6 @@
             }
         }
 
-        /* Utility classes */
-        .text-center { text-align: center; }
-        .text-primary { color: var(--color-primary); }
-        .text-success { color: var(--color-success); }
-        .text-warning { color: var(--color-warning); }
-        .text-danger { color: var(--color-error); }
-        .d-none { display: none; }
-        .d-block { display: block; }
-
         /* Font loading */
         @font-face {
             font-family: 'FKGroteskNeue';
@@ -1166,6 +1118,9 @@
 </head>
 
 <body data-theme="light" data-diet-tracker-url="https://thedietplanner.com/diet-tracker">
+    <!-- Accessibility skip link -->
+    <a class="sr-only" href="#mainContent" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden">Skip to content</a>
+
     <!-- Mobile Header -->
     <div class="mobile-header" role="banner">
         <button class="mobile-menu-button" id="mobileMenuButton" aria-expanded="false" aria-controls="sidebar">☰</button>
@@ -1343,6 +1298,7 @@
                             <div class="stats-grid" id="statsGrid"></div>
                             
                             <div class="table-responsive">
+                                <!-- FIXED container name changed to mealPlanContainer -->
                                 <div id="mealPlanContainer"></div>
                             </div>
 
@@ -1364,10 +1320,10 @@
                                     <button class="btn btn-primary btn-lg" id="sendToTrackerBtn" aria-label="Send to diet tracker">
                                         📱 Send to Diet Tracker
                                     </button>
-                                    <button class="btn btn-success btn-lg" id="downloadCsvBtn" aria-label="Download CSV">
+                                    <button class="btn btn-success" id="downloadCsvBtn" aria-label="Download CSV">
                                         📊 Download CSV
                                     </button>
-                                    <button class="btn btn-success btn-lg" id="downloadPdfBtn" aria-label="Download PDF">
+                                    <button class="btn btn-success" id="downloadPdfBtn" aria-label="Download PDF">
                                         📄 Download PDF
                                     </button>
                                 </div>
@@ -1379,6 +1335,273 @@
         </main>
     </div>
 
+    <!-- --------- Loader + preview + safe stubs (placed BEFORE planner-diet-planner.js) --------- -->
+    <script>
+/* ---------- START: loadExistingPlan + inline preview ---------- */
+function loadExistingPlan() {
+    try {
+        const candidateKeys = [
+            'planned_meals_v1',
+            'INTEGRATION_STORAGE_KEY',
+            'diettracker_import',
+            'meal_plan_transfer',
+            'savedMealPlan',
+            'meal_plan',
+            'currentMealPlan'
+        ];
+
+        let raw = null;
+        let foundKey = null;
+        for (const k of candidateKeys) {
+            const v = localStorage.getItem(k);
+            if (v) { raw = v; foundKey = k; break; }
+        }
+        if (!raw) return;
+
+        let parsed = null;
+        try { parsed = JSON.parse(raw); } catch (e) { parsed = raw; }
+
+        let plan = null;
+        let profile = null;
+        if (parsed && typeof parsed === 'object') {
+            plan = parsed.plan || parsed.mealPlan || parsed.mealplan || parsed;
+            profile = parsed.profile || parsed.userProfile || null;
+            if (parsed.payload && typeof parsed.payload === 'object') {
+                plan = plan || parsed.payload.plan || parsed.payload.mealPlan || parsed.payload;
+            }
+            if (plan && plan.profile && !profile) {
+                profile = plan.profile;
+                delete plan.profile;
+            }
+        }
+
+        if (!plan || (typeof plan === 'object' && Object.keys(plan).length === 0)) return;
+
+        // expose to globals the rest of the file expects
+        window.currentMealPlan = plan;
+        window.currentUserProfile = profile || window.currentUserProfile || null;
+
+        if (typeof renderMealPlanPreview === 'function') {
+            try { renderMealPlanPreview(); }
+            catch (e) { console.warn('renderMealPlanPreview threw; falling back to inline preview', e); inlineMealPlanPreview(); }
+        } else {
+            inlineMealPlanPreview();
+        }
+
+        console.log('✅ Loaded existing meal plan from localStorage key:', foundKey);
+    } catch (err) {
+        console.error('loadExistingPlan() error:', err);
+    }
+}
+
+function inlineMealPlanPreview() {
+    try {
+        const container = document.getElementById('mealPlanContainer');
+        if (!container) return;
+
+        const plan = window.currentMealPlan;
+        if (!plan || Object.keys(plan).length === 0) {
+            container.innerHTML = '<p style="color:var(--color-text-secondary);padding:0.5rem">No saved plan to display.</p>';
+            return;
+        }
+
+        const daysOrder = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+        const keys = Object.keys(plan);
+        const orderedDays = [];
+        for (const d of daysOrder) {
+            const match = keys.find(k => k.toLowerCase() === d);
+            if (match) orderedDays.push(match);
+        }
+        for (const k of keys) if (!orderedDays.includes(k)) orderedDays.push(k);
+
+        let html = '';
+        orderedDays.forEach(dayKey => {
+            const dayObj = plan[dayKey];
+            html += `<div class="day-title" style="font-weight:700;margin-top:8px">${escapeHtml(capitalize(dayKey))}</div>`;
+            if (!dayObj || (typeof dayObj !== 'object' && !Array.isArray(dayObj))) {
+                html += `<div class="meal-item">${escapeHtml(String(dayObj || '—'))}</div>`;
+                return;
+            }
+
+            const mealTypes = Object.keys(dayObj);
+            if (!mealTypes.length) {
+                html += `<div class="meal-item">No meals defined for this day.</div>`;
+                return;
+            }
+
+            html += `<ul style="margin:6px 0 12px 12px">`;
+            mealTypes.forEach(mt => {
+                const items = dayObj[mt];
+                if (Array.isArray(items)) {
+                    html += `<li><strong>${escapeHtml(mt)}:</strong> ${items.map(it => {
+                        if (!it) return '';
+                        if (typeof it === 'string') return escapeHtml(it);
+                        const title = it.title || it.name || it.food || '';
+                        const serve = it.serving_size ? ` (${escapeHtml(it.serving_size)})` : '';
+                        return escapeHtml(title) + serve;
+                    }).join(', ')}</li>`;
+                } else if (typeof items === 'object') {
+                    const title = items.title || items.name || '';
+                    html += `<li><strong>${escapeHtml(mt)}:</strong> ${escapeHtml(title)}</li>`;
+                } else {
+                    html += `<li><strong>${escapeHtml(mt)}:</strong> ${escapeHtml(String(items))}</li>`;
+                }
+            });
+            html += `</ul>`;
+        });
+
+        container.innerHTML = html;
+
+        const resultsContainer = document.getElementById('resultsContainer');
+        if (resultsContainer && !resultsContainer.classList.contains('visible')) {
+            resultsContainer.classList.add('visible');
+        }
+    } catch (err) {
+        console.error('inlineMealPlanPreview error:', err);
+    }
+}
+
+function escapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, function(m) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; });
+}
+function capitalize(s) {
+    if (!s) return s;
+    s = String(s);
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+/* ---------- END: loadExistingPlan + inline preview ---------- */
+
+/* ---------- START: Safe stubs for missing init functions ----------
+   These create minimal, non-destructive implementations only if the
+   real implementations are not already present. They are intentionally
+   simple and log activity so you can see what's being used.
+*/
+(function defineSafeStubs() {
+    if (typeof window.initializeTheme !== 'function') {
+        window.initializeTheme = function() {
+            console.info('stub: initializeTheme() called (no-op).');
+            // minimal theme application if page has data-theme attribute
+            try {
+                const theme = document.body.getAttribute('data-theme') || localStorage.getItem('theme');
+                if (theme) document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {}
+        };
+    }
+
+    if (typeof window.initializeNavigation !== 'function') {
+        window.initializeNavigation = function() {
+            console.info('stub: initializeNavigation() called (no-op).');
+            // basic nav behaviour so UI isn't broken if real function missing
+            try {
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                        btn.classList.add('active');
+                        const section = btn.getAttribute('data-section');
+                        // show/hide sections by data-section if present
+                        document.querySelectorAll('.form-section, .results-container').forEach(el => el.classList.add('hidden'));
+                        if (section === 'profile') {
+                            const fs = document.getElementById('formSection');
+                            if (fs) fs.classList.remove('hidden');
+                        } else {
+                            const rc = document.getElementById('resultsContainer');
+                            if (rc) rc.classList.remove('hidden');
+                        }
+                    });
+                });
+            } catch (e) {}
+        };
+    }
+
+    if (typeof window.initializeMobileMenu !== 'function') {
+        window.initializeMobileMenu = function() {
+            console.info('stub: initializeMobileMenu() called (no-op).');
+            try {
+                const btn = document.getElementById('mobileMenuButton');
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('mobileOverlay');
+                if (!btn || !sidebar) return;
+                btn.addEventListener('click', () => {
+                    sidebar.classList.toggle('mobile-open');
+                    overlay.classList.toggle('active');
+                });
+                if (overlay) overlay.addEventListener('click', () => {
+                    sidebar.classList.remove('mobile-open');
+                    overlay.classList.remove('active');
+                });
+            } catch (e) {}
+        };
+    }
+
+    if (typeof window.initializeIntersectionObserver !== 'function') {
+        window.initializeIntersectionObserver = function() {
+            console.info('stub: initializeIntersectionObserver() called (no-op).');
+            // no-op: real implementation may update active sidebar state
+        };
+    }
+
+    if (typeof window.loadMealsDatabase !== 'function') {
+        // likely expected to return a Promise that resolves when meals loaded
+        window.loadMealsDatabase = function(forceReload) {
+            console.info('stub: loadMealsDatabase(' + (forceReload ? 'true' : 'false') + ') called (no-op).');
+            return Promise.resolve();
+        };
+    }
+
+    if (typeof window.initializeForm !== 'function') {
+        window.initializeForm = function() {
+            console.info('stub: initializeForm() called (no-op).');
+            // basic binding so generate button doesn't fail if real init missing
+            try {
+                const genBtn = document.getElementById('generateBtn');
+                if (genBtn && !genBtn._stubbound) {
+                    genBtn.addEventListener('click', function() {
+                        alert('Generate button clicked — planner initialization is not fully loaded.');
+                    });
+                    genBtn._stubbound = true;
+                }
+            } catch (e) {}
+        };
+    }
+
+    if (typeof window.initializePdfExport !== 'function') {
+        window.initializePdfExport = function() {
+            console.info('stub: initializePdfExport() called (no-op).');
+            // wire basic buttons so UI won't break
+            try {
+                const csvBtn = document.getElementById('downloadCsvBtn');
+                if (csvBtn && !csvBtn._stubbound) {
+                    csvBtn.addEventListener('click', () => alert('CSV download is not available (stub).'));
+                    csvBtn._stubbound = true;
+                }
+                const pdfBtn = document.getElementById('downloadPdfBtn');
+                if (pdfBtn && !pdfBtn._stubbound) {
+                    pdfBtn.addEventListener('click', () => alert('PDF download is not available (stub).'));
+                    pdfBtn._stubbound = true;
+                }
+                const sendBtn = document.getElementById('sendToTrackerBtn');
+                if (sendBtn && !sendBtn._stubbound) {
+                    sendBtn.addEventListener('click', () => alert('Send to Tracker is not available (stub).'));
+                    sendBtn._stubbound = true;
+                }
+            } catch (e) {}
+        };
+    }
+
+    if (typeof window.renderMealPlanPreview !== 'function') {
+        // let the earlier inlineMealPlanPreview be used if available
+        window.renderMealPlanPreview = function() {
+            if (typeof inlineMealPlanPreview === 'function') return inlineMealPlanPreview();
+            console.info('stub: renderMealPlanPreview() called (no preview available).');
+        };
+    }
+
+})();
+    </script>
+
+    <!-- Your planner script (keeps unchanged) -->
     <script src="planner-diet-planner.js"></script>
 </body>
 </html>

@@ -532,7 +532,7 @@
         const prompt = `Generate a detailed weekly meal plan (breakfast, lunch, dinner, snacks, macros) for this profile: Age: ${profile.age}, Gender: ${profile.gender}, Height: ${profile.height} cm, Weight: ${profile.weight} kg, Goal: ${profile.goal}, Diet Type: ${profile.dietType}, Region: ${profile.region}, Activity Level: ${profile.activityLevel}, Target Calories: ${profile.targetCalories || 'Auto'}. Format the response as clean HTML with tables showing each day's meals and nutritional breakdown.`;
 
         // OpenAI API call
-        const OPENAI_API_KEY = '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';
+        const OPENAI_API_KEY = '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';
         const url = 'https://api.openai.com/v1/chat/completions';
         const payload = {
           model: 'gpt-4o',
